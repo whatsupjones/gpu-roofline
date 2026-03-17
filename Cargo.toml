@@ -1,0 +1,48 @@
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/chrisjones/gpu-tools"
+rust-version = "1.75"
+
+[workspace.dependencies]
+# Shared crates
+gpu-harness = { path = "crates/gpu-harness" }
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+comfy-table = "7"
+indicatif = "0.17"
+colored = "2"
+
+# TUI
+ratatui = "0.30"
+crossterm = "0.28"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = "0.4"
+
+# GPU
+wgpu = "23"
+pollster = "0.4"
+cudarc = { version = "0.19", features = ["cuda-version-from-build-system", "cuda-12040"] }
+nvml-wrapper = "0.10"
+
+# Stats
+statrs = "0.18"
+
+# Errors
+thiserror = "2"
+
+# Testing
+rand = "0.8"
