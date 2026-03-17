@@ -1,0 +1,28 @@
+[package]
+name = "gpu-harness"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "GPU device discovery, simulation, and backend abstraction for gpu-tools"
+
+[features]
+default = []
+cuda = ["dep:cudarc"]
+nvml = ["dep:nvml-wrapper"]
+full = ["cuda", "nvml"]
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+rand = { workspace = true }
+
+# GPU backends (optional)
+wgpu = { workspace = true, optional = true }
+pollster = { workspace = true, optional = true }
+cudarc = { workspace = true, optional = true }
+nvml-wrapper = { workspace = true, optional = true }
+
+[dev-dependencies]
+rand = { workspace = true }
