@@ -1,0 +1,13 @@
+[package]
+name = "gpu-fleet"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Multi-GPU fleet validation, topology discovery, and straggler detection"
+
+[dependencies]
+gpu-harness = { workspace = true }
+gpu-roofline = { path = "../gpu-roofline" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
