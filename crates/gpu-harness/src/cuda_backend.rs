@@ -18,6 +18,7 @@ mod inner {
     use crate::error::HarnessError;
 
     const CUDA_KERNEL_SOURCE: &str = include_str!("../shaders/cuda/roofline_kernels.cu");
+    const TENSOR_KERNEL_SOURCE: &str = include_str!("../shaders/cuda/tensor_kernels.cu");
     const BLOCK_SIZE: u32 = 256;
 
     /// CUDA backend for datacenter GPU compute.
@@ -361,13 +362,13 @@ mod inner {
             let tile_bytes = 256 * 2; // 16x16 tiles, 2 bytes per element
             let num_tiles = buffer_size_bytes / tile_bytes;
 
-            // Compile with sm_90 architecture for WMMA support
+            // Compile tensor kernels separately with sm_90 + mma.h support
             let compile_opts = cudarc::nvrtc::CompileOptions {
                 arch: Some("sm_90"),
                 include_paths: vec!["/usr/local/cuda/include".to_string()],
                 ..Default::default()
             };
-            let ptx = cudarc::nvrtc::compile_ptx_with_opts(CUDA_KERNEL_SOURCE, compile_opts)
+            let ptx = cudarc::nvrtc::compile_ptx_with_opts(TENSOR_KERNEL_SOURCE, compile_opts)
                 .map_err(|e| {
                     HarnessError::KernelFailed(format!("NVRTC Tensor Core compilation failed: {e}"))
                 })?;
