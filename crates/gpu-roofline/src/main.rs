@@ -453,7 +453,7 @@ fn cmd_monitor(
     log_path: Option<String>,
     sim: Option<String>,
     format: &OutputFormat,
-    no_color: bool,
+    _no_color: bool,
     backend_choice: &BackendChoice,
 ) -> i32 {
     let backend = match get_backend(&sim, backend_choice) {
@@ -466,10 +466,18 @@ fn cmd_monitor(
 
     // Get device info for display
     let devices = backend.discover_devices().unwrap_or_default();
-    let device_name = devices
-        .first()
+    let device = devices.first();
+    let device_name = device
         .map(|d| d.name.clone())
         .unwrap_or_else(|| "Unknown GPU".to_string());
+    let driver_version = device
+        .and_then(|d| d.driver_version.clone())
+        .unwrap_or_default();
+    let compute_cap = device
+        .and_then(|d| d.features.compute_capability)
+        .map(|(maj, min)| format!("sm_{}{}", maj, min))
+        .unwrap_or_default();
+    let vram_total = device.map(|d| d.memory_bytes).unwrap_or(0);
 
     // Run initial baseline measurement
     eprintln!("Taking baseline measurement on {device_name}...");
@@ -496,17 +504,6 @@ fn cmd_monitor(
         "Baseline: {:.0} GB/s | {:.1} GFLOP/s",
         baseline.peak_bandwidth_gbps, baseline.peak_gflops
     );
-    eprintln!(
-        "Monitoring every {}s (threshold: {:.0}%){}",
-        interval,
-        alert_threshold * 100.0,
-        if duration > 0 {
-            format!(" for {}s", duration)
-        } else {
-            " (indefinite, Ctrl+C to stop)".to_string()
-        }
-    );
-    eprintln!();
 
     let monitor_config = monitor::MonitorConfig {
         interval_secs: interval,
@@ -529,6 +526,50 @@ fn cmd_monitor(
             .ok()
     });
 
+    // Daemon mode: JSON lines, no TUI
+    if daemon {
+        let result = sampler.run(backend.as_ref(), |sample| {
+            if let Some(ref mut file) = log_file {
+                use std::io::Write;
+                if let Ok(json) = serde_json::to_string(sample) {
+                    let _ = writeln!(file, "{json}");
+                }
+            }
+            if let Ok(json) = serde_json::to_string(sample) {
+                println!("{json}");
+            }
+            true
+        });
+        return match result {
+            Ok(_) => 0,
+            Err(e) => {
+                eprintln!("Monitoring error: {e}");
+                1
+            }
+        };
+    }
+
+    // TUI mode (default for interactive)
+    let mut tui_state = monitor::tui::TuiState::new(monitor::tui::TuiConfig {
+        baseline_bw: baseline.peak_bandwidth_gbps,
+        baseline_gflops: baseline.peak_gflops,
+        device_name,
+        driver_version,
+        compute_capability: compute_cap,
+        max_clock_mhz: baseline.clock_mhz,
+        tdp_watts: if baseline.power_watts > 0.0 { baseline.power_watts } else { 700.0 },
+        vram_total_bytes: vram_total,
+    });
+
+    let mut terminal = match monitor::tui::init_terminal() {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("Failed to initialize TUI: {e}");
+            eprintln!("Try --daemon for headless mode.");
+            return 2;
+        }
+    };
+
     let result = sampler.run(backend.as_ref(), |sample| {
         // Write JSON log line
         if let Some(ref mut file) = log_file {
@@ -538,78 +579,38 @@ fn cmd_monitor(
             }
         }
 
-        if daemon {
-            // Daemon mode: JSON only to stdout
-            if let Ok(json) = serde_json::to_string(sample) {
-                println!("{json}");
-            }
-        } else {
-            // Interactive mode: formatted line
-            let status_marker = match &sample.status {
-                monitor::SampleStatus::Normal => if no_color { "OK" } else { "\x1b[32mOK\x1b[0m" },
-                monitor::SampleStatus::Warning { .. } => if no_color { "WARN" } else { "\x1b[33mWARN\x1b[0m" },
-                monitor::SampleStatus::Alert { .. } => if no_color { "ALERT" } else { "\x1b[31mALERT\x1b[0m" },
-            };
+        tui_state.push_sample(sample.clone());
 
-            let temp_str = if sample.temperature_c > 0 {
-                format!("{}°C", sample.temperature_c)
-            } else {
-                "--".to_string()
-            };
+        // Render TUI
+        let _ = terminal.draw(|frame| {
+            monitor::tui::draw(frame, &tui_state);
+        });
 
-            let power_str = if sample.power_watts > 0.0 {
-                format!("{:.0}W", sample.power_watts)
-            } else {
-                "--".to_string()
-            };
-
-            println!(
-                "[{}] #{:<3} {:<5} | {:.0} GB/s | {:.0} GFLOP/s | CV {:.1}% | {} | {} | {:.0}%",
-                sample.timestamp.format("%H:%M:%S"),
-                sample.sample_index,
-                status_marker,
-                sample.bandwidth_gbps,
-                sample.gflops,
-                sample.cv * 100.0,
-                temp_str,
-                power_str,
-                sample.utilization_pct,
-            );
-
-            // Print alerts
-            for alert in &sample.alerts {
-                let level = match alert.level {
-                    monitor::AlertLevel::Warning => if no_color { "  WARN:" } else { "  \x1b[33mWARN:\x1b[0m" },
-                    monitor::AlertLevel::Critical => if no_color { "  CRIT:" } else { "  \x1b[31mCRIT:\x1b[0m" },
-                };
-                println!("{} {}", level, alert.message);
-            }
-        }
-
-        true // Continue monitoring
+        // Check for quit key
+        !monitor::tui::poll_input()
     });
+
+    // Restore terminal
+    let _ = monitor::tui::restore_terminal();
 
     match result {
         Ok(samples) => {
-            if !daemon {
+            eprintln!(
+                "Monitoring complete: {} samples collected",
+                samples.len()
+            );
+
+            if !samples.is_empty() {
+                let avg_bw: f64 =
+                    samples.iter().map(|s| s.bandwidth_gbps).sum::<f64>() / samples.len() as f64;
+                let avg_gflops: f64 =
+                    samples.iter().map(|s| s.gflops).sum::<f64>() / samples.len() as f64;
+                let alert_count: usize = samples.iter().map(|s| s.alerts.len()).sum();
+
                 eprintln!(
-                    "\nMonitoring complete: {} samples collected",
-                    samples.len()
+                    "Average: {:.0} GB/s | {:.0} GFLOP/s | {} alerts",
+                    avg_bw, avg_gflops, alert_count
                 );
-
-                // Summary
-                if !samples.is_empty() {
-                    let avg_bw: f64 =
-                        samples.iter().map(|s| s.bandwidth_gbps).sum::<f64>() / samples.len() as f64;
-                    let avg_gflops: f64 =
-                        samples.iter().map(|s| s.gflops).sum::<f64>() / samples.len() as f64;
-                    let alert_count: usize = samples.iter().map(|s| s.alerts.len()).sum();
-
-                    eprintln!(
-                        "Average: {:.0} GB/s | {:.0} GFLOP/s | {} alerts",
-                        avg_bw, avg_gflops, alert_count
-                    );
-                }
             }
 
             // JSON summary output

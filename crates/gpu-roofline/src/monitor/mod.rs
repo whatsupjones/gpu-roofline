@@ -6,9 +6,11 @@
 
 pub mod alerting;
 pub mod sampler;
+pub mod tui;
 
-pub use alerting::AlertLevel;
 // Re-export for library consumers
 #[allow(unused_imports)]
-pub use alerting::{Alert, AlertRule};
+pub use alerting::{Alert, AlertLevel, AlertRule};
 pub use sampler::{MonitorConfig, MonitorSample, SampleStatus, Sampler};
+#[allow(unused_imports)]
+pub use tui::TuiState;
