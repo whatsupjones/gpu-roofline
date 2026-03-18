@@ -12,7 +12,10 @@ pub use state::{
     VgpuSnapshot, VgpuState, VgpuTechnology,
 };
 
-pub use detect::VgpuDetector;
+pub use detect::{
+    auto_detect, CloudPassthroughDetector, CompositeDetector, K8sDevicePluginDetector,
+    NvidiaGridDetector, NvidiaMigDetector, SrIovDetector, VgpuDetector,
+};
 
 pub use contention::ContentionMeasurer;
 pub use teardown::TeardownVerifier;
