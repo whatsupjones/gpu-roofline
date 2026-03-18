@@ -40,12 +40,16 @@ pub struct KernelResult {
 
 impl KernelResult {
     /// Throughput in GB/s from median timing.
+    /// Counts total memory traffic (read + write) for bandwidth measurement.
+    /// A copy kernel reads N bytes and writes N bytes = 2N total traffic.
     pub fn bandwidth_gbps(&self) -> f64 {
         let median = self.median_us();
         if median <= 0.0 {
             return 0.0;
         }
-        (self.bytes_processed as f64) / (median * 1e-6) / 1e9
+        // Total memory traffic = read + write = 2x buffer size for copy-like kernels
+        let total_bytes = self.bytes_processed as f64 * 2.0;
+        total_bytes / (median * 1e-6) / 1e9
     }
 
     /// Achieved GFLOP/s from median timing.

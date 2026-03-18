@@ -7,7 +7,9 @@ use crate::model::RooflineModel;
 /// Configuration for a roofline measurement session.
 #[derive(Debug, Clone)]
 pub struct MeasureConfig {
-    /// Buffer size for kernel execution (bytes). Default: 16 MB.
+    /// Buffer size for kernel execution (bytes).
+    /// Must exceed L2 cache to measure HBM/DRAM bandwidth.
+    /// Default: 256 MB (exceeds all current GPU L2 caches).
     pub buffer_size_bytes: usize,
     /// Warm-up iterations before measurement. Default: 10.
     pub warmup_iterations: u32,
@@ -22,7 +24,10 @@ pub struct MeasureConfig {
 impl Default for MeasureConfig {
     fn default() -> Self {
         Self {
-            buffer_size_bytes: 16 * 1024 * 1024,
+            // 256 MB: exceeds L2 cache on all current GPUs
+            // (H100: 50MB L2, RTX 4090: 72MB L2, MI300X: 256MB Infinity Cache)
+            // This ensures we measure HBM/DRAM bandwidth, not L2.
+            buffer_size_bytes: 256 * 1024 * 1024,
             warmup_iterations: 10,
             measurement_iterations: 100,
             kernels: BuiltinKernel::all().to_vec(),

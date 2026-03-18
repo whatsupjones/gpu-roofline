@@ -50,7 +50,7 @@ pub struct DynamicConfig {
     pub stability_window_secs: f64,
     /// How often to sample device state (milliseconds). Default: 500.
     pub sample_interval_ms: u64,
-    /// Buffer size for kernel execution. Default: 16 MB.
+    /// Buffer size for kernel execution. Default: 256 MB (exceeds L2 cache).
     pub buffer_size_bytes: usize,
     /// Measurement iterations per sample. Default: 20.
     pub iterations_per_sample: u32,
@@ -65,7 +65,7 @@ impl Default for DynamicConfig {
             equilibrium_cv_threshold: 0.02,
             stability_window_secs: 10.0,
             sample_interval_ms: 500,
-            buffer_size_bytes: 16 * 1024 * 1024,
+            buffer_size_bytes: 256 * 1024 * 1024,
             iterations_per_sample: 20,
             include_contention: false,
         }
