@@ -213,6 +213,139 @@ mod inner {
 
             Ok(timings)
         }
+
+        /// Dispatch multi-buffer kernels (add, scale, triad).
+        fn dispatch_multi_buffer_kernel(
+            dev_info: &CudaDeviceInfo,
+            kernel_name: &str,
+            kernel_type: &str,
+            buffer_size_bytes: usize,
+            iterations: u32,
+        ) -> Result<Vec<f64>, HarnessError> {
+            let stream = &dev_info.stream;
+            let element_count = buffer_size_bytes / 16; // float4 = 16 bytes
+
+            // Compile PTX
+            let ptx = cudarc::nvrtc::compile_ptx(CUDA_KERNEL_SOURCE).map_err(|e| {
+                HarnessError::KernelFailed(format!("NVRTC compilation failed: {e}"))
+            })?;
+
+            let module = dev_info.ctx.load_module(ptx).map_err(|e| {
+                HarnessError::KernelFailed(format!("Failed to load PTX module: {e}"))
+            })?;
+
+            let func = module.load_function(kernel_name).map_err(|e| {
+                HarnessError::KernelFailed(format!(
+                    "Kernel function '{kernel_name}' not found: {e}"
+                ))
+            })?;
+
+            // Allocate buffers
+            let src_a_data: Vec<f32> = (0..element_count * 4)
+                .map(|i| (i as f32) * 0.001 + 1.0)
+                .collect();
+            let src_b_data: Vec<f32> = (0..element_count * 4)
+                .map(|i| (i as f32) * 0.002 + 0.5)
+                .collect();
+
+            let src_a: CudaSlice<f32> = stream.clone_htod(&src_a_data).map_err(|e| {
+                HarnessError::KernelFailed(format!("Failed to copy src_a to device: {e}"))
+            })?;
+            let src_b: CudaSlice<f32> = stream.clone_htod(&src_b_data).map_err(|e| {
+                HarnessError::KernelFailed(format!("Failed to copy src_b to device: {e}"))
+            })?;
+            let mut dst: CudaSlice<f32> = stream.alloc_zeros(element_count * 4).map_err(|e| {
+                HarnessError::KernelFailed(format!("Failed to allocate dst on device: {e}"))
+            })?;
+
+            let n = element_count as u32;
+            let grid_size = n.div_ceil(BLOCK_SIZE);
+            let scalar: f32 = 2.0;
+
+            let cfg = LaunchConfig {
+                block_dim: (BLOCK_SIZE, 1, 1),
+                grid_dim: (grid_size, 1, 1),
+                shared_mem_bytes: 0,
+            };
+
+            // Warmup
+            {
+                let mut builder = stream.launch_builder(&func);
+                match kernel_type {
+                    "scale" => {
+                        builder.arg(&src_a);
+                        builder.arg(&mut dst);
+                        builder.arg(&scalar);
+                        builder.arg(&n);
+                    }
+                    "add" => {
+                        builder.arg(&src_a);
+                        builder.arg(&src_b);
+                        builder.arg(&mut dst);
+                        builder.arg(&n);
+                    }
+                    "triad" => {
+                        builder.arg(&src_a);
+                        builder.arg(&src_b);
+                        builder.arg(&mut dst);
+                        builder.arg(&scalar);
+                        builder.arg(&n);
+                    }
+                    _ => unreachable!(),
+                }
+                unsafe {
+                    builder.launch(cfg).map_err(|e| {
+                        HarnessError::KernelFailed(format!("Warmup launch failed: {e}"))
+                    })?;
+                }
+            }
+            stream
+                .synchronize()
+                .map_err(|e| HarnessError::KernelFailed(format!("Warmup sync failed: {e}")))?;
+
+            // Timed iterations
+            let mut timings = Vec::with_capacity(iterations as usize);
+            for _ in 0..iterations {
+                let start = Instant::now();
+                {
+                    let mut builder = stream.launch_builder(&func);
+                    match kernel_type {
+                        "scale" => {
+                            builder.arg(&src_a);
+                            builder.arg(&mut dst);
+                            builder.arg(&scalar);
+                            builder.arg(&n);
+                        }
+                        "add" => {
+                            builder.arg(&src_a);
+                            builder.arg(&src_b);
+                            builder.arg(&mut dst);
+                            builder.arg(&n);
+                        }
+                        "triad" => {
+                            builder.arg(&src_a);
+                            builder.arg(&src_b);
+                            builder.arg(&mut dst);
+                            builder.arg(&scalar);
+                            builder.arg(&n);
+                        }
+                        _ => unreachable!(),
+                    }
+                    unsafe {
+                        builder.launch(cfg).map_err(|e| {
+                            HarnessError::KernelFailed(format!("Launch failed: {e}"))
+                        })?;
+                    }
+                }
+                stream
+                    .synchronize()
+                    .map_err(|e| HarnessError::KernelFailed(format!("Sync failed: {e}")))?;
+                let elapsed_us = start.elapsed().as_secs_f64() * 1e6;
+                timings.push(elapsed_us);
+            }
+
+            Ok(timings)
+        }
     }
 
     impl GpuBackend for CudaBackend {
@@ -228,18 +361,9 @@ mod inner {
                 "fma_light" => "fma_light_kernel",
                 "fma_medium" => "fma_medium_kernel",
                 "fma_heavy" => "fma_heavy_kernel",
-                "scale" | "add" | "triad" => {
-                    tracing::info!(
-                        "Skipping kernel '{}' (multi-buffer not yet supported in CUDA backend)",
-                        kernel.name
-                    );
-                    return Ok(KernelResult {
-                        kernel_name: kernel.name.clone(),
-                        elapsed_us: vec![0.0; config.measurement_iterations as usize],
-                        bytes_processed: config.buffer_size_bytes,
-                        flops_executed: 0,
-                    });
-                }
+                "scale" => "scale_kernel",
+                "add" => "add_kernel",
+                "triad" => "triad_kernel",
                 other => {
                     return Err(HarnessError::KernelFailed(format!(
                         "Unknown kernel: {other}"
@@ -247,12 +371,21 @@ mod inner {
                 }
             };
 
-            let timings = Self::dispatch_kernel(
-                dev_info,
-                cuda_kernel_name,
-                config.buffer_size_bytes,
-                config.measurement_iterations,
-            )?;
+            let timings = match kernel.name.as_str() {
+                "scale" | "add" | "triad" => Self::dispatch_multi_buffer_kernel(
+                    dev_info,
+                    cuda_kernel_name,
+                    &kernel.name,
+                    config.buffer_size_bytes,
+                    config.measurement_iterations,
+                )?,
+                _ => Self::dispatch_kernel(
+                    dev_info,
+                    cuda_kernel_name,
+                    config.buffer_size_bytes,
+                    config.measurement_iterations,
+                )?,
+            };
 
             let elements = config.buffer_size_bytes / 16; // float4 = 16 bytes
                                                           // AI = FLOP / bytes_transferred. Bytes = read (16) + write (16) = 32

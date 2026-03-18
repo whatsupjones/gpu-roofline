@@ -23,6 +23,58 @@ void copy_kernel(const float4* __restrict__ src, float4* __restrict__ dst, unsig
     }
 }
 
+// Scale kernel: dst[i] = scalar * src[i]
+// Uses grid-stride loop like copy for consistency.
+extern "C" __global__
+void scale_kernel(const float4* __restrict__ src, float4* __restrict__ dst, float scalar, unsigned int n) {
+    unsigned int stride = blockDim.x * gridDim.x;
+    for (unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x; idx < n; idx += stride) {
+        float4 val = __ldcs(src + idx);
+        float4 result;
+        result.x = scalar * val.x;
+        result.y = scalar * val.y;
+        result.z = scalar * val.z;
+        result.w = scalar * val.w;
+        __stcs(dst + idx, result);
+    }
+}
+
+// Add kernel: dst[i] = src_a[i] + src_b[i]
+// Two source buffers, one destination.
+extern "C" __global__
+void add_kernel(const float4* __restrict__ src_a, const float4* __restrict__ src_b,
+                float4* __restrict__ dst, unsigned int n) {
+    unsigned int stride = blockDim.x * gridDim.x;
+    for (unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x; idx < n; idx += stride) {
+        float4 a = __ldcs(src_a + idx);
+        float4 b = __ldcs(src_b + idx);
+        float4 result;
+        result.x = a.x + b.x;
+        result.y = a.y + b.y;
+        result.z = a.z + b.z;
+        result.w = a.w + b.w;
+        __stcs(dst + idx, result);
+    }
+}
+
+// Triad kernel: dst[i] = src_a[i] + scalar * src_b[i]
+// STREAM triad — the gold standard bandwidth benchmark.
+extern "C" __global__
+void triad_kernel(const float4* __restrict__ src_a, const float4* __restrict__ src_b,
+                  float4* __restrict__ dst, float scalar, unsigned int n) {
+    unsigned int stride = blockDim.x * gridDim.x;
+    for (unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x; idx < n; idx += stride) {
+        float4 a = __ldcs(src_a + idx);
+        float4 b = __ldcs(src_b + idx);
+        float4 result;
+        result.x = a.x + scalar * b.x;
+        result.y = a.y + scalar * b.y;
+        result.z = a.z + scalar * b.z;
+        result.w = a.w + scalar * b.w;
+        __stcs(dst + idx, result);
+    }
+}
+
 // ===========================================================================
 // COMPUTE KERNELS — Independent Accumulator Lanes for Maximum ILP
 // ===========================================================================
