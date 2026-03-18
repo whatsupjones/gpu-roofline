@@ -68,6 +68,9 @@ mod inner {
         adapters: Vec<AdapterEntry>,
         /// Metadata about each detected adapter.
         pub metadata: Vec<AdapterMetadata>,
+        /// NVML telemetry for NVIDIA GPUs (enriches device_state).
+        #[cfg(feature = "nvml")]
+        nvml: Option<crate::nvml_telemetry::NvmlTelemetry>,
     }
 
     struct AdapterEntry {
@@ -222,7 +225,30 @@ mod inner {
                 );
             }
 
-            Ok(Self { adapters, metadata })
+            // Try NVML for NVIDIA GPU telemetry
+            #[cfg(feature = "nvml")]
+            let nvml = {
+                // Only init NVML if we have an NVIDIA adapter
+                let has_nvidia = metadata.iter().any(|m| m.vendor_id == 0x10DE);
+                if has_nvidia {
+                    match crate::nvml_telemetry::NvmlTelemetry::new() {
+                        Ok(n) => {
+                            tracing::info!("NVML telemetry available for NVIDIA GPUs");
+                            Some(n)
+                        }
+                        Err(_) => None,
+                    }
+                } else {
+                    None
+                }
+            };
+
+            Ok(Self {
+                adapters,
+                metadata,
+                #[cfg(feature = "nvml")]
+                nvml,
+            })
         }
 
         /// Run a compute shader on a specific device.
@@ -393,8 +419,17 @@ mod inner {
                 .get(device_index as usize)
                 .ok_or(HarnessError::DeviceIndexOutOfRange(device_index))?;
 
-            // wgpu doesn't expose thermal/power telemetry.
-            // NVML feature will enrich this in a future version.
+            // Use NVML for NVIDIA GPUs if available
+            #[cfg(feature = "nvml")]
+            if let Some(nvml) = &self.nvml {
+                // NVML device index may differ from wgpu adapter index.
+                // For single-GPU systems this is fine; multi-GPU would need PCI matching.
+                if let Ok(state) = nvml.query_state(device_index) {
+                    return Ok(state);
+                }
+            }
+
+            // Fallback: wgpu doesn't expose thermal/power telemetry
             Ok(DeviceState {
                 clock_mhz: 0,
                 temperature_c: 0,

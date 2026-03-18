@@ -13,7 +13,8 @@ path = "src/main.rs"
 default = ["wgpu-backend"]
 wgpu-backend = ["gpu-harness/wgpu-backend"]
 cuda = ["gpu-harness/cuda"]
-full = ["wgpu-backend", "cuda"]
+nvml = ["gpu-harness/nvml"]
+full = ["wgpu-backend", "cuda", "nvml"]
 
 [dependencies]
 gpu-harness = { workspace = true }

@@ -24,6 +24,8 @@ mod inner {
     /// CUDA backend for datacenter GPU compute.
     pub struct CudaBackend {
         devices: Vec<CudaDeviceInfo>,
+        #[cfg(feature = "nvml")]
+        nvml: Option<crate::nvml_telemetry::NvmlTelemetry>,
     }
 
     struct CudaDeviceInfo {
@@ -100,7 +102,28 @@ mod inner {
                 return Err(HarnessError::NoDevice);
             }
 
-            Ok(Self { devices })
+            // Try to initialize NVML for telemetry (temp, clock, power)
+            #[cfg(feature = "nvml")]
+            let nvml = match crate::nvml_telemetry::NvmlTelemetry::new() {
+                Ok(n) => {
+                    tracing::info!(
+                        "NVML initialized: driver {} | {} device(s)",
+                        n.driver_version().unwrap_or_else(|| "unknown".into()),
+                        n.device_count()
+                    );
+                    Some(n)
+                }
+                Err(e) => {
+                    tracing::warn!("NVML not available (telemetry will be limited): {e}");
+                    None
+                }
+            };
+
+            Ok(Self {
+                devices,
+                #[cfg(feature = "nvml")]
+                nvml,
+            })
         }
 
         fn dispatch_kernel(
@@ -250,6 +273,15 @@ mod inner {
                 .get(device_index as usize)
                 .ok_or(HarnessError::DeviceIndexOutOfRange(device_index))?;
 
+            // Use NVML for real telemetry if available
+            #[cfg(feature = "nvml")]
+            if let Some(nvml) = &self.nvml {
+                if let Ok(state) = nvml.query_state(device_index) {
+                    return Ok(state);
+                }
+            }
+
+            // Fallback: only memory total from CUDA API
             Ok(DeviceState {
                 clock_mhz: 0,
                 temperature_c: 0,
@@ -261,6 +293,16 @@ mod inner {
         }
 
         fn discover_devices(&self) -> Result<Vec<GpuDevice>, HarnessError> {
+            // Get NVML-enriched data if available
+            #[cfg(feature = "nvml")]
+            let driver_version = self
+                .nvml
+                .as_ref()
+                .and_then(|n| n.driver_version());
+
+            #[cfg(not(feature = "nvml"))]
+            let driver_version: Option<String> = None;
+
             Ok(self
                 .devices
                 .iter()
@@ -271,14 +313,24 @@ mod inner {
                         d.compute_capability.1 as u32,
                     );
 
+                    // Get PCI bus ID from NVML if available
+                    #[cfg(feature = "nvml")]
+                    let pci_bus_id = self
+                        .nvml
+                        .as_ref()
+                        .and_then(|n| n.pci_bus_id(i as u32));
+
+                    #[cfg(not(feature = "nvml"))]
+                    let pci_bus_id: Option<String> = None;
+
                     GpuDevice {
                         index: i as u32,
                         name: d.name.clone(),
                         vendor: GpuVendor::Nvidia,
                         architecture: arch,
                         memory_bytes: d.total_memory_bytes as u64,
-                        pci_bus_id: None,
-                        driver_version: None,
+                        pci_bus_id,
+                        driver_version: driver_version.clone(),
                         features: GpuFeatures {
                             timestamp_queries: true,
                             shader_f16: d.compute_capability.0 >= 7,

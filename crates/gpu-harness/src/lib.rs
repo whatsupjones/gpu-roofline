@@ -8,12 +8,14 @@ pub mod backend;
 pub mod cuda_backend;
 pub mod device;
 pub mod error;
+pub mod nvml_telemetry;
 pub mod sim;
 pub mod wgpu_backend;
 
 pub use backend::{BandwidthResult, DeviceState, GpuBackend, KernelResult, KernelSpec, RunConfig};
 pub use device::{GpuArchitecture, GpuDevice, GpuFeatures, GpuLimits, GpuVendor};
 pub use error::HarnessError;
+pub use nvml_telemetry::NvmlTelemetry;
 
 #[cfg(feature = "wgpu-backend")]
 pub use wgpu_backend::WgpuBackend;
