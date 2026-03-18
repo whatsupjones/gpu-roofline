@@ -18,7 +18,7 @@ mod inner {
     use crate::error::HarnessError;
 
     const CUDA_KERNEL_SOURCE: &str =
-        include_str!("../../gpu-roofline/shaders/cuda/roofline_kernels.cu");
+        include_str!("../shaders/cuda/roofline_kernels.cu");
     const BLOCK_SIZE: u32 = 256;
 
     /// CUDA backend for datacenter GPU compute.

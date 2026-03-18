@@ -3,7 +3,11 @@ name = "gpu-harness"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "GPU device discovery, simulation, and backend abstraction for gpu-tools"
+repository.workspace = true
+homepage.workspace = true
+description = "GPU device discovery, simulation engine, and backend abstraction for cross-vendor GPU benchmarking"
+keywords = ["gpu", "cuda", "benchmark", "simulation", "nvidia"]
+categories = ["hardware-support", "simulation"]
 
 [features]
 default = ["wgpu-backend"]

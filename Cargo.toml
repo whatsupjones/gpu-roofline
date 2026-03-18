@@ -6,12 +6,13 @@ resolver = "2"
 version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/chrisjones/gpu-tools"
+repository = "https://github.com/whatsupjones/gpu-roofline"
+homepage = "https://github.com/whatsupjones/gpu-roofline"
 rust-version = "1.75"
 
 [workspace.dependencies]
 # Shared crates
-gpu-harness = { path = "crates/gpu-harness" }
+gpu-harness = { path = "crates/gpu-harness", version = "0.1.0" }
 
 # CLI
 clap = { version = "4", features = ["derive"] }

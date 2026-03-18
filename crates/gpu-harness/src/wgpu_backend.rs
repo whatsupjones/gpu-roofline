@@ -370,10 +370,10 @@ mod inner {
             // Look up WGSL source for built-in kernels.
             // Only 2-binding kernels (src + dst) supported in v0.1.
             let wgsl_source = match kernel.name.as_str() {
-                "copy" => include_str!("../../gpu-roofline/shaders/copy.wgsl"),
-                "fma_light" => include_str!("../../gpu-roofline/shaders/fma_light.wgsl"),
-                "fma_medium" => include_str!("../../gpu-roofline/shaders/fma_medium.wgsl"),
-                "fma_heavy" => include_str!("../../gpu-roofline/shaders/fma_heavy.wgsl"),
+                "copy" => include_str!("../shaders/copy.wgsl"),
+                "fma_light" => include_str!("../shaders/fma_light.wgsl"),
+                "fma_medium" => include_str!("../shaders/fma_medium.wgsl"),
+                "fma_heavy" => include_str!("../shaders/fma_heavy.wgsl"),
                 "scale" | "add" | "triad" => {
                     tracing::info!(
                         "Skipping kernel '{}' (multi-binding not yet supported on real GPU)",

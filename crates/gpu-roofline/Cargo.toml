@@ -3,7 +3,11 @@ name = "gpu-roofline"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
+homepage.workspace = true
 description = "Cross-vendor dynamic GPU roofline model with tension-based performance analysis"
+keywords = ["gpu", "roofline", "benchmark", "cuda", "performance"]
+categories = ["command-line-utilities", "hardware-support"]
 
 [[bin]]
 name = "gpu-roofline"
