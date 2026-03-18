@@ -21,6 +21,7 @@
 pub mod ceilings;
 pub mod kernels;
 pub mod model;
+pub mod monitor;
 pub mod output;
 pub mod validate;
 

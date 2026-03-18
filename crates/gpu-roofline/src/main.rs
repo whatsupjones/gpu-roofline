@@ -15,6 +15,7 @@ mod ceilings;
 mod cli;
 mod kernels;
 mod model;
+mod monitor;
 mod output;
 mod validate;
 
@@ -63,6 +64,24 @@ fn main() {
             baseline: _,
         } => cmd_validate(
             if strict { 0.9 } else { threshold },
+            sim,
+            &cli.format,
+            cli.no_color,
+            &cli.backend,
+        ),
+        Commands::Monitor {
+            interval,
+            duration,
+            alert_threshold,
+            daemon,
+            log,
+            sim,
+        } => cmd_monitor(
+            interval,
+            duration,
+            alert_threshold,
+            daemon,
+            log,
             sim,
             &cli.format,
             cli.no_color,
@@ -423,6 +442,190 @@ fn cmd_validate(
     }
 
     result.exit_code()
+}
+
+#[allow(clippy::too_many_arguments)]
+fn cmd_monitor(
+    interval: u64,
+    duration: u64,
+    alert_threshold: f64,
+    daemon: bool,
+    log_path: Option<String>,
+    sim: Option<String>,
+    format: &OutputFormat,
+    no_color: bool,
+    backend_choice: &BackendChoice,
+) -> i32 {
+    let backend = match get_backend(&sim, backend_choice) {
+        Ok(b) => b,
+        Err(e) => {
+            eprintln!("Error: {e}");
+            return 2;
+        }
+    };
+
+    // Get device info for display
+    let devices = backend.discover_devices().unwrap_or_default();
+    let device_name = devices
+        .first()
+        .map(|d| d.name.clone())
+        .unwrap_or_else(|| "Unknown GPU".to_string());
+
+    // Run initial baseline measurement
+    eprintln!("Taking baseline measurement on {device_name}...");
+    let baseline_config = ceilings::MeasureConfig {
+        buffer_size_bytes: 256 * 1024 * 1024,
+        measurement_iterations: 20,
+        warmup_iterations: 5,
+        kernels: vec![
+            crate::kernels::BuiltinKernel::Copy,
+            crate::kernels::BuiltinKernel::FmaHeavy,
+        ],
+        device_index: 0,
+    };
+
+    let baseline = match ceilings::measure_roofline(backend.as_ref(), &baseline_config) {
+        Ok(m) => m,
+        Err(e) => {
+            eprintln!("Baseline measurement failed: {e}");
+            return 1;
+        }
+    };
+
+    eprintln!(
+        "Baseline: {:.0} GB/s | {:.1} GFLOP/s",
+        baseline.peak_bandwidth_gbps, baseline.peak_gflops
+    );
+    eprintln!(
+        "Monitoring every {}s (threshold: {:.0}%){}",
+        interval,
+        alert_threshold * 100.0,
+        if duration > 0 {
+            format!(" for {}s", duration)
+        } else {
+            " (indefinite, Ctrl+C to stop)".to_string()
+        }
+    );
+    eprintln!();
+
+    let monitor_config = monitor::MonitorConfig {
+        interval_secs: interval,
+        duration_secs: duration,
+        alert_threshold,
+        buffer_size_bytes: 256 * 1024 * 1024,
+        iterations_per_sample: 10,
+        log_path: log_path.clone(),
+        daemon,
+    };
+
+    let mut sampler = monitor::Sampler::new(monitor_config, &baseline);
+
+    // Open log file if requested
+    let mut log_file = log_path.as_ref().and_then(|path| {
+        std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(path)
+            .ok()
+    });
+
+    let result = sampler.run(backend.as_ref(), |sample| {
+        // Write JSON log line
+        if let Some(ref mut file) = log_file {
+            use std::io::Write;
+            if let Ok(json) = serde_json::to_string(sample) {
+                let _ = writeln!(file, "{json}");
+            }
+        }
+
+        if daemon {
+            // Daemon mode: JSON only to stdout
+            if let Ok(json) = serde_json::to_string(sample) {
+                println!("{json}");
+            }
+        } else {
+            // Interactive mode: formatted line
+            let status_marker = match &sample.status {
+                monitor::SampleStatus::Normal => if no_color { "OK" } else { "\x1b[32mOK\x1b[0m" },
+                monitor::SampleStatus::Warning { .. } => if no_color { "WARN" } else { "\x1b[33mWARN\x1b[0m" },
+                monitor::SampleStatus::Alert { .. } => if no_color { "ALERT" } else { "\x1b[31mALERT\x1b[0m" },
+            };
+
+            let temp_str = if sample.temperature_c > 0 {
+                format!("{}°C", sample.temperature_c)
+            } else {
+                "--".to_string()
+            };
+
+            let power_str = if sample.power_watts > 0.0 {
+                format!("{:.0}W", sample.power_watts)
+            } else {
+                "--".to_string()
+            };
+
+            println!(
+                "[{}] #{:<3} {:<5} | {:.0} GB/s | {:.0} GFLOP/s | CV {:.1}% | {} | {} | {:.0}%",
+                sample.timestamp.format("%H:%M:%S"),
+                sample.sample_index,
+                status_marker,
+                sample.bandwidth_gbps,
+                sample.gflops,
+                sample.cv * 100.0,
+                temp_str,
+                power_str,
+                sample.utilization_pct,
+            );
+
+            // Print alerts
+            for alert in &sample.alerts {
+                let level = match alert.level {
+                    monitor::AlertLevel::Warning => if no_color { "  WARN:" } else { "  \x1b[33mWARN:\x1b[0m" },
+                    monitor::AlertLevel::Critical => if no_color { "  CRIT:" } else { "  \x1b[31mCRIT:\x1b[0m" },
+                };
+                println!("{} {}", level, alert.message);
+            }
+        }
+
+        true // Continue monitoring
+    });
+
+    match result {
+        Ok(samples) => {
+            if !daemon {
+                eprintln!(
+                    "\nMonitoring complete: {} samples collected",
+                    samples.len()
+                );
+
+                // Summary
+                if !samples.is_empty() {
+                    let avg_bw: f64 =
+                        samples.iter().map(|s| s.bandwidth_gbps).sum::<f64>() / samples.len() as f64;
+                    let avg_gflops: f64 =
+                        samples.iter().map(|s| s.gflops).sum::<f64>() / samples.len() as f64;
+                    let alert_count: usize = samples.iter().map(|s| s.alerts.len()).sum();
+
+                    eprintln!(
+                        "Average: {:.0} GB/s | {:.0} GFLOP/s | {} alerts",
+                        avg_bw, avg_gflops, alert_count
+                    );
+                }
+            }
+
+            // JSON summary output
+            if matches!(format, OutputFormat::Json) {
+                if let Ok(json) = serde_json::to_string_pretty(&samples) {
+                    println!("{json}");
+                }
+            }
+
+            0
+        }
+        Err(e) => {
+            eprintln!("Monitoring error: {e}");
+            1
+        }
+    }
 }
 
 fn cmd_profiles() -> i32 {

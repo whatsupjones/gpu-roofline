@@ -93,6 +93,33 @@ pub enum Commands {
         baseline: Option<String>,
     },
 
+    /// Continuously monitor GPU performance and alert on degradation
+    Monitor {
+        /// Seconds between performance samples (default: 60)
+        #[arg(long, default_value = "60")]
+        interval: u64,
+
+        /// Total monitoring duration in seconds (0 = indefinite)
+        #[arg(long, default_value = "0")]
+        duration: u64,
+
+        /// Alert if performance drops below this fraction of baseline (0.0-1.0)
+        #[arg(long, default_value = "0.8")]
+        alert_threshold: f64,
+
+        /// Run in daemon mode (JSON logging only, no interactive output)
+        #[arg(long)]
+        daemon: bool,
+
+        /// Write JSON log to this file path
+        #[arg(long, value_name = "PATH")]
+        log: Option<String>,
+
+        /// Use simulated GPU profile
+        #[arg(long, value_name = "PROFILE")]
+        sim: Option<String>,
+    },
+
     /// List available simulation profiles
     Profiles,
 }
