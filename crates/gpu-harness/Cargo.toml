@@ -12,7 +12,7 @@ categories = ["hardware-support", "simulation"]
 [features]
 default = ["wgpu-backend"]
 wgpu-backend = ["dep:wgpu", "dep:pollster"]
-cuda = ["dep:cudarc"]
+cuda = ["dep:cudarc", "nvml"]
 nvml = ["dep:nvml-wrapper"]
 full = ["wgpu-backend", "cuda", "nvml"]
 

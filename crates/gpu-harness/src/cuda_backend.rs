@@ -360,9 +360,12 @@ mod inner {
             let tile_bytes = 256 * 2; // 16x16 tiles, 2 bytes per element
             let num_tiles = buffer_size_bytes / tile_bytes;
 
-            // Compile tensor kernels separately with sm_90 + mma.h support
+            // Compile tensor kernels with device's actual compute capability + mma.h support
+            // WMMA requires sm_70+; use device arch for best codegen (sm_120 for Blackwell, etc.)
+            let (cc_major, cc_minor) = dev_info.compute_capability;
+            let arch_str = format!("sm_{}{}", cc_major, cc_minor);
             let compile_opts = cudarc::nvrtc::CompileOptions {
-                arch: Some("sm_90"),
+                arch: Some(&arch_str),
                 include_paths: vec!["/usr/local/cuda/include".to_string()],
                 ..Default::default()
             };

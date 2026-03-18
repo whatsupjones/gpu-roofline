@@ -120,7 +120,8 @@ impl GpuArchitecture {
     /// Classify NVIDIA architecture from CUDA compute capability.
     pub fn from_compute_capability(major: u32, minor: u32) -> Self {
         match (major, minor) {
-            (10, _) => Self::Blackwell,
+            (12, _) => Self::Blackwell, // Blackwell consumer (RTX 5090 = sm_120)
+            (10, _) => Self::Blackwell, // Blackwell datacenter (B200 = sm_100)
             (9, _) => Self::Hopper,
             (8, 9) => Self::Ada,
             (8, _) => Self::Ampere,
