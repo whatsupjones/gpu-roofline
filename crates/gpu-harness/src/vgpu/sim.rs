@@ -21,6 +21,13 @@ pub enum SimAction {
         instance_id: String,
         ghost_bytes: u64,
     },
+    /// Simulate contention impact on existing tenants when a new vGPU squeezes them.
+    ContentionEvent {
+        affected_instances: Vec<String>,
+        bandwidth_impact: Vec<f64>,
+        compute_impact: Vec<f64>,
+        caused_by: String,
+    },
 }
 
 /// A timed event in a simulation scenario.
@@ -130,6 +137,24 @@ fn grid_contention() -> VgpuSimScenario {
                 spin_up_latency_ms: 250.0 + i as f64 * 50.0,
             },
         });
+
+        // After creating instance N (N>=1), existing tenants get squeezed.
+        // Each new vGPU reduces existing tenants' bandwidth proportionally.
+        if i > 0 {
+            let total_instances = i + 1;
+            let affected: Vec<String> = (0..i).map(|j| format!("grid-{j}")).collect();
+            // Each existing tenant gets 1/total_instances share instead of 1/i share
+            let impact = i as f64 / total_instances as f64; // e.g. 2→3 tenants = 0.67
+            events.push(ScheduledEvent {
+                delay_secs: 1.0 + i as f64 * 3.0 + 0.5,
+                action: SimAction::ContentionEvent {
+                    bandwidth_impact: vec![impact; affected.len()],
+                    compute_impact: vec![impact; affected.len()],
+                    caused_by: format!("grid-{i}"),
+                    affected_instances: affected,
+                },
+            });
+        }
     }
 
     VgpuSimScenario {
@@ -285,6 +310,22 @@ impl VgpuDetector for SimulatedDetector {
                     instance_id: instance_id.clone(),
                     snapshot: None,
                 },
+                SimAction::ContentionEvent {
+                    affected_instances,
+                    bandwidth_impact,
+                    compute_impact,
+                    caused_by,
+                } => VgpuEvent {
+                    timestamp: chrono::Utc::now(),
+                    event_type: VgpuEventType::ContentionDetected {
+                        affected_instances: affected_instances.clone(),
+                        bandwidth_impact: bandwidth_impact.clone(),
+                        compute_impact: compute_impact.clone(),
+                        caused_by: caused_by.clone(),
+                    },
+                    instance_id: caused_by.clone(),
+                    snapshot: None,
+                },
             };
 
             if tx.send(event).is_err() {
@@ -340,8 +381,103 @@ mod tests {
     #[test]
     fn test_grid_contention_scenario() {
         let s = scenario_by_name("grid_contention").unwrap();
-        assert_eq!(s.events.len(), 4);
+        // 4 creates + 3 contention events (after instances 1, 2, 3)
+        assert_eq!(s.events.len(), 7);
         assert_eq!(s.partitioning_mode, PartitioningMode::TimeSliced);
+
+        // Verify contention events exist
+        let contention_count = s
+            .events
+            .iter()
+            .filter(|e| matches!(e.action, SimAction::ContentionEvent { .. }))
+            .count();
+        assert_eq!(contention_count, 3);
+    }
+
+    #[test]
+    fn test_grid_contention_emits_contention_events() {
+        let s = scenario_by_name("grid_contention").unwrap();
+        let fast = VgpuSimScenario {
+            name: s.name.clone(),
+            description: s.description.clone(),
+            technology: s.technology,
+            partitioning_mode: s.partitioning_mode,
+            physical_vram_bytes: s.physical_vram_bytes,
+            events: s
+                .events
+                .into_iter()
+                .map(|mut e| {
+                    e.delay_secs = 0.0;
+                    e
+                })
+                .collect(),
+        };
+        let detector = SimulatedDetector::new(fast);
+
+        let (tx, rx) = mpsc::channel();
+        detector.watch(tx).unwrap();
+
+        let events: Vec<_> = rx.try_iter().collect();
+        let contention_events: Vec<_> = events
+            .iter()
+            .filter(|e| matches!(e.event_type, VgpuEventType::ContentionDetected { .. }))
+            .collect();
+
+        assert_eq!(
+            contention_events.len(),
+            3,
+            "grid_contention should emit 3 ContentionDetected events"
+        );
+
+        // Verify first contention event affects grid-0, caused by grid-1
+        if let VgpuEventType::ContentionDetected {
+            affected_instances,
+            caused_by,
+            bandwidth_impact,
+            ..
+        } = &contention_events[0].event_type
+        {
+            assert_eq!(affected_instances, &["grid-0"]);
+            assert_eq!(caused_by, "grid-1");
+            // 1/2 = 0.5 impact ratio
+            assert!((bandwidth_impact[0] - 0.5).abs() < 0.01);
+        }
+    }
+
+    #[test]
+    fn test_mig_scale_up_no_contention() {
+        let s = scenario_by_name("mig_scale_up").unwrap();
+        let fast = VgpuSimScenario {
+            name: s.name.clone(),
+            description: s.description.clone(),
+            technology: s.technology,
+            partitioning_mode: s.partitioning_mode,
+            physical_vram_bytes: s.physical_vram_bytes,
+            events: s
+                .events
+                .into_iter()
+                .map(|mut e| {
+                    e.delay_secs = 0.0;
+                    e
+                })
+                .collect(),
+        };
+        let detector = SimulatedDetector::new(fast);
+
+        let (tx, rx) = mpsc::channel();
+        detector.watch(tx).unwrap();
+
+        let events: Vec<_> = rx.try_iter().collect();
+        let contention_events: Vec<_> = events
+            .iter()
+            .filter(|e| matches!(e.event_type, VgpuEventType::ContentionDetected { .. }))
+            .collect();
+
+        assert_eq!(
+            contention_events.len(),
+            0,
+            "MIG (hardware-partitioned) should have zero contention events"
+        );
     }
 
     #[test]
