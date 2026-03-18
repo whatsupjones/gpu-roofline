@@ -79,6 +79,65 @@ mod inner {
                 .and_then(|d| d.pci_info().ok())
                 .map(|pci| pci.bus_id)
         }
+
+        /// Check if MIG mode is enabled on a device.
+        pub fn mig_mode_enabled(&self, device_index: u32) -> bool {
+            self.nvml
+                .device_by_index(device_index)
+                .ok()
+                .and_then(|d| d.mig_mode().ok())
+                .map(|mode| mode.currently_on)
+                .unwrap_or(false)
+        }
+
+        /// Enumerate active MIG instances on a device.
+        /// Returns (instance_index, name) pairs.
+        pub fn enumerate_mig_instances(
+            &self,
+            device_index: u32,
+        ) -> Result<Vec<MigInstanceInfo>, HarnessError> {
+            let device = self
+                .nvml
+                .device_by_index(device_index)
+                .map_err(|_| HarnessError::DeviceIndexOutOfRange(device_index))?;
+
+            // Check if MIG is enabled
+            let mig_mode = device.mig_mode().map_err(|e| {
+                HarnessError::VgpuDetectionFailed(format!("MIG mode query failed: {e}"))
+            })?;
+
+            if !mig_mode.currently_on {
+                return Ok(Vec::new());
+            }
+
+            let count = device.mig_device_count().unwrap_or(0);
+            let mut instances = Vec::new();
+
+            for i in 0..count {
+                if let Ok(mig_device) = device.mig_device_by_index(i) {
+                    let mem_info = mig_device.memory_info().ok();
+                    let name = mig_device.name().unwrap_or_else(|_| format!("MIG-{i}"));
+
+                    instances.push(MigInstanceInfo {
+                        index: i,
+                        name,
+                        memory_total_bytes: mem_info.as_ref().map(|m| m.total).unwrap_or(0),
+                        memory_used_bytes: mem_info.as_ref().map(|m| m.used).unwrap_or(0),
+                    });
+                }
+            }
+
+            Ok(instances)
+        }
+    }
+
+    /// Information about a single MIG instance.
+    #[derive(Debug, Clone)]
+    pub struct MigInstanceInfo {
+        pub index: u32,
+        pub name: String,
+        pub memory_total_bytes: u64,
+        pub memory_used_bytes: u64,
     }
 }
 
