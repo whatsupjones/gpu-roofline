@@ -1,0 +1,356 @@
+{
+  "device_name": "NVIDIA H200",
+  "burst": {
+    "device_name": "NVIDIA H200",
+    "peak_gflops": 59479.15248140399,
+    "peak_bandwidth_gbps": 4012.368180323458,
+    "ridge_point": 14.823951793130076,
+    "clock_mhz": 1980,
+    "temperature_c": 25,
+    "power_watts": 80.102,
+    "placements": []
+  },
+  "sustained": {
+    "device_name": "NVIDIA H200",
+    "peak_gflops": 59447.76544598275,
+    "peak_bandwidth_gbps": 4024.1425053874254,
+    "ridge_point": 14.772778391022563,
+    "clock_mhz": 1980,
+    "temperature_c": 26,
+    "power_watts": 120.689,
+    "placements": []
+  },
+  "tensions": [],
+  "equilibrium_time_secs": 10.0,
+  "thermal_trajectory": [
+    {
+      "elapsed_secs": 0.5,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 119.912,
+      "measured_gflops": 59482.80787997401,
+      "measured_bandwidth_gbps": 4001.24397805867
+    },
+    {
+      "elapsed_secs": 1.0,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 124.687,
+      "measured_gflops": 59476.88738945367,
+      "measured_bandwidth_gbps": 4016.720998960041
+    },
+    {
+      "elapsed_secs": 1.5,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 126.27,
+      "measured_gflops": 59404.39272204204,
+      "measured_bandwidth_gbps": 4020.164903833554
+    },
+    {
+      "elapsed_secs": 2.0,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 119.824,
+      "measured_gflops": 59420.007830496055,
+      "measured_bandwidth_gbps": 4009.296875058343
+    },
+    {
+      "elapsed_secs": 2.5,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 121.076,
+      "measured_gflops": 59418.51787713795,
+      "measured_bandwidth_gbps": 4009.4465857365303
+    },
+    {
+      "elapsed_secs": 3.0,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 119.624,
+      "measured_gflops": 59436.35084320343,
+      "measured_bandwidth_gbps": 4011.753542886392
+    },
+    {
+      "elapsed_secs": 3.5,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 120.691,
+      "measured_gflops": 59416.51426456806,
+      "measured_bandwidth_gbps": 4013.7480524529383
+    },
+    {
+      "elapsed_secs": 4.0,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 124.223,
+      "measured_gflops": 59415.43545222909,
+      "measured_bandwidth_gbps": 4007.6657534655606
+    },
+    {
+      "elapsed_secs": 4.5,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 120.101,
+      "measured_gflops": 59405.676549534364,
+      "measured_bandwidth_gbps": 4002.7057341176646
+    },
+    {
+      "elapsed_secs": 5.0,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 120.55,
+      "measured_gflops": 59433.009559343096,
+      "measured_bandwidth_gbps": 3999.2469774960337
+    },
+    {
+      "elapsed_secs": 5.5,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 125.212,
+      "measured_gflops": 59403.98190896393,
+      "measured_bandwidth_gbps": 3991.278869386147
+    },
+    {
+      "elapsed_secs": 6.0,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 120.446,
+      "measured_gflops": 59385.96307706666,
+      "measured_bandwidth_gbps": 4013.3129903380745
+    },
+    {
+      "elapsed_secs": 6.5,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 123.69,
+      "measured_gflops": 59407.422643978956,
+      "measured_bandwidth_gbps": 4012.5181204642786
+    },
+    {
+      "elapsed_secs": 7.0,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 124.748,
+      "measured_gflops": 59422.37135806056,
+      "measured_bandwidth_gbps": 3999.7832892531196
+    },
+    {
+      "elapsed_secs": 7.5,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 120.815,
+      "measured_gflops": 59405.41977959661,
+      "measured_bandwidth_gbps": 4007.6358370284115
+    },
+    {
+      "elapsed_secs": 8.0,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 120.387,
+      "measured_gflops": 59394.07276520754,
+      "measured_bandwidth_gbps": 4013.5080065188463
+    },
+    {
+      "elapsed_secs": 8.5,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 124.895,
+      "measured_gflops": 59419.64817974062,
+      "measured_bandwidth_gbps": 4010.075492696846
+    },
+    {
+      "elapsed_secs": 9.0,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 125.177,
+      "measured_gflops": 59450.28547600819,
+      "measured_bandwidth_gbps": 3997.4305456278307
+    },
+    {
+      "elapsed_secs": 9.5,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 122.335,
+      "measured_gflops": 59423.347652578304,
+      "measured_bandwidth_gbps": 4020.8122345962865
+    },
+    {
+      "elapsed_secs": 10.0,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 125.482,
+      "measured_gflops": 59428.692148901486,
+      "measured_bandwidth_gbps": 4000.766901156552
+    },
+    {
+      "elapsed_secs": 10.5,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 123.791,
+      "measured_gflops": 59432.64975118009,
+      "measured_bandwidth_gbps": 4014.52840008375
+    },
+    {
+      "elapsed_secs": 11.0,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 119.841,
+      "measured_gflops": 59446.531223507525,
+      "measured_bandwidth_gbps": 4017.562631425343
+    },
+    {
+      "elapsed_secs": 11.5,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 119.308,
+      "measured_gflops": 59437.430415208895,
+      "measured_bandwidth_gbps": 4016.014900978064
+    },
+    {
+      "elapsed_secs": 12.0,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 123.344,
+      "measured_gflops": 59436.248028867274,
+      "measured_bandwidth_gbps": 3993.579814555153
+    },
+    {
+      "elapsed_secs": 12.5,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 122.11,
+      "measured_gflops": 59420.26472655835,
+      "measured_bandwidth_gbps": 4018.1940872689165
+    },
+    {
+      "elapsed_secs": 13.0,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 120.602,
+      "measured_gflops": 59432.649751180106,
+      "measured_bandwidth_gbps": 4009.1172370017734
+    },
+    {
+      "elapsed_secs": 13.5,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 123.584,
+      "measured_gflops": 59434.29462406138,
+      "measured_bandwidth_gbps": 4013.3129903380745
+    },
+    {
+      "elapsed_secs": 14.0,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 123.677,
+      "measured_gflops": 59426.276728624274,
+      "measured_bandwidth_gbps": 4012.5181204642786
+    },
+    {
+      "elapsed_secs": 14.5,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 118.966,
+      "measured_gflops": 59328.54010793525,
+      "measured_bandwidth_gbps": 3989.8402714041
+    },
+    {
+      "elapsed_secs": 15.0,
+      "clock_mhz": 1980,
+      "temperature_c": 27,
+      "power_watts": 121.465,
+      "measured_gflops": 59428.02403428726,
+      "measured_bandwidth_gbps": 3980.094092179495
+    },
+    {
+      "elapsed_secs": 15.5,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 123.801,
+      "measured_gflops": 59425.711445849294,
+      "measured_bandwidth_gbps": 4011.993378992874
+    },
+    {
+      "elapsed_secs": 16.0,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 118.811,
+      "measured_gflops": 59422.37135806056,
+      "measured_bandwidth_gbps": 4019.3221808381213
+    },
+    {
+      "elapsed_secs": 16.5,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 124.021,
+      "measured_gflops": 59451.571287925326,
+      "measured_bandwidth_gbps": 4013.162990786942
+    },
+    {
+      "elapsed_secs": 17.0,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 126.244,
+      "measured_gflops": 59454.70890244145,
+      "measured_bandwidth_gbps": 4014.1682019380314
+    },
+    {
+      "elapsed_secs": 17.5,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 125.599,
+      "measured_gflops": 59451.00552382947,
+      "measured_bandwidth_gbps": 4004.2432211701625
+    },
+    {
+      "elapsed_secs": 18.0,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 122.938,
+      "measured_gflops": 59444.21719449186,
+      "measured_bandwidth_gbps": 4000.1409103440055
+    },
+    {
+      "elapsed_secs": 18.5,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 121.111,
+      "measured_gflops": 59423.19349867957,
+      "measured_bandwidth_gbps": 3997.9068271178357
+    },
+    {
+      "elapsed_secs": 19.0,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 122.395,
+      "measured_gflops": 59427.20175999944,
+      "measured_bandwidth_gbps": 4019.6833045698395
+    },
+    {
+      "elapsed_secs": 19.5,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 125.17,
+      "measured_gflops": 59438.04733110583,
+      "measured_bandwidth_gbps": 4002.2730624005244
+    },
+    {
+      "elapsed_secs": 20.0,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 120.644,
+      "measured_gflops": 59414.45941767853,
+      "measured_bandwidth_gbps": 4011.81349922472
+    },
+    {
+      "elapsed_secs": 20.5,
+      "clock_mhz": 1980,
+      "temperature_c": 26,
+      "power_watts": 120.689,
+      "measured_gflops": 59447.76544598275,
+      "measured_bandwidth_gbps": 4024.1425053874254
+    }
+  ],
+  "net_ceiling_drop_pct": 0.05276980944045413
+}

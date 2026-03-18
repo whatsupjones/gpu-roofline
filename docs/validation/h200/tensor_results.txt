@@ -1,0 +1,4 @@
+GPU: NVIDIA H200
+fma_heavy        59.5 TFLOPS | median    577.5 us | CV 0.1%
+tensor_fp16     684.1 TFLOPS | median    200.9 us | CV 0.5%
+tensor_bf16     685.3 TFLOPS | median    200.5 us | CV 0.5%
