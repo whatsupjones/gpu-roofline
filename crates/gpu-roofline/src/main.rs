@@ -16,6 +16,7 @@ mod cli;
 mod kernels;
 mod model;
 mod output;
+mod validate;
 
 use cli::{BackendChoice, Cli, Commands, OutputFormat};
 
@@ -55,6 +56,18 @@ fn main() {
             threshold,
             sim,
         } => cmd_check(&baseline, threshold, sim, cli.no_color, &cli.backend),
+        Commands::Validate {
+            threshold,
+            strict,
+            sim,
+            baseline: _,
+        } => cmd_validate(
+            if strict { 0.9 } else { threshold },
+            sim,
+            &cli.format,
+            cli.no_color,
+            &cli.backend,
+        ),
         Commands::Profiles => cmd_profiles(),
     };
 
@@ -341,6 +354,75 @@ fn cmd_check(
         }
         1
     }
+}
+
+fn cmd_validate(
+    threshold: f64,
+    sim: Option<String>,
+    format: &OutputFormat,
+    no_color: bool,
+    backend_choice: &BackendChoice,
+) -> i32 {
+    let backend = match get_backend(&sim, backend_choice) {
+        Ok(b) => b,
+        Err(e) => {
+            eprintln!("Error: {e}");
+            return 2;
+        }
+    };
+
+    // Discover GPU and find baseline
+    let devices = match backend.discover_devices() {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("Failed to discover devices: {e}");
+            return 2;
+        }
+    };
+
+    let device = match devices.first() {
+        Some(d) => d,
+        None => {
+            eprintln!("No GPU found");
+            return 2;
+        }
+    };
+
+    let hw_baseline = match validate::find_baseline(device) {
+        Some(b) => b,
+        None => {
+            eprintln!(
+                "No baseline found for '{}'. Cannot validate unknown GPU.\n\
+                 Use 'gpu-roofline profiles' to see supported GPUs.",
+                device.name
+            );
+            return 2;
+        }
+    };
+
+    // Use adaptive config for this GPU
+    let config = validate::adaptive_config(device);
+    validate::log_adaptive_config(device, &config);
+
+    // Run measurement
+    let roofline = match ceilings::measure_roofline(backend.as_ref(), &config) {
+        Ok(m) => m,
+        Err(e) => {
+            eprintln!("Measurement failed: {e}");
+            return 1;
+        }
+    };
+
+    // Validate against baseline
+    let result = validate::validate_roofline(&roofline, hw_baseline, threshold);
+
+    // Output
+    match format {
+        OutputFormat::Json => validate::print_validation_json(&result),
+        _ => validate::print_validation_table(&result, no_color),
+    }
+
+    result.exit_code()
 }
 
 fn cmd_profiles() -> i32 {

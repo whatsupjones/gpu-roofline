@@ -73,6 +73,25 @@ pub enum Commands {
         sim: Option<String>,
     },
 
+    /// Validate GPU against expected performance baselines
+    Validate {
+        /// Minimum performance threshold (0.0-1.0). Default: 0.8 (80%).
+        #[arg(long, default_value = "0.8")]
+        threshold: f64,
+
+        /// Strict mode: threshold 0.9 (90%)
+        #[arg(long)]
+        strict: bool,
+
+        /// Use simulated GPU profile
+        #[arg(long, value_name = "PROFILE")]
+        sim: Option<String>,
+
+        /// Compare against a previous measurement baseline JSON
+        #[arg(long, value_name = "PATH")]
+        baseline: Option<String>,
+    },
+
     /// List available simulation profiles
     Profiles,
 }
