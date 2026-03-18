@@ -6,10 +6,11 @@ license.workspace = true
 description = "GPU device discovery, simulation, and backend abstraction for gpu-tools"
 
 [features]
-default = []
+default = ["wgpu-backend"]
+wgpu-backend = ["dep:wgpu", "dep:pollster"]
 cuda = ["dep:cudarc"]
 nvml = ["dep:nvml-wrapper"]
-full = ["cuda", "nvml"]
+full = ["wgpu-backend", "cuda", "nvml"]
 
 [dependencies]
 serde = { workspace = true }
@@ -17,8 +18,9 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 rand = { workspace = true }
+bytemuck = { version = "1", features = ["derive"] }
 
-# GPU backends (optional)
+# GPU backends
 wgpu = { workspace = true, optional = true }
 pollster = { workspace = true, optional = true }
 cudarc = { workspace = true, optional = true }
