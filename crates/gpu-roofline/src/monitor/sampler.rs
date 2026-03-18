@@ -168,7 +168,10 @@ impl Sampler {
             );
 
             // Determine overall status from alerts
-            let status = if alerts.iter().any(|a| a.level == super::alerting::AlertLevel::Critical) {
+            let status = if alerts
+                .iter()
+                .any(|a| a.level == super::alerting::AlertLevel::Critical)
+            {
                 SampleStatus::Alert {
                     reason: alerts
                         .iter()

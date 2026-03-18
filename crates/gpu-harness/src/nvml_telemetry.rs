@@ -23,25 +23,21 @@ mod inner {
     impl NvmlTelemetry {
         /// Initialize NVML. Call once; reuse for all device queries.
         pub fn new() -> Result<Self, HarnessError> {
-            let nvml = Nvml::init().map_err(|e| {
-                HarnessError::BackendUnavailable(format!("NVML init failed: {e}"))
-            })?;
+            let nvml = Nvml::init()
+                .map_err(|e| HarnessError::BackendUnavailable(format!("NVML init failed: {e}")))?;
             Ok(Self { nvml })
         }
 
         /// Query real-time device state for a specific GPU.
         pub fn query_state(&self, device_index: u32) -> Result<DeviceState, HarnessError> {
-            let device = self.nvml.device_by_index(device_index).map_err(|_| {
-                HarnessError::DeviceIndexOutOfRange(device_index)
-            })?;
+            let device = self
+                .nvml
+                .device_by_index(device_index)
+                .map_err(|_| HarnessError::DeviceIndexOutOfRange(device_index))?;
 
-            let temperature_c = device
-                .temperature(TemperatureSensor::Gpu)
-                .unwrap_or(0);
+            let temperature_c = device.temperature(TemperatureSensor::Gpu).unwrap_or(0);
 
-            let clock_mhz = device
-                .clock_info(Clock::Graphics)
-                .unwrap_or(0);
+            let clock_mhz = device.clock_info(Clock::Graphics).unwrap_or(0);
 
             let power_milliwatts = device.power_usage().unwrap_or(0);
             let power_watts = power_milliwatts as f32 / 1000.0;

@@ -141,14 +141,19 @@ impl TuiState {
         if self.samples.is_empty() {
             return (0.0, 0.0, 0.0, 0, 0);
         }
-        let avg_bw = self.samples.iter().map(|s| s.bandwidth_gbps).sum::<f64>()
-            / self.samples.len() as f64;
+        let avg_bw =
+            self.samples.iter().map(|s| s.bandwidth_gbps).sum::<f64>() / self.samples.len() as f64;
         let min_bw = self
             .samples
             .iter()
             .map(|s| s.bandwidth_gbps)
             .fold(f64::MAX, f64::min);
-        let max_temp = self.samples.iter().map(|s| s.temperature_c).max().unwrap_or(0);
+        let max_temp = self
+            .samples
+            .iter()
+            .map(|s| s.temperature_c)
+            .max()
+            .unwrap_or(0);
         let avg_gflops =
             self.samples.iter().map(|s| s.gflops).sum::<f64>() / self.samples.len() as f64;
         let total_alerts: usize = self.samples.iter().map(|s| s.alerts.len()).sum();
@@ -192,7 +197,7 @@ pub fn draw(frame: &mut Frame, state: &TuiState) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(1), // Header bar
-            Constraint::Min(0),   // Main content
+            Constraint::Min(0),    // Main content
             Constraint::Length(1), // Footer bar
         ])
         .split(area);
@@ -206,15 +211,23 @@ fn draw_header(frame: &mut Frame, area: Rect, state: &TuiState) {
     let status = state
         .latest()
         .map(|s| match &s.status {
-            SampleStatus::Normal => Span::styled(" OK ", Style::default().bg(Color::Green).fg(Color::Black)),
-            SampleStatus::Warning { .. } => {
-                Span::styled(" WARN ", Style::default().bg(Color::Yellow).fg(Color::Black))
+            SampleStatus::Normal => {
+                Span::styled(" OK ", Style::default().bg(Color::Green).fg(Color::Black))
             }
+            SampleStatus::Warning { .. } => Span::styled(
+                " WARN ",
+                Style::default().bg(Color::Yellow).fg(Color::Black),
+            ),
             SampleStatus::Alert { .. } => {
                 Span::styled(" ALERT ", Style::default().bg(Color::Red).fg(Color::White))
             }
         })
-        .unwrap_or_else(|| Span::styled(" INIT ", Style::default().bg(Color::DarkGray).fg(Color::White)));
+        .unwrap_or_else(|| {
+            Span::styled(
+                " INIT ",
+                Style::default().bg(Color::DarkGray).fg(Color::White),
+            )
+        });
 
     let header = Line::from(vec![
         Span::styled(" gpu-roofline monitor ", Style::default().bold()),
@@ -264,9 +277,9 @@ fn draw_main(frame: &mut Frame, area: Rect, state: &TuiState) {
     let left_rows = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(6),  // Performance
-            Constraint::Length(7),  // Thermals & Power
-            Constraint::Length(5),  // Memory
+            Constraint::Length(6), // Performance
+            Constraint::Length(7), // Thermals & Power
+            Constraint::Length(5), // Memory
             Constraint::Min(3),    // Alerts
         ])
         .split(cols[0]);
@@ -281,7 +294,7 @@ fn draw_main(frame: &mut Frame, area: Rect, state: &TuiState) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(10), // Tension analysis
-            Constraint::Min(3),    // Session stats
+            Constraint::Min(3),     // Session stats
         ])
         .split(cols[1]);
 
@@ -304,22 +317,44 @@ fn draw_performance(frame: &mut Frame, area: Rect, state: &TuiState) {
     let gflops = latest.map(|s| s.gflops).unwrap_or(0.0);
     let cv = latest.map(|s| s.cv).unwrap_or(0.0);
 
-    let bw_pct = if state.baseline_bw > 0.0 { bw / state.baseline_bw * 100.0 } else { 0.0 };
-    let gflops_pct = if state.baseline_gflops > 0.0 { gflops / state.baseline_gflops * 100.0 } else { 0.0 };
+    let bw_pct = if state.baseline_bw > 0.0 {
+        bw / state.baseline_bw * 100.0
+    } else {
+        0.0
+    };
+    let gflops_pct = if state.baseline_gflops > 0.0 {
+        gflops / state.baseline_gflops * 100.0
+    } else {
+        0.0
+    };
 
     let bw_color = pct_color(bw_pct);
     let gflops_color = pct_color(gflops_pct);
-    let cv_color = if cv < 0.02 { Color::Green } else if cv < 0.05 { Color::Yellow } else { Color::Red };
+    let cv_color = if cv < 0.02 {
+        Color::Green
+    } else if cv < 0.05 {
+        Color::Yellow
+    } else {
+        Color::Red
+    };
 
     let rows = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(1), Constraint::Length(1), Constraint::Length(1), Constraint::Length(1)])
+        .constraints([
+            Constraint::Length(1),
+            Constraint::Length(1),
+            Constraint::Length(1),
+            Constraint::Length(1),
+        ])
         .split(inner);
 
     // BW line with sparkline
     let bw_line = Line::from(vec![
         Span::styled(" BW    ", Style::default().fg(Color::White)),
-        Span::styled(format!("{:>6.0} GB/s ", bw), Style::default().fg(bw_color).bold()),
+        Span::styled(
+            format!("{:>6.0} GB/s ", bw),
+            Style::default().fg(bw_color).bold(),
+        ),
         Span::styled(format!("{:>5.1}%  ", bw_pct), Style::default().fg(bw_color)),
         sparkline_text(&state.bw_history),
     ]);
@@ -329,8 +364,14 @@ fn draw_performance(frame: &mut Frame, area: Rect, state: &TuiState) {
     let tflops = gflops / 1000.0;
     let gflops_line = Line::from(vec![
         Span::styled(" FP32  ", Style::default().fg(Color::White)),
-        Span::styled(format!("{:>6.1} TFLOPS ", tflops), Style::default().fg(gflops_color).bold()),
-        Span::styled(format!("{:>5.1}%  ", gflops_pct), Style::default().fg(gflops_color)),
+        Span::styled(
+            format!("{:>6.1} TFLOPS ", tflops),
+            Style::default().fg(gflops_color).bold(),
+        ),
+        Span::styled(
+            format!("{:>5.1}%  ", gflops_pct),
+            Style::default().fg(gflops_color),
+        ),
         sparkline_text(&state.gflops_history),
     ]);
     frame.render_widget(Paragraph::new(gflops_line), rows[1]);
@@ -338,9 +379,18 @@ fn draw_performance(frame: &mut Frame, area: Rect, state: &TuiState) {
     // CV line
     let cv_line = Line::from(vec![
         Span::styled(" CV    ", Style::default().fg(Color::White)),
-        Span::styled(format!("{:>6.1}%    ", cv * 100.0), Style::default().fg(cv_color).bold()),
         Span::styled(
-            if cv < 0.02 { "stable  " } else if cv < 0.05 { "noisy   " } else { "unstable" },
+            format!("{:>6.1}%    ", cv * 100.0),
+            Style::default().fg(cv_color).bold(),
+        ),
+        Span::styled(
+            if cv < 0.02 {
+                "stable  "
+            } else if cv < 0.05 {
+                "noisy   "
+            } else {
+                "unstable"
+            },
             Style::default().fg(cv_color),
         ),
         sparkline_text(&state.cv_history),
@@ -362,9 +412,23 @@ fn draw_thermals(frame: &mut Frame, area: Rect, state: &TuiState) {
     let power = latest.map(|s| s.power_watts).unwrap_or(0.0);
     let clock = latest.map(|s| s.clock_mhz).unwrap_or(0);
 
-    let temp_color = if temp < 70 { Color::Green } else if temp < 85 { Color::Yellow } else { Color::Red };
-    let power_pct = if state.tdp_watts > 0.0 { power / state.tdp_watts * 100.0 } else { 0.0 };
-    let clock_pct = if state.max_clock_mhz > 0 { clock as f64 / state.max_clock_mhz as f64 * 100.0 } else { 0.0 };
+    let temp_color = if temp < 70 {
+        Color::Green
+    } else if temp < 85 {
+        Color::Yellow
+    } else {
+        Color::Red
+    };
+    let power_pct = if state.tdp_watts > 0.0 {
+        power / state.tdp_watts * 100.0
+    } else {
+        0.0
+    };
+    let clock_pct = if state.max_clock_mhz > 0 {
+        clock as f64 / state.max_clock_mhz as f64 * 100.0
+    } else {
+        0.0
+    };
 
     let throttle = if temp >= 85 {
         Span::styled("THERMAL THROTTLE", Style::default().fg(Color::Red).bold())
@@ -385,18 +449,32 @@ fn draw_thermals(frame: &mut Frame, area: Rect, state: &TuiState) {
         ])
         .split(inner);
 
-    let temp_str = if temp > 0 { format!("{}°C", temp) } else { "--".to_string() };
+    let temp_str = if temp > 0 {
+        format!("{}°C", temp)
+    } else {
+        "--".to_string()
+    };
     let temp_line = Line::from(vec![
         Span::styled(" Temp   ", Style::default().fg(Color::White)),
-        Span::styled(format!("{:>6}     ", temp_str), Style::default().fg(temp_color).bold()),
+        Span::styled(
+            format!("{:>6}     ", temp_str),
+            Style::default().fg(temp_color).bold(),
+        ),
         sparkline_text(&state.temp_history),
     ]);
     frame.render_widget(Paragraph::new(temp_line), rows[0]);
 
-    let power_str = if power > 0.0 { format!("{:.0}W/{:.0}W", power, state.tdp_watts) } else { "--".to_string() };
+    let power_str = if power > 0.0 {
+        format!("{:.0}W/{:.0}W", power, state.tdp_watts)
+    } else {
+        "--".to_string()
+    };
     let power_line = Line::from(vec![
         Span::styled(" Power  ", Style::default().fg(Color::White)),
-        Span::styled(format!("{:<14}", power_str), Style::default().fg(Color::White).bold()),
+        Span::styled(
+            format!("{:<14}", power_str),
+            Style::default().fg(Color::White).bold(),
+        ),
         sparkline_text(&state.power_history),
     ]);
     frame.render_widget(Paragraph::new(power_line), rows[1]);
@@ -408,7 +486,10 @@ fn draw_thermals(frame: &mut Frame, area: Rect, state: &TuiState) {
     };
     let clock_line = Line::from(vec![
         Span::styled(" Clock  ", Style::default().fg(Color::White)),
-        Span::styled(format!("{:<14}", clock_str), Style::default().fg(Color::White).bold()),
+        Span::styled(
+            format!("{:<14}", clock_str),
+            Style::default().fg(Color::White).bold(),
+        ),
         sparkline_text(&state.clock_history),
     ]);
     frame.render_widget(Paragraph::new(clock_line), rows[2]);
@@ -430,11 +511,14 @@ fn draw_memory(frame: &mut Frame, area: Rect, state: &TuiState) {
     frame.render_widget(block, area);
 
     let latest = state.latest();
-    let mem_used = latest.map(|s| s.bandwidth_gbps).and_then(|_| {
-        // Memory usage comes from device state, embedded in sample if NVML is active
-        // For now we use the values from the sample
-        state.latest().map(|_| 0u64)
-    }).unwrap_or(0);
+    let mem_used = latest
+        .map(|s| s.bandwidth_gbps)
+        .and_then(|_| {
+            // Memory usage comes from device state, embedded in sample if NVML is active
+            // For now we use the values from the sample
+            state.latest().map(|_| 0u64)
+        })
+        .unwrap_or(0);
 
     let total_gb = state.vram_total_bytes as f64 / (1024.0 * 1024.0 * 1024.0);
     let used_gb = mem_used as f64 / (1024.0 * 1024.0 * 1024.0);
@@ -446,7 +530,11 @@ fn draw_memory(frame: &mut Frame, area: Rect, state: &TuiState) {
 
     let rows = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(1), Constraint::Length(1), Constraint::Length(1)])
+        .constraints([
+            Constraint::Length(1),
+            Constraint::Length(1),
+            Constraint::Length(1),
+        ])
         .split(inner);
 
     let mem_line = Line::from(vec![
@@ -462,7 +550,13 @@ fn draw_memory(frame: &mut Frame, area: Rect, state: &TuiState) {
     let bar_width = (area.width as usize).saturating_sub(4);
     let filled = (pct * bar_width as f64) as usize;
     let empty = bar_width.saturating_sub(filled);
-    let bar_color = if pct < 0.7 { Color::Green } else if pct < 0.9 { Color::Yellow } else { Color::Red };
+    let bar_color = if pct < 0.7 {
+        Color::Green
+    } else if pct < 0.9 {
+        Color::Yellow
+    } else {
+        Color::Red
+    };
     let bar_line = Line::from(vec![
         Span::raw("  "),
         Span::styled("█".repeat(filled), Style::default().fg(bar_color)),
@@ -472,10 +566,20 @@ fn draw_memory(frame: &mut Frame, area: Rect, state: &TuiState) {
 
     // HBM utilization
     let bw = state.latest().map(|s| s.bandwidth_gbps).unwrap_or(0.0);
-    let hbm_util = if state.baseline_bw > 0.0 { bw / state.baseline_bw * 100.0 } else { 0.0 };
+    let hbm_util = if state.baseline_bw > 0.0 {
+        bw / state.baseline_bw * 100.0
+    } else {
+        0.0
+    };
     let util_line = Line::from(vec![
-        Span::styled(" HBM BW utilization: ", Style::default().fg(Color::DarkGray)),
-        Span::styled(format!("{:.0}%", hbm_util), Style::default().fg(Color::White)),
+        Span::styled(
+            " HBM BW utilization: ",
+            Style::default().fg(Color::DarkGray),
+        ),
+        Span::styled(
+            format!("{:.0}%", hbm_util),
+            Style::default().fg(Color::White),
+        ),
     ]);
     frame.render_widget(Paragraph::new(util_line), rows[2]);
 }
@@ -526,15 +630,27 @@ fn draw_tension(frame: &mut Frame, area: Rect, state: &TuiState) {
     let lines: Vec<Line> = vec![
         Line::from(vec![
             Span::styled(" Burst:     ", Style::default().fg(Color::DarkGray)),
-            Span::styled(format!("{:.1}T", burst_tflops), Style::default().fg(Color::White).bold()),
+            Span::styled(
+                format!("{:.1}T", burst_tflops),
+                Style::default().fg(Color::White).bold(),
+            ),
             Span::styled(" (t=0)", Style::default().fg(Color::DarkGray)),
         ]),
         Line::from(vec![
             Span::styled(" Current:   ", Style::default().fg(Color::DarkGray)),
-            Span::styled(format!("{:.1}T", current_tflops), Style::default().fg(Color::Cyan).bold()),
+            Span::styled(
+                format!("{:.1}T", current_tflops),
+                Style::default().fg(Color::Cyan).bold(),
+            ),
             Span::styled(
                 format!(" ({:+.1}%)", -total_drop),
-                Style::default().fg(if total_drop < 5.0 { Color::Green } else if total_drop < 15.0 { Color::Yellow } else { Color::Red }),
+                Style::default().fg(if total_drop < 5.0 {
+                    Color::Green
+                } else if total_drop < 15.0 {
+                    Color::Yellow
+                } else {
+                    Color::Red
+                }),
             ),
         ]),
         Line::from(""),
@@ -555,14 +671,28 @@ fn draw_tension(frame: &mut Frame, area: Rect, state: &TuiState) {
         Line::from(vec![
             Span::styled(" Thermal:   ", Style::default().fg(Color::DarkGray)),
             Span::styled(
-                if temp > 0 { format!("{}°C", temp) } else { "--".to_string() },
-                Style::default().fg(if temp < 70 { Color::Green } else if temp < 85 { Color::Yellow } else { Color::Red }),
+                if temp > 0 {
+                    format!("{}°C", temp)
+                } else {
+                    "--".to_string()
+                },
+                Style::default().fg(if temp < 70 {
+                    Color::Green
+                } else if temp < 85 {
+                    Color::Yellow
+                } else {
+                    Color::Red
+                }),
             ),
         ]),
         Line::from(vec![
             Span::styled(" Power:     ", Style::default().fg(Color::DarkGray)),
             Span::styled(
-                if power > 0.0 { format!("{:.0}W", power) } else { "--".to_string() },
+                if power > 0.0 {
+                    format!("{:.0}W", power)
+                } else {
+                    "--".to_string()
+                },
                 Style::default().fg(Color::White),
             ),
         ]),
@@ -570,7 +700,9 @@ fn draw_tension(frame: &mut Frame, area: Rect, state: &TuiState) {
             Span::styled(" Net drop:  ", Style::default().fg(Color::DarkGray)),
             Span::styled(
                 format!("{:+.1}%", -total_drop.max(bw_drop)),
-                Style::default().fg(drop_color(total_drop.max(bw_drop))).bold(),
+                Style::default()
+                    .fg(drop_color(total_drop.max(bw_drop)))
+                    .bold(),
             ),
         ]),
     ];
@@ -599,28 +731,47 @@ fn draw_session(frame: &mut Frame, area: Rect, state: &TuiState) {
     let lines: Vec<Line> = vec![
         Line::from(vec![
             Span::styled(" Samples:   ", Style::default().fg(Color::DarkGray)),
-            Span::styled(format!("{}", state.samples.len()), Style::default().fg(Color::White)),
+            Span::styled(
+                format!("{}", state.samples.len()),
+                Style::default().fg(Color::White),
+            ),
         ]),
         Line::from(vec![
             Span::styled(" Uptime:    ", Style::default().fg(Color::DarkGray)),
-            Span::styled(format!("{}m {:02}s", mins, secs), Style::default().fg(Color::White)),
+            Span::styled(
+                format!("{}m {:02}s", mins, secs),
+                Style::default().fg(Color::White),
+            ),
         ]),
         Line::from(vec![
             Span::styled(" Avg BW:    ", Style::default().fg(Color::DarkGray)),
-            Span::styled(format!("{:.0} GB/s", avg_bw), Style::default().fg(Color::White)),
+            Span::styled(
+                format!("{:.0} GB/s", avg_bw),
+                Style::default().fg(Color::White),
+            ),
         ]),
         Line::from(vec![
             Span::styled(" Min BW:    ", Style::default().fg(Color::DarkGray)),
-            Span::styled(format!("{:.0} GB/s", min_bw), Style::default().fg(Color::White)),
+            Span::styled(
+                format!("{:.0} GB/s", min_bw),
+                Style::default().fg(Color::White),
+            ),
         ]),
         Line::from(vec![
             Span::styled(" Avg FP32:  ", Style::default().fg(Color::DarkGray)),
-            Span::styled(format!("{:.1} TFLOPS", avg_gflops / 1000.0), Style::default().fg(Color::White)),
+            Span::styled(
+                format!("{:.1} TFLOPS", avg_gflops / 1000.0),
+                Style::default().fg(Color::White),
+            ),
         ]),
         Line::from(vec![
             Span::styled(" Max Temp:  ", Style::default().fg(Color::DarkGray)),
             Span::styled(
-                if max_temp > 0 { format!("{}°C", max_temp) } else { "--".to_string() },
+                if max_temp > 0 {
+                    format!("{}°C", max_temp)
+                } else {
+                    "--".to_string()
+                },
                 Style::default().fg(Color::White),
             ),
         ]),
@@ -628,14 +779,23 @@ fn draw_session(frame: &mut Frame, area: Rect, state: &TuiState) {
             Span::styled(" Alerts:    ", Style::default().fg(Color::DarkGray)),
             Span::styled(
                 format!("{}", total_alerts),
-                Style::default().fg(if total_alerts == 0 { Color::Green } else { Color::Red }),
+                Style::default().fg(if total_alerts == 0 {
+                    Color::Green
+                } else {
+                    Color::Red
+                }),
             ),
         ]),
     ];
 
     let rows = Layout::default()
         .direction(Direction::Vertical)
-        .constraints(lines.iter().map(|_| Constraint::Length(1)).collect::<Vec<_>>())
+        .constraints(
+            lines
+                .iter()
+                .map(|_| Constraint::Length(1))
+                .collect::<Vec<_>>(),
+        )
         .split(inner);
 
     for (i, line) in lines.iter().enumerate() {
@@ -672,7 +832,10 @@ fn draw_alerts(frame: &mut Frame, area: Rect, state: &TuiState) {
                 } else {
                     Color::Yellow
                 };
-                Line::from(Span::styled(format!(" {}", msg), Style::default().fg(color)))
+                Line::from(Span::styled(
+                    format!(" {}", msg),
+                    Style::default().fg(color),
+                ))
             })
             .collect();
         frame.render_widget(Paragraph::new(lines), inner);

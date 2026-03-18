@@ -248,7 +248,9 @@ mod tests {
                 achieved_gflops: 0.0,
                 achieved_bandwidth_gbps: bw,
                 efficiency: 1.0,
-                bottleneck: Bottleneck::MemoryBound { level: MemoryLevel::Hbm },
+                bottleneck: Bottleneck::MemoryBound {
+                    level: MemoryLevel::Hbm,
+                },
                 median_us: 100.0,
                 stddev_us: 1.0,
                 cv,

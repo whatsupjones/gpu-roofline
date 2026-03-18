@@ -17,8 +17,7 @@ mod inner {
     use crate::device::{GpuArchitecture, GpuDevice, GpuFeatures, GpuLimits, GpuVendor};
     use crate::error::HarnessError;
 
-    const CUDA_KERNEL_SOURCE: &str =
-        include_str!("../shaders/cuda/roofline_kernels.cu");
+    const CUDA_KERNEL_SOURCE: &str = include_str!("../shaders/cuda/roofline_kernels.cu");
     const BLOCK_SIZE: u32 = 256;
 
     /// CUDA backend for datacenter GPU compute.
@@ -428,10 +427,7 @@ mod inner {
         fn discover_devices(&self) -> Result<Vec<GpuDevice>, HarnessError> {
             // Get NVML-enriched data if available
             #[cfg(feature = "nvml")]
-            let driver_version = self
-                .nvml
-                .as_ref()
-                .and_then(|n| n.driver_version());
+            let driver_version = self.nvml.as_ref().and_then(|n| n.driver_version());
 
             #[cfg(not(feature = "nvml"))]
             let driver_version: Option<String> = None;
@@ -448,10 +444,7 @@ mod inner {
 
                     // Get PCI bus ID from NVML if available
                     #[cfg(feature = "nvml")]
-                    let pci_bus_id = self
-                        .nvml
-                        .as_ref()
-                        .and_then(|n| n.pci_bus_id(i as u32));
+                    let pci_bus_id = self.nvml.as_ref().and_then(|n| n.pci_bus_id(i as u32));
 
                     #[cfg(not(feature = "nvml"))]
                     let pci_bus_id: Option<String> = None;

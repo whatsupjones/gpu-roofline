@@ -557,7 +557,11 @@ fn cmd_monitor(
         driver_version,
         compute_capability: compute_cap,
         max_clock_mhz: baseline.clock_mhz,
-        tdp_watts: if baseline.power_watts > 0.0 { baseline.power_watts } else { 700.0 },
+        tdp_watts: if baseline.power_watts > 0.0 {
+            baseline.power_watts
+        } else {
+            700.0
+        },
         vram_total_bytes: vram_total,
     });
 
@@ -595,10 +599,7 @@ fn cmd_monitor(
 
     match result {
         Ok(samples) => {
-            eprintln!(
-                "Monitoring complete: {} samples collected",
-                samples.len()
-            );
+            eprintln!("Monitoring complete: {} samples collected", samples.len());
 
             if !samples.is_empty() {
                 let avg_bw: f64 =
