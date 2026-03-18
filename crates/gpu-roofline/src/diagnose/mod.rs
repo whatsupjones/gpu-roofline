@@ -11,6 +11,4 @@ pub mod types;
 
 pub use probes::run_diagnosis;
 pub use report::{print_diagnosis_json, print_diagnosis_table};
-pub use types::{
-    DiagnoseConfig, DiagnosisResult, DiagnosticCategory, DiagnosticFinding, ProbeName, Severity,
-};
+pub use types::{DiagnoseConfig, DiagnosisResult, ProbeName};

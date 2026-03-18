@@ -13,6 +13,7 @@ use gpu_harness::WgpuBackend;
 
 mod ceilings;
 mod cli;
+mod diagnose;
 mod kernels;
 mod model;
 mod monitor;
@@ -87,6 +88,11 @@ fn main() {
             cli.no_color,
             &cli.backend,
         ),
+        Commands::Diagnose {
+            device: _,
+            probes,
+            sim,
+        } => cmd_diagnose(probes, sim, &cli.format, cli.no_color, &cli.backend),
         Commands::Profiles => cmd_profiles(),
         #[cfg(feature = "vgpu")]
         Commands::Vgpu { action } => cmd_vgpu(action, &cli.format),
@@ -630,6 +636,100 @@ fn cmd_monitor(
             1
         }
     }
+}
+
+fn cmd_diagnose(
+    probes: Option<Vec<String>>,
+    sim: Option<String>,
+    format: &OutputFormat,
+    no_color: bool,
+    backend_choice: &BackendChoice,
+) -> i32 {
+    use diagnose::{DiagnoseConfig, ProbeName};
+
+    let backend = match get_backend(&sim, backend_choice) {
+        Ok(b) => b,
+        Err(e) => {
+            eprintln!("Error: {e}");
+            return 2;
+        }
+    };
+
+    let devices = match backend.discover_devices() {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("Failed to discover devices: {e}");
+            return 2;
+        }
+    };
+
+    let device = match devices.first() {
+        Some(d) => d,
+        None => {
+            eprintln!("No GPU found");
+            return 2;
+        }
+    };
+
+    let baseline = match validate::find_baseline(device) {
+        Some(b) => b,
+        None => {
+            eprintln!(
+                "No baseline found for '{}'. Cannot diagnose unknown GPU.",
+                device.name
+            );
+            return 2;
+        }
+    };
+
+    // Parse probe names if specified
+    let probe_list = match probes {
+        Some(names) => {
+            let mut parsed = Vec::new();
+            for name in &names {
+                match name.parse::<ProbeName>() {
+                    Ok(p) => parsed.push(p),
+                    Err(e) => {
+                        eprintln!("Invalid probe name '{name}': {e}");
+                        eprintln!(
+                            "Available: l2_thrashing, hbm_degradation, pci_bottleneck, \
+                             thermal, clock, compute"
+                        );
+                        return 2;
+                    }
+                }
+            }
+            parsed
+        }
+        None => ProbeName::all().to_vec(),
+    };
+
+    let config = DiagnoseConfig {
+        device_index: 0,
+        probes: probe_list,
+        measurement_iterations: 50,
+    };
+
+    eprintln!(
+        "Running {} diagnostic probes on {}...",
+        config.probes.len(),
+        device.name
+    );
+
+    let result = match diagnose::run_diagnosis(backend.as_ref(), baseline, &config) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("Diagnosis failed: {e}");
+            return 1;
+        }
+    };
+
+    match format {
+        OutputFormat::Json => diagnose::print_diagnosis_json(&result),
+        _ => diagnose::print_diagnosis_table(&result, no_color),
+    }
+
+    result.exit_code()
 }
 
 fn cmd_profiles() -> i32 {

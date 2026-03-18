@@ -120,6 +120,21 @@ pub enum Commands {
         sim: Option<String>,
     },
 
+    /// Deep root-cause diagnosis — "Why Is My GPU Slow?"
+    Diagnose {
+        /// Device index to diagnose (default: 0)
+        #[arg(short, long, default_value = "0")]
+        device: u32,
+
+        /// Specific probes to run (comma-separated, default: all)
+        #[arg(long, value_delimiter = ',')]
+        probes: Option<Vec<String>>,
+
+        /// Use simulated GPU profile
+        #[arg(long, value_name = "PROFILE")]
+        sim: Option<String>,
+    },
+
     /// List available simulation profiles
     Profiles,
 
