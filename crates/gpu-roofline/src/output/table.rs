@@ -97,16 +97,8 @@ pub fn print_dynamic(dynamic: &DynamicRoofline, no_color: bool) {
                 t.ceiling_delta_pct.abs(),
                 t.onset_time_secs
             );
-            println!(
-                "      {} {}",
-                "excites:".dimmed(),
-                t.force_a.dimmed()
-            );
-            println!(
-                "      {} {}",
-                "inhibits:".dimmed(),
-                t.force_b.dimmed()
-            );
+            println!("      {} {}", "excites:".dimmed(), t.force_a.dimmed());
+            println!("      {} {}", "inhibits:".dimmed(), t.force_b.dimmed());
         }
     }
 
@@ -119,10 +111,7 @@ pub fn print_dynamic(dynamic: &DynamicRoofline, no_color: bool) {
     println!();
 }
 
-fn print_placements_table(
-    placements: &[crate::model::KernelPlacement],
-    _no_color: bool,
-) {
+fn print_placements_table(placements: &[crate::model::KernelPlacement], _no_color: bool) {
     if placements.is_empty() {
         return;
     }
@@ -143,10 +132,8 @@ fn print_placements_table(
 
     for p in placements {
         let efficiency_str = format!("{:.0}%", p.efficiency * 100.0);
-        let efficiency_cell = if p.efficiency >= 0.9 {
-            Cell::new(format!("{efficiency_str}"))
-        } else if p.efficiency >= 0.7 {
-            Cell::new(format!("{efficiency_str}"))
+        let efficiency_cell = if p.efficiency >= 0.7 {
+            Cell::new(efficiency_str.to_string())
         } else {
             Cell::new(format!("{efficiency_str} ⚠"))
         };

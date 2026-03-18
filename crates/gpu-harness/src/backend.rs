@@ -65,7 +65,7 @@ impl KernelResult {
         let mut sorted = self.elapsed_us.clone();
         sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
         let mid = sorted.len() / 2;
-        if sorted.len() % 2 == 0 {
+        if sorted.len().is_multiple_of(2) {
             (sorted[mid - 1] + sorted[mid]) / 2.0
         } else {
             sorted[mid]
@@ -86,7 +86,11 @@ impl KernelResult {
             return 0.0;
         }
         let mean = self.mean_us();
-        let variance = self.elapsed_us.iter().map(|t| (t - mean).powi(2)).sum::<f64>()
+        let variance = self
+            .elapsed_us
+            .iter()
+            .map(|t| (t - mean).powi(2))
+            .sum::<f64>()
             / (self.elapsed_us.len() - 1) as f64;
         variance.sqrt()
     }

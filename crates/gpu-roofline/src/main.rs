@@ -1,3 +1,8 @@
+// The binary uses the lib's modules directly (not via the crate re-exports),
+// so some pub items appear unused from the binary's perspective. They are
+// part of the public library API for downstream consumers.
+#![allow(dead_code)]
+
 use std::process;
 
 use clap::Parser;
@@ -36,7 +41,14 @@ fn main() {
             duration,
             sim,
             save_baseline,
-        } => cmd_measure(burst, duration, sim, save_baseline, &cli.format, cli.no_color),
+        } => cmd_measure(
+            burst,
+            duration,
+            sim,
+            save_baseline,
+            &cli.format,
+            cli.no_color,
+        ),
         Commands::Check {
             baseline,
             threshold,
@@ -72,9 +84,11 @@ fn get_backend(sim: &Option<String>) -> Result<Box<dyn GpuBackend>, String> {
             }
             #[cfg(not(feature = "wgpu-backend"))]
             {
-                Err("Built without GPU support. Use --sim <profile> for simulation mode.\n\
+                Err(
+                    "Built without GPU support. Use --sim <profile> for simulation mode.\n\
                      Run 'gpu-roofline profiles' to list available profiles."
-                    .to_string())
+                        .to_string(),
+                )
             }
         }
     }
@@ -200,15 +214,15 @@ fn cmd_check(baseline_path: &str, threshold: f64, sim: Option<String>, _no_color
         1.0
     };
 
-    println!("Baseline: {:.1} GFLOP/s | {:.0} GB/s ({})",
+    println!(
+        "Baseline: {:.1} GFLOP/s | {:.0} GB/s ({})",
         baseline.sustained.peak_gflops,
         baseline.sustained.peak_bandwidth_gbps,
         baseline.device_name,
     );
-    println!("Current:  {:.1} GFLOP/s | {:.0} GB/s ({})",
-        current.sustained.peak_gflops,
-        current.sustained.peak_bandwidth_gbps,
-        current.device_name,
+    println!(
+        "Current:  {:.1} GFLOP/s | {:.0} GB/s ({})",
+        current.sustained.peak_gflops, current.sustained.peak_bandwidth_gbps, current.device_name,
     );
     println!("Compute:  {:.1}% of baseline", ratio * 100.0);
     println!("Bandwidth: {:.1}% of baseline", bw_ratio * 100.0);
@@ -219,10 +233,18 @@ fn cmd_check(baseline_path: &str, threshold: f64, sim: Option<String>, _no_color
     } else {
         println!("\nResult: FAIL (threshold: {:.0}%)", threshold * 100.0);
         if ratio < threshold {
-            println!("  Compute regression: {:.1}% < {:.0}%", ratio * 100.0, threshold * 100.0);
+            println!(
+                "  Compute regression: {:.1}% < {:.0}%",
+                ratio * 100.0,
+                threshold * 100.0
+            );
         }
         if bw_ratio < threshold {
-            println!("  Bandwidth regression: {:.1}% < {:.0}%", bw_ratio * 100.0, threshold * 100.0);
+            println!(
+                "  Bandwidth regression: {:.1}% < {:.0}%",
+                bw_ratio * 100.0,
+                threshold * 100.0
+            );
         }
         1
     }

@@ -40,7 +40,8 @@ impl PowerModel {
 
         // Power at this clock: P = idle + (target/boost)^exponent * (tdp - idle)
         let clock_ratio = (target_clock - self.base_clock_mhz as f32) / clock_range;
-        let dynamic_power = clock_ratio.powf(self.power_exponent) * (self.tdp_watts - self.idle_watts);
+        let dynamic_power =
+            clock_ratio.powf(self.power_exponent) * (self.tdp_watts - self.idle_watts);
         let total_power = self.idle_watts + dynamic_power * intensity;
 
         // TDP cap: if power exceeds TDP, reduce clock
@@ -90,7 +91,10 @@ mod tests {
     fn test_idle_power() {
         let model = rtx_4090_power();
         let (power, clock) = model.compute_state(0.0, 1.0);
-        assert!((power - 25.0).abs() < 1.0, "idle power should be ~25W, got {power}");
+        assert!(
+            (power - 25.0).abs() < 1.0,
+            "idle power should be ~25W, got {power}"
+        );
         assert_eq!(clock, 2235, "idle clock should be base");
     }
 

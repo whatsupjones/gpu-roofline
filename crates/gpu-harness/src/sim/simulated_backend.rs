@@ -144,8 +144,7 @@ impl SimulatedBackend {
             .collect();
 
         // Advance simulated time by total measurement duration
-        let total_measurement_secs =
-            (base_time_us * config.measurement_iterations as f64) / 1e6;
+        let total_measurement_secs = (base_time_us * config.measurement_iterations as f64) / 1e6;
         self.advance_time(total_measurement_secs);
 
         KernelResult {
@@ -339,8 +338,11 @@ mod tests {
         let fma_result = backend.run_kernel(&fma_heavy_kernel(), &config).unwrap();
 
         // Copy should be memory-bound (high bandwidth, low FLOPS)
-        assert!(copy_result.bandwidth_gbps() > 100.0,
-            "copy bandwidth should be significant: {} GB/s", copy_result.bandwidth_gbps());
+        assert!(
+            copy_result.bandwidth_gbps() > 100.0,
+            "copy bandwidth should be significant: {} GB/s",
+            copy_result.bandwidth_gbps()
+        );
 
         // FMA heavy should report FLOPS
         assert!(fma_result.flops_executed > 0);
@@ -352,7 +354,11 @@ mod tests {
 
         // At t=0, should be near ambient
         let state_0 = backend.device_state(0).unwrap();
-        assert!(state_0.temperature_c < 50, "should be cool at start: {}C", state_0.temperature_c);
+        assert!(
+            state_0.temperature_c < 50,
+            "should be cool at start: {}C",
+            state_0.temperature_c
+        );
 
         // Advance time significantly
         backend.advance_time(60.0);
@@ -389,7 +395,11 @@ mod tests {
         let backend = SimulatedBackend::with_fleet(fleet);
 
         let bw = backend.p2p_bandwidth(0, 1).unwrap();
-        assert!(bw.bandwidth_gbps > 800.0, "H100 NVLink should be >800 GB/s: {}", bw.bandwidth_gbps);
+        assert!(
+            bw.bandwidth_gbps > 800.0,
+            "H100 NVLink should be >800 GB/s: {}",
+            bw.bandwidth_gbps
+        );
         assert!(bw.latency_us < 5.0, "NVLink latency should be low");
     }
 

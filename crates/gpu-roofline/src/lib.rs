@@ -25,8 +25,5 @@ pub mod output;
 
 // Re-export key types for convenience
 pub use ceilings::{measure_dynamic, measure_roofline, MeasureConfig};
-pub use kernels::{BuiltinKernel, KernelCategory, KernelDefinition};
-pub use model::{
-    Bottleneck, DynamicConfig, DynamicRoofline, KernelPlacement, RooflineModel,
-    TensionMeasurement, ThermalSample,
-};
+pub use kernels::{BuiltinKernel, KernelDefinition};
+pub use model::{Bottleneck, DynamicConfig, DynamicRoofline, KernelPlacement, RooflineModel};

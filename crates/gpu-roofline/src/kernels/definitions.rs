@@ -68,7 +68,7 @@ impl BuiltinKernel {
                 category: KernelCategory::Bandwidth,
                 wgsl_source: include_str!("../../shaders/add.wgsl"),
                 arithmetic_intensity: 0.083,
-                flops_per_element: 4, // 1 add per component * 4
+                flops_per_element: 4,  // 1 add per component * 4
                 bytes_per_element: 48, // 2 reads + 1 write = 16 + 16 + 16
                 read_buffers: 2,
                 write_buffers: 1,

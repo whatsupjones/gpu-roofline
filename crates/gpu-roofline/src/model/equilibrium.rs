@@ -112,7 +112,10 @@ mod tests {
             detector.observe(100.0);
         }
 
-        assert!(detector.is_stable(), "stable signal should reach equilibrium");
+        assert!(
+            detector.is_stable(),
+            "stable signal should reach equilibrium"
+        );
         assert!(detector.current_cv() < 0.02);
     }
 
@@ -126,7 +129,10 @@ mod tests {
             detector.observe(val);
         }
 
-        assert!(!detector.is_stable(), "noisy signal should not reach equilibrium");
+        assert!(
+            !detector.is_stable(),
+            "noisy signal should not reach equilibrium"
+        );
     }
 
     #[test]
@@ -136,8 +142,8 @@ mod tests {
         // Start noisy, converge to stable
         let values = [
             100.0, 80.0, 90.0, 85.0, 87.0, // Noisy early phase
-            86.0, 86.2, 85.9, 86.1, 86.0,   // Converging
-            86.0, 86.0, 86.1, 85.9, 86.0,   // Stable
+            86.0, 86.2, 85.9, 86.1, 86.0, // Converging
+            86.0, 86.0, 86.1, 85.9, 86.0, // Stable
         ];
 
         let mut first_detection = None;
@@ -161,7 +167,10 @@ mod tests {
 
         // Even a constant signal shouldn't trigger before window is full
         for _ in 0..9 {
-            assert!(!detector.observe(100.0), "should not detect before window is full");
+            assert!(
+                !detector.observe(100.0),
+                "should not detect before window is full"
+            );
         }
 
         // 10th sample should trigger

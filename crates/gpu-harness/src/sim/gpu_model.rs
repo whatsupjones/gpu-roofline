@@ -36,8 +36,8 @@ impl SimGpuProfile {
     /// Estimated sustained FLOPS accounting for thermal equilibrium.
     pub fn peak_sustained_tflops(&self) -> f64 {
         // At thermal equilibrium, clock is typically base + 60-80% of (boost - base)
-        let sustained_clock =
-            self.power.base_clock_mhz + ((self.power.boost_clock_mhz - self.power.base_clock_mhz) as f32 * 0.7) as u32;
+        let sustained_clock = self.power.base_clock_mhz
+            + ((self.power.boost_clock_mhz - self.power.base_clock_mhz) as f32 * 0.7) as u32;
         PowerModel::peak_flops_at_clock(self.cuda_cores, sustained_clock) / 1e12
     }
 

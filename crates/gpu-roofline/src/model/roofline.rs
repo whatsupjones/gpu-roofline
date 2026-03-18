@@ -195,8 +195,8 @@ mod tests {
     fn test_roofline_from_measurements() {
         let buf = 16 * 1024 * 1024; // 16 MB
         let measurements = vec![
-            mock_measurement(BuiltinKernel::Copy, 16.0, buf),    // ~1000 GB/s
-            mock_measurement(BuiltinKernel::Triad, 24.0, buf),   // ~667 GB/s
+            mock_measurement(BuiltinKernel::Copy, 16.0, buf), // ~1000 GB/s
+            mock_measurement(BuiltinKernel::Triad, 24.0, buf), // ~667 GB/s
             mock_measurement(BuiltinKernel::FmaLight, 20.0, buf),
             mock_measurement(BuiltinKernel::FmaHeavy, 30.0, buf),
         ];
@@ -209,7 +209,10 @@ mod tests {
             350.0,
         );
 
-        assert!(model.peak_bandwidth_gbps > 0.0, "should have measured bandwidth");
+        assert!(
+            model.peak_bandwidth_gbps > 0.0,
+            "should have measured bandwidth"
+        );
         assert!(model.peak_gflops > 0.0, "should have measured FLOPS");
         assert!(model.ridge_point > 0.0, "should have a ridge point");
         assert_eq!(model.placements.len(), 4);
@@ -219,7 +222,7 @@ mod tests {
     fn test_ceiling_at() {
         let model = RooflineModel {
             device_name: "Test".to_string(),
-            peak_gflops: 80000.0,       // 80 TFLOPS
+            peak_gflops: 80000.0,        // 80 TFLOPS
             peak_bandwidth_gbps: 1000.0, // 1000 GB/s
             ridge_point: 80.0,           // 80 FLOP/byte
             clock_mhz: 2520,
@@ -234,11 +237,17 @@ mod tests {
 
         // At ridge point
         let ceiling_ridge = model.ceiling_at(80.0);
-        assert!((ceiling_ridge - 80000.0).abs() < 1.0, "at ridge: {ceiling_ridge}");
+        assert!(
+            (ceiling_ridge - 80000.0).abs() < 1.0,
+            "at ridge: {ceiling_ridge}"
+        );
 
         // Compute-bound region (AI > ridge point)
         let ceiling_high = model.ceiling_at(200.0);
-        assert!((ceiling_high - 80000.0).abs() < 1.0, "above ridge: {ceiling_high}");
+        assert!(
+            (ceiling_high - 80000.0).abs() < 1.0,
+            "above ridge: {ceiling_high}"
+        );
     }
 
     #[test]

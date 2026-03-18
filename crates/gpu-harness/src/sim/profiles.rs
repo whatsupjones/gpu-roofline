@@ -377,8 +377,14 @@ mod tests {
         let profile = rtx_5090();
         let tflops = profile.peak_burst_tflops();
         // RTX 5090: 21760 cores * 2407 MHz * 2 / 1e12 ≈ 104.8 TFLOPS
-        assert!(tflops > 90.0, "RTX 5090 should be >90 TFLOPS, got {tflops:.1}");
-        assert!(tflops < 120.0, "RTX 5090 should be <120 TFLOPS, got {tflops:.1}");
+        assert!(
+            tflops > 90.0,
+            "RTX 5090 should be >90 TFLOPS, got {tflops:.1}"
+        );
+        assert!(
+            tflops < 120.0,
+            "RTX 5090 should be <120 TFLOPS, got {tflops:.1}"
+        );
     }
 
     #[test]
@@ -386,8 +392,14 @@ mod tests {
         let profile = h100_sxm();
         let tflops = profile.peak_burst_tflops();
         // H100: 16896 cores * 1830 MHz * 2 / 1e12 ≈ 61.8 TFLOPS FP32
-        assert!(tflops > 50.0, "H100 should be >50 TFLOPS FP32, got {tflops:.1}");
-        assert!(tflops < 75.0, "H100 should be <75 TFLOPS FP32, got {tflops:.1}");
+        assert!(
+            tflops > 50.0,
+            "H100 should be >50 TFLOPS FP32, got {tflops:.1}"
+        );
+        assert!(
+            tflops < 75.0,
+            "H100 should be <75 TFLOPS FP32, got {tflops:.1}"
+        );
     }
 
     #[test]
@@ -450,7 +462,13 @@ mod tests {
         let profile = h100_sxm();
         let ridge = profile.ridge_point_burst();
         // H100: ~61.8 TFLOPS / 3350 GB/s ≈ 18.4 FLOP/byte
-        assert!(ridge > 10.0, "H100 ridge point should be >10, got {ridge:.1}");
-        assert!(ridge < 30.0, "H100 ridge point should be <30, got {ridge:.1}");
+        assert!(
+            ridge > 10.0,
+            "H100 ridge point should be >10, got {ridge:.1}"
+        );
+        assert!(
+            ridge < 30.0,
+            "H100 ridge point should be <30, got {ridge:.1}"
+        );
     }
 }

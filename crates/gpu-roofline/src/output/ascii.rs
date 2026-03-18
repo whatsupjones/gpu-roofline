@@ -6,7 +6,7 @@ const CHART_HEIGHT: usize = 18;
 
 /// Print an ASCII roofline chart for a static model.
 pub fn print_static_ascii(model: &RooflineModel) {
-    println!("\n  {} | {}", model.device_name, "Static Roofline");
+    println!("\n  {} | Static Roofline", model.device_name);
     println!(
         "  Peak: {} | {:.0} GB/s | Ridge: {:.1} FLOP/byte\n",
         format_gflops(model.peak_gflops),
@@ -25,10 +25,7 @@ pub fn print_static_ascii(model: &RooflineModel) {
 
 /// Print an ASCII roofline chart for a dynamic model (burst + sustained overlay).
 pub fn print_dynamic_ascii(dynamic: &DynamicRoofline) {
-    println!(
-        "\n  {} | Dynamic Roofline",
-        dynamic.device_name
-    );
+    println!("\n  {} | Dynamic Roofline", dynamic.device_name);
     println!(
         "  Burst:     {} | {:.0} GB/s",
         format_gflops(dynamic.burst.peak_gflops),
@@ -56,7 +53,11 @@ pub fn print_dynamic_ascii(dynamic: &DynamicRoofline) {
         for t in &dynamic.tensions {
             println!(
                 "    {} {:12} {:>5.1}% after {:.1}s",
-                if t.ceiling_delta_pct < 0.0 { "|-" } else { "|+" },
+                if t.ceiling_delta_pct < 0.0 {
+                    "|-"
+                } else {
+                    "|+"
+                },
                 t.name,
                 t.ceiling_delta_pct.abs(),
                 t.onset_time_secs
@@ -66,6 +67,7 @@ pub fn print_dynamic_ascii(dynamic: &DynamicRoofline) {
     println!();
 }
 
+#[allow(clippy::needless_range_loop)]
 fn print_roofline_chart(
     peak_gflops: f64,
     peak_bw_gbps: f64,
@@ -137,9 +139,12 @@ fn print_roofline_chart(
 
     // Y-axis labels
     let y_labels = [
-        (0, format!("{}", format_gflops(peak_gflops))),
-        (CHART_HEIGHT / 2, format!("{}", format_gflops(10.0_f64.powf((log_y_max + log_y_min) / 2.0)))),
-        (CHART_HEIGHT - 1, format!("{}", format_gflops(y_min))),
+        (0, format_gflops(peak_gflops).to_string()),
+        (
+            CHART_HEIGHT / 2,
+            format_gflops(10.0_f64.powf((log_y_max + log_y_min) / 2.0)).to_string(),
+        ),
+        (CHART_HEIGHT - 1, format_gflops(y_min).to_string()),
     ];
 
     // Print chart
@@ -167,7 +172,9 @@ fn print_roofline_chart(
     // Legend
     println!();
     if sustained_gflops.is_some() {
-        println!("  Legend: / = burst BW slope | = = burst compute | - = sustained ceiling | * = kernel");
+        println!(
+            "  Legend: / = burst BW slope | = = burst compute | - = sustained ceiling | * = kernel"
+        );
     } else {
         println!("  Legend: / = BW slope | = = compute ceiling | * = kernel");
     }

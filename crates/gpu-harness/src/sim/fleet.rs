@@ -26,7 +26,10 @@ pub enum Degradation {
     /// Dried thermal paste: GPU heats faster, throttles earlier.
     ThermalPasteDried { extra_degrees_c: f32 },
     /// Fewer active NVLink lanes (degraded interconnect).
-    NvlinkDegraded { active_links: u32, expected_links: u32 },
+    NvlinkDegraded {
+        active_links: u32,
+        expected_links: u32,
+    },
     /// PCIe running at lower gen than expected.
     PcieFallback { actual_gen: u32, expected_gen: u32 },
     /// Memory subsystem degradation (partial HBM stack failure).
@@ -75,7 +78,10 @@ impl SimulatedFleet {
         if let Some(gpu) = self.gpus.get_mut(index as usize) {
             // Apply degradation to the topology as well
             match &degradation {
-                Degradation::NvlinkDegraded { active_links, expected_links } => {
+                Degradation::NvlinkDegraded {
+                    active_links,
+                    expected_links,
+                } => {
                     let ratio = *active_links as f64 / *expected_links as f64;
                     for j in 0..self.topology.gpu_count as usize {
                         if j != index as usize {
@@ -126,8 +132,8 @@ impl SimulatedFleet {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::profiles;
+    use super::*;
 
     #[test]
     fn test_homogeneous_fleet_creation() {
@@ -154,10 +160,13 @@ mod tests {
         let mut fleet = SimulatedFleet::homogeneous(profiles::h100_sxm(), 8);
         let original_bw = fleet.topology.p2p_bandwidth_gbps[2][0];
 
-        fleet.degrade_gpu(2, Degradation::NvlinkDegraded {
-            active_links: 12,
-            expected_links: 18,
-        });
+        fleet.degrade_gpu(
+            2,
+            Degradation::NvlinkDegraded {
+                active_links: 12,
+                expected_links: 18,
+            },
+        );
 
         let degraded_bw = fleet.topology.p2p_bandwidth_gbps[2][0];
         assert!(
@@ -186,7 +195,12 @@ mod tests {
         let mut fleet = SimulatedFleet::homogeneous(profiles::h100_sxm(), 4);
         let original_bw = fleet.gpus[3].profile.bandwidth.hbm_bandwidth_gbps;
 
-        fleet.degrade_gpu(3, Degradation::MemorySubsystem { bandwidth_ratio: 0.75 });
+        fleet.degrade_gpu(
+            3,
+            Degradation::MemorySubsystem {
+                bandwidth_ratio: 0.75,
+            },
+        );
 
         let degraded_bw = fleet.gpus[3].profile.bandwidth.hbm_bandwidth_gbps;
         assert!((degraded_bw - original_bw * 0.75).abs() < 1.0);

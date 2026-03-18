@@ -102,7 +102,10 @@ mod tests {
     fn test_temperature_starts_at_ambient() {
         let model = rtx_4090_thermal();
         let temp = model.temperature_at(450.0, 0.0);
-        assert!((temp - 35.0).abs() < 0.1, "temp at t=0 should be ambient, got {temp}");
+        assert!(
+            (temp - 35.0).abs() < 0.1,
+            "temp at t=0 should be ambient, got {temp}"
+        );
     }
 
     #[test]
@@ -156,6 +159,9 @@ mod tests {
         let model = rtx_4090_thermal();
         let t_eq = model.time_to_equilibrium(450.0);
         assert!(t_eq > 1.0, "equilibrium should take more than 1s");
-        assert!(t_eq < 60.0, "equilibrium should be reached within 60s for consumer GPU");
+        assert!(
+            t_eq < 60.0,
+            "equilibrium should be reached within 60s for consumer GPU"
+        );
     }
 }

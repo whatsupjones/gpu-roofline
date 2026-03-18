@@ -7,4 +7,4 @@ pub mod tension;
 
 pub use dynamic::DynamicRoofline;
 pub use roofline::{Bottleneck, KernelPlacement, RooflineModel};
-pub use tension::{DynamicConfig, TensionMeasurement, ThermalSample};
+pub use tension::DynamicConfig;

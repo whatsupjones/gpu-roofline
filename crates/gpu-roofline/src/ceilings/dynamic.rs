@@ -1,5 +1,5 @@
-use gpu_harness::{GpuBackend, RunConfig};
 use gpu_harness::error::HarnessError;
+use gpu_harness::{GpuBackend, RunConfig};
 
 use crate::kernels::BuiltinKernel;
 use crate::model::dynamic::DynamicRoofline;
@@ -92,8 +92,7 @@ pub fn measure_dynamic(
         last_compute_result = compute_result;
 
         // Early exit if stable for a full window past equilibrium
-        if gflops_detector.is_stable()
-            && elapsed > equilibrium_time + config.stability_window_secs
+        if gflops_detector.is_stable() && elapsed > equilibrium_time + config.stability_window_secs
         {
             break;
         }
@@ -158,9 +157,11 @@ mod tests {
         let dynamic = measure_dynamic(&backend, &config).unwrap();
 
         assert!(dynamic.device_name.contains("H100"));
-        assert!(dynamic.sustained.peak_bandwidth_gbps > 1000.0,
+        assert!(
+            dynamic.sustained.peak_bandwidth_gbps > 1000.0,
             "H100 sustained BW should be >1000 GB/s, got {:.0}",
-            dynamic.sustained.peak_bandwidth_gbps);
+            dynamic.sustained.peak_bandwidth_gbps
+        );
     }
 
     #[test]

@@ -42,7 +42,8 @@ impl DynamicRoofline {
         };
 
         // Extract tensions from the trajectory
-        let tensions = Self::extract_tensions(&burst, &sustained, &trajectory, equilibrium_time_secs);
+        let tensions =
+            Self::extract_tensions(&burst, &sustained, &trajectory, equilibrium_time_secs);
 
         Self {
             device_name,
@@ -66,8 +67,7 @@ impl DynamicRoofline {
 
         // Thermal tension: clock reduction due to temperature
         let clock_drop_pct = if burst.clock_mhz > 0 {
-            ((burst.clock_mhz as f64 - sustained.clock_mhz as f64) / burst.clock_mhz as f64)
-                * 100.0
+            ((burst.clock_mhz as f64 - sustained.clock_mhz as f64) / burst.clock_mhz as f64) * 100.0
         } else {
             0.0
         };
@@ -77,8 +77,8 @@ impl DynamicRoofline {
             let onset = trajectory
                 .iter()
                 .find(|s| {
-                    let drop = (burst.clock_mhz as f64 - s.clock_mhz as f64)
-                        / burst.clock_mhz as f64;
+                    let drop =
+                        (burst.clock_mhz as f64 - s.clock_mhz as f64) / burst.clock_mhz as f64;
                     drop > 0.01
                 })
                 .map(|s| s.elapsed_secs)
@@ -173,7 +173,11 @@ impl DynamicRoofline {
             for t in &self.tensions {
                 lines.push(format!(
                     "    {} {}: {:.1}% after {:.1}s",
-                    if t.ceiling_delta_pct < 0.0 { "↓" } else { "↑" },
+                    if t.ceiling_delta_pct < 0.0 {
+                        "↓"
+                    } else {
+                        "↑"
+                    },
                     t.name,
                     t.ceiling_delta_pct.abs(),
                     t.onset_time_secs
@@ -244,8 +248,14 @@ mod tests {
         );
 
         assert_eq!(dynamic.device_name, "Test GPU");
-        assert!(dynamic.net_ceiling_drop_pct > 15.0, "should show significant drop");
-        assert!(dynamic.net_ceiling_drop_pct < 25.0, "drop should be reasonable");
+        assert!(
+            dynamic.net_ceiling_drop_pct > 15.0,
+            "should show significant drop"
+        );
+        assert!(
+            dynamic.net_ceiling_drop_pct < 25.0,
+            "drop should be reasonable"
+        );
         assert!(!dynamic.tensions.is_empty(), "should detect tensions");
     }
 
@@ -261,7 +271,10 @@ mod tests {
         let thermal = dynamic.tensions.iter().find(|t| t.name == "thermal");
         assert!(thermal.is_some(), "should detect thermal tension");
         let thermal = thermal.unwrap();
-        assert!(thermal.ceiling_delta_pct < 0.0, "thermal should reduce performance");
+        assert!(
+            thermal.ceiling_delta_pct < 0.0,
+            "thermal should reduce performance"
+        );
     }
 
     #[test]
@@ -269,12 +282,7 @@ mod tests {
         let burst = mock_burst();
         let sustained = burst.clone(); // Same as burst = no tension
 
-        let dynamic = DynamicRoofline::from_measurements(
-            burst,
-            sustained,
-            vec![],
-            0.0,
-        );
+        let dynamic = DynamicRoofline::from_measurements(burst, sustained, vec![], 0.0);
 
         assert!(
             dynamic.tensions.is_empty(),

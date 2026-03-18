@@ -1,8 +1,8 @@
-use gpu_harness::{GpuBackend, KernelResult, RunConfig};
 use gpu_harness::error::HarnessError;
+use gpu_harness::{GpuBackend, KernelResult, RunConfig};
 
 use crate::kernels::{BuiltinKernel, KernelDefinition};
-use crate::model::{RooflineModel};
+use crate::model::RooflineModel;
 
 /// Configuration for a roofline measurement session.
 #[derive(Debug, Clone)]

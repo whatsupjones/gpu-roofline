@@ -6,4 +6,4 @@
 
 pub mod definitions;
 
-pub use definitions::{BuiltinKernel, KernelCategory, KernelDefinition};
+pub use definitions::{BuiltinKernel, KernelDefinition};

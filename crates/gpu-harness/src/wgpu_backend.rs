@@ -14,7 +14,7 @@ mod inner {
 
     /// Real GPU backend using wgpu for compute shader dispatch.
     pub struct WgpuBackend {
-        instance: wgpu::Instance,
+        _instance: wgpu::Instance,
         adapters: Vec<AdapterInfo>,
     }
 
@@ -84,7 +84,7 @@ mod inner {
             }
 
             Ok(Self {
-                instance,
+                _instance: instance,
                 adapters,
             })
         }
@@ -151,7 +151,7 @@ mod inner {
                 ],
             });
 
-            let workgroups = (element_count as u32 + 255) / 256;
+            let workgroups = (element_count as u32).div_ceil(256);
 
             // Warmup dispatch
             {
@@ -216,7 +216,10 @@ mod inner {
                 "scale" | "add" | "triad" => {
                     // These kernels need >2 bindings (uniform or 3rd buffer).
                     // Skip gracefully — return synthetic result so measurement continues.
-                    tracing::info!("Skipping kernel '{}' (multi-binding not yet supported on real GPU)", kernel.name);
+                    tracing::info!(
+                        "Skipping kernel '{}' (multi-binding not yet supported on real GPU)",
+                        kernel.name
+                    );
                     return Ok(KernelResult {
                         kernel_name: kernel.name.clone(),
                         elapsed_us: vec![0.0; config.measurement_iterations as usize],
@@ -288,10 +291,8 @@ mod inner {
                         pci_bus_id: None,
                         driver_version: Some(a.info.driver.clone()),
                         features: GpuFeatures {
-                            timestamp_queries: features
-                                .contains(wgpu::Features::TIMESTAMP_QUERY),
-                            shader_f16: features
-                                .contains(wgpu::Features::SHADER_F16),
+                            timestamp_queries: features.contains(wgpu::Features::TIMESTAMP_QUERY),
+                            shader_f16: features.contains(wgpu::Features::SHADER_F16),
                             shader_int64: false, // wgpu doesn't expose this directly
                             compute_capability: None, // CUDA-specific
                             tensor_cores: matches!(
@@ -320,8 +321,7 @@ mod inner {
                                 limits.max_compute_workgroups_per_dimension,
                                 limits.max_compute_workgroups_per_dimension,
                             ],
-                            max_storage_buffers: limits
-                                .max_storage_buffers_per_shader_stage,
+                            max_storage_buffers: limits.max_storage_buffers_per_shader_stage,
                         },
                     }
                 })
