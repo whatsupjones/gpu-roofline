@@ -12,6 +12,8 @@ path = "src/main.rs"
 [features]
 default = ["wgpu-backend"]
 wgpu-backend = ["gpu-harness/wgpu-backend"]
+cuda = ["gpu-harness/cuda"]
+full = ["wgpu-backend", "cuda"]
 
 [dependencies]
 gpu-harness = { workspace = true }

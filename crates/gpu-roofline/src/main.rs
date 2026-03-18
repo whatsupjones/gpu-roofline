@@ -76,6 +76,62 @@ fn get_backend(
             Ok(Box::new(SimulatedBackend::new(profile)))
         }
         None => {
+            // CUDA backend (datacenter GPUs)
+            if matches!(backend_choice, BackendChoice::Cuda) {
+                #[cfg(feature = "cuda")]
+                {
+                    match gpu_harness::CudaBackend::new() {
+                        Ok(backend) => {
+                            let devices = backend.discover_devices().unwrap_or_default();
+                            for d in &devices {
+                                eprintln!(
+                                    "  GPU: {} | CUDA sm_{}{} | {:.1} GB VRAM",
+                                    d.name,
+                                    d.features.compute_capability.map(|(m, _)| m).unwrap_or(0),
+                                    d.features.compute_capability.map(|(_, m)| m).unwrap_or(0),
+                                    d.memory_bytes as f64 / (1024.0 * 1024.0 * 1024.0)
+                                );
+                            }
+                            return Ok(Box::new(backend));
+                        }
+                        Err(e) => {
+                            return Err(format!(
+                                "CUDA backend failed: {e}\n\
+                                 Try --backend auto for Vulkan/DX12 fallback."
+                            ));
+                        }
+                    }
+                }
+                #[cfg(not(feature = "cuda"))]
+                {
+                    return Err("CUDA backend not available. Build with --features cuda.\n\
+                         Try --backend auto for Vulkan/DX12."
+                        .to_string());
+                }
+            }
+
+            // Auto mode: try CUDA first (for datacenter), then wgpu
+            if matches!(backend_choice, BackendChoice::Auto) {
+                #[cfg(feature = "cuda")]
+                {
+                    if let Ok(backend) = gpu_harness::CudaBackend::new() {
+                        let devices = backend.discover_devices().unwrap_or_default();
+                        for d in &devices {
+                            eprintln!(
+                                "  GPU: {} | CUDA sm_{}{} | {:.1} GB VRAM",
+                                d.name,
+                                d.features.compute_capability.map(|(m, _)| m).unwrap_or(0),
+                                d.features.compute_capability.map(|(_, m)| m).unwrap_or(0),
+                                d.memory_bytes as f64 / (1024.0 * 1024.0 * 1024.0)
+                            );
+                        }
+                        return Ok(Box::new(backend));
+                    }
+                    // CUDA failed, fall through to wgpu
+                }
+            }
+
+            // wgpu backend (Vulkan/DX12/Metal/GL)
             #[cfg(feature = "wgpu-backend")]
             {
                 use gpu_harness::wgpu_backend::GpuApiBackend;
@@ -85,6 +141,7 @@ fn get_backend(
                     BackendChoice::Dx12 => GpuApiBackend::Dx12,
                     BackendChoice::Metal => GpuApiBackend::Metal,
                     BackendChoice::Gl => GpuApiBackend::Gl,
+                    BackendChoice::Cuda => unreachable!(), // Handled above
                 };
                 match WgpuBackend::with_backend(api) {
                     Ok(backend) => {
@@ -114,8 +171,8 @@ fn get_backend(
             {
                 let _ = backend_choice;
                 Err(
-                    "Built without GPU support. Use --sim <profile> for simulation mode.\n\
-                     Run 'gpu-roofline profiles' to list available profiles."
+                    "No GPU backend available. Build with --features wgpu-backend or --features cuda.\n\
+                     Use --sim <profile> for simulation mode."
                         .to_string(),
                 )
             }

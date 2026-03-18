@@ -5,6 +5,7 @@
 //! plus a physics-based simulation engine for testing without hardware.
 
 pub mod backend;
+pub mod cuda_backend;
 pub mod device;
 pub mod error;
 pub mod sim;
@@ -16,3 +17,6 @@ pub use error::HarnessError;
 
 #[cfg(feature = "wgpu-backend")]
 pub use wgpu_backend::WgpuBackend;
+
+#[cfg(feature = "cuda")]
+pub use cuda_backend::CudaBackend;

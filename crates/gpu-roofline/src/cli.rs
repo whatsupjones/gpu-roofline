@@ -99,4 +99,6 @@ pub enum BackendChoice {
     Metal,
     /// Force OpenGL (broad compatibility)
     Gl,
+    /// CUDA native compute (datacenter GPUs: H100, H200, A100)
+    Cuda,
 }
