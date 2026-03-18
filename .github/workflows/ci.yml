@@ -31,6 +31,12 @@ jobs:
       - name: Run tests (simulation only — no GPU needed)
         run: cargo test
 
+      - name: Build (with vgpu feature)
+        run: cargo build --features vgpu
+
+      - name: Test (with vgpu feature)
+        run: cargo test --features vgpu
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -45,3 +51,6 @@ jobs:
 
       - name: Clippy
         run: cargo clippy --all-targets -- -D warnings
+
+      - name: Clippy (with vgpu feature)
+        run: cargo clippy --features vgpu --all-targets -- -D warnings

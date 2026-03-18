@@ -88,6 +88,8 @@ fn main() {
             &cli.backend,
         ),
         Commands::Profiles => cmd_profiles(),
+        #[cfg(feature = "vgpu")]
+        Commands::Vgpu { action } => cmd_vgpu(action, &cli.format),
     };
 
     process::exit(exit_code);
@@ -645,6 +647,258 @@ fn cmd_profiles() -> i32 {
         }
     }
     println!("\nUsage: gpu-roofline measure --sim <profile>");
+    0
+}
+
+#[cfg(feature = "vgpu")]
+fn cmd_vgpu(action: cli::VgpuAction, format: &OutputFormat) -> i32 {
+    match action {
+        cli::VgpuAction::Watch {
+            device: _,
+            daemon,
+            log,
+            sim,
+            contention_threshold,
+        } => cmd_vgpu_watch(sim, daemon, log, contention_threshold, format),
+        cli::VgpuAction::List { sim, json } => cmd_vgpu_list(sim, json),
+        cli::VgpuAction::Scenarios => cmd_vgpu_scenarios(),
+    }
+}
+
+#[cfg(feature = "vgpu")]
+fn cmd_vgpu_watch(
+    sim: Option<String>,
+    daemon: bool,
+    log_path: Option<String>,
+    contention_threshold: f64,
+    _format: &OutputFormat,
+) -> i32 {
+    use gpu_harness::vgpu::{self, SimulatedDetector, VgpuDetector};
+    use monitor::vgpu_sampler::{VgpuMonitorConfig, VgpuSampler};
+    use std::sync::mpsc;
+
+    let scenario = match &sim {
+        Some(name) => match vgpu::scenario_by_name(name) {
+            Some(s) => s,
+            None => {
+                eprintln!(
+                    "Unknown scenario '{}'. Run 'gpu-roofline vgpu scenarios' for a list.",
+                    name
+                );
+                return 2;
+            }
+        },
+        None => {
+            eprintln!("Live hardware detection not yet implemented.");
+            eprintln!("Use --sim <scenario> for simulation mode.");
+            eprintln!("Run 'gpu-roofline vgpu scenarios' for available scenarios.");
+            return 2;
+        }
+    };
+
+    let detector = SimulatedDetector::new(scenario.clone());
+    let physical_vram = scenario.physical_vram_bytes;
+    let technology = scenario.technology;
+    let partitioning_mode = scenario.partitioning_mode;
+    let scenario_name = scenario.name.clone();
+
+    let config = VgpuMonitorConfig {
+        sample_interval_secs: 1,
+        contention_threshold,
+        daemon,
+        log_path: log_path.clone(),
+    };
+
+    let mut sampler = VgpuSampler::new(config, physical_vram);
+    sampler.set_technology(technology, partitioning_mode);
+
+    let (tx, rx) = mpsc::channel();
+
+    // Run detector in background thread
+    let detector_handle = std::thread::spawn(move || {
+        if let Err(e) = detector.watch(tx) {
+            tracing::error!("detector error: {e}");
+        }
+    });
+
+    // Open log file if requested
+    let mut log_file = log_path.as_ref().and_then(|path| {
+        std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(path)
+            .ok()
+    });
+
+    if daemon {
+        // Daemon mode: JSON lines only
+        let events = sampler.run(rx, |event, alerts| {
+            if let Some(ref mut file) = log_file {
+                use std::io::Write;
+                if let Ok(json) = serde_json::to_string(event) {
+                    let _ = writeln!(file, "{json}");
+                }
+            }
+            if let Ok(json) = serde_json::to_string(event) {
+                println!("{json}");
+            }
+            for alert in alerts {
+                if let Ok(json) = serde_json::to_string(alert) {
+                    eprintln!("{json}");
+                }
+            }
+            true
+        });
+
+        let _ = detector_handle.join();
+        eprintln!("{} events processed", events.len());
+        0
+    } else {
+        // TUI mode
+        let mut tui_state = monitor::vgpu_tui::VgpuTuiState::new(Some(scenario_name));
+
+        let mut terminal = match monitor::tui::init_terminal() {
+            Ok(t) => t,
+            Err(e) => {
+                eprintln!("Failed to initialize TUI: {e}");
+                eprintln!("Try --daemon for headless mode.");
+                return 2;
+            }
+        };
+
+        let events = sampler.run(rx, |event, alerts| {
+            // Write JSON log line
+            if let Some(ref mut file) = log_file {
+                use std::io::Write;
+                if let Ok(json) = serde_json::to_string(event) {
+                    let _ = writeln!(file, "{json}");
+                }
+            }
+
+            tui_state.push_event(event, alerts);
+
+            // Render TUI
+            let _ = terminal.draw(|frame| {
+                monitor::vgpu_tui::draw(frame, &tui_state);
+            });
+
+            // Check for quit key
+            !monitor::vgpu_tui::poll_quit()
+        });
+
+        // Restore terminal
+        let _ = monitor::tui::restore_terminal();
+
+        let _ = detector_handle.join();
+
+        eprintln!(
+            "vGPU monitoring complete: {} events, {} alerts",
+            events.len(),
+            sampler.alerts().len()
+        );
+        0
+    }
+}
+
+#[cfg(feature = "vgpu")]
+fn cmd_vgpu_list(sim: Option<String>, json: bool) -> i32 {
+    use gpu_harness::vgpu::{self, SimulatedDetector, VgpuDetector};
+
+    let instances = match &sim {
+        Some(name) => {
+            let scenario = match vgpu::scenario_by_name(name) {
+                Some(s) => s,
+                None => {
+                    eprintln!("Unknown scenario '{name}'.");
+                    return 2;
+                }
+            };
+
+            // For list, we run the scenario quickly and collect created instances
+            let detector = SimulatedDetector::new(vgpu::VgpuSimScenario {
+                name: scenario.name.clone(),
+                description: scenario.description.clone(),
+                technology: scenario.technology,
+                partitioning_mode: scenario.partitioning_mode,
+                physical_vram_bytes: scenario.physical_vram_bytes,
+                events: scenario
+                    .events
+                    .into_iter()
+                    .map(|mut e| {
+                        e.delay_secs = 0.0;
+                        e
+                    })
+                    .collect(),
+            });
+
+            let (tx, rx) = std::sync::mpsc::channel();
+            detector.watch(tx).ok();
+
+            let mut instances = Vec::new();
+            for event in rx.try_iter() {
+                if let vgpu::VgpuEventType::Created { instance, .. } = event.event_type {
+                    instances.push(instance);
+                }
+            }
+            instances
+        }
+        None => {
+            eprintln!("Live hardware listing not yet implemented. Use --sim <scenario>.");
+            return 2;
+        }
+    };
+
+    if json {
+        match serde_json::to_string_pretty(&instances) {
+            Ok(j) => println!("{j}"),
+            Err(e) => {
+                eprintln!("JSON error: {e}");
+                return 1;
+            }
+        }
+    } else {
+        println!(
+            "{:<15} {:<25} {:<15} {:<10} {:<10}",
+            "ID", "Name", "Technology", "VRAM", "Phase"
+        );
+        println!("{}", "-".repeat(75));
+        for inst in &instances {
+            println!(
+                "{:<15} {:<25} {:<15} {:<10} {:<10}",
+                inst.id,
+                inst.name,
+                inst.technology,
+                format!(
+                    "{:.0}G",
+                    inst.vram_allocated_bytes as f64 / (1024.0 * 1024.0 * 1024.0)
+                ),
+                inst.phase,
+            );
+        }
+        println!("\n{} instance(s)", instances.len());
+    }
+    0
+}
+
+#[cfg(feature = "vgpu")]
+fn cmd_vgpu_scenarios() -> i32 {
+    use gpu_harness::vgpu;
+
+    println!("Available vGPU simulation scenarios:\n");
+    for name in vgpu::available_scenarios() {
+        if let Some(s) = vgpu::scenario_by_name(name) {
+            println!(
+                "  {:<20} {} | {} | {} events",
+                name,
+                s.technology,
+                s.partitioning_mode_label(),
+                s.events.len(),
+            );
+            println!("  {:<20} {}", "", s.description);
+            println!();
+        }
+    }
+    println!("Usage: gpu-roofline vgpu watch --sim <scenario>");
     0
 }
 

@@ -2,21 +2,17 @@
 
 ## v0.2.0 — vGPU Lifecycle Monitoring + RTX 5090 Validation
 
-### vGPU Lifecycle-Aware Monitoring
+### vGPU Lifecycle-Aware Monitoring ✅ Implemented
 
-Current GPU monitoring tools poll **after** a vGPU exists. We measure **from the moment of creation** — capturing provisioning overhead, warm-up curves, and teardown efficiency.
+Trigger-point vGPU lifecycle monitoring is implemented behind `--features vgpu`:
 
-**Architecture:**
-- **Trigger Detection** — Hook into vGPU provisioning events (NVIDIA GRID/vGPU manager API, libvirt hooks, Kubernetes device plugin events) to detect the exact moment a vGPU is created or destroyed
-- **Lifecycle Measurement** — Capture spin-up latency, initial allocation efficiency, and first-N-seconds performance curve before steady state
-- **Contention Detection** — When a new vGPU spins up on a shared physical GPU, measure the impact on existing vGPU tenants in real-time
-- **Teardown Verification** — When a vGPU is dropped, verify the physical GPU reclaims resources (detect ghost allocations, memory fragmentation)
-- **Auto Load/Unload** — Monitor attaches when vGPU provisions, detaches when vGPU drops. Zero overhead when no vGPU is active.
-
-**Why This Matters:**
-- DGX Cloud manages thousands of vGPU lifecycles — no tool measures provisioning efficiency at the trigger point
-- MIG partitions on H100/H200 share thermals but have independent compute/memory — lifecycle monitoring catches cross-partition interference
-- Cloud providers (AWS, GCP, Azure) charge per-second for GPU instances — measuring spin-up waste directly impacts cost
+- **Trigger Detection** — VgpuDetector trait with platform-specific implementations (NVIDIA GRID sysfs/NVML, MIG procfs/NVML, SR-IOV sysfs, Cloud passthrough, K8s device plugin) + SimulatedDetector for testing
+- **Contention Detection** — ContentionMeasurer records per-instance baselines, detects squeeze when new vGPUs appear on time-sliced GPUs. Hardware-partitioned (MIG) instances correctly skip contention checks.
+- **Teardown Verification** — TeardownVerifier captures pre-teardown state and compares post-teardown to detect ghost allocations and measure reclaim latency
+- **Auto Attach/Detach** — VgpuSampler event loop with 7 alert rules (SlowProvision, ContentionSqueeze, UnderperformingInstance, GhostAllocation, SlowReclaim, OverSubscription, MemoryOvercommit)
+- **CLI** — `gpu-roofline vgpu watch`, `vgpu list`, `vgpu scenarios` with TUI and daemon modes
+- **4 Simulation Scenarios** — mig_scale_up, grid_contention, ghost_allocation, rapid_churn
+- **Validated** — End-to-end integration tests for all scenarios + scale stress tests (100/1000 lifecycle cycles)
 
 ### CUDA Events + CUDA Graphs
 

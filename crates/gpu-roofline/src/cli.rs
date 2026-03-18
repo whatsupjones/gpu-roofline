@@ -122,6 +122,55 @@ pub enum Commands {
 
     /// List available simulation profiles
     Profiles,
+
+    /// vGPU lifecycle monitoring: detect provisioning, measure contention, verify teardown
+    #[cfg(feature = "vgpu")]
+    Vgpu {
+        #[command(subcommand)]
+        action: VgpuAction,
+    },
+}
+
+/// vGPU subcommands.
+#[cfg(feature = "vgpu")]
+#[derive(Subcommand)]
+pub enum VgpuAction {
+    /// Watch vGPU lifecycle events in real time
+    Watch {
+        /// Device index to watch (default: all)
+        #[arg(short, long)]
+        device: Option<u32>,
+
+        /// Run in daemon mode (JSON logging only)
+        #[arg(long)]
+        daemon: bool,
+
+        /// Write JSON log to this file path
+        #[arg(long, value_name = "PATH")]
+        log: Option<String>,
+
+        /// Use simulated vGPU scenario instead of real hardware
+        #[arg(long, value_name = "SCENARIO")]
+        sim: Option<String>,
+
+        /// Contention detection threshold (% drop, default: 5)
+        #[arg(long, default_value = "5")]
+        contention_threshold: f64,
+    },
+
+    /// List current vGPU instances
+    List {
+        /// Use simulated vGPU scenario
+        #[arg(long, value_name = "SCENARIO")]
+        sim: Option<String>,
+
+        /// Output as JSON
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// List available simulation scenarios
+    Scenarios,
 }
 
 #[derive(Clone, ValueEnum)]

@@ -18,6 +18,7 @@ Measure burst vs sustained performance ceilings across NVIDIA, AMD, and Intel GP
 | Sustained ceiling measurement | No | No | No | **Yes** |
 | Tension analysis | No | No | No | **Yes** |
 | Degradation alerting | No | No | No | **Yes** |
+| vGPU lifecycle monitoring | No | No | No | **Yes** |
 | Single binary | No | No | No | **Yes** |
 
 ## Dynamic Roofline: The Tension Model
@@ -226,6 +227,57 @@ gpu-roofline monitor --sim h100_sxm --interval 5 --duration 60
 {"timestamp":"2026-03-18T14:01:00Z","bandwidth_gbps":2102,"gflops":58900,"temperature_c":67,"status":"warning","alerts":[...]}
 ```
 
+## vGPU Lifecycle Monitoring
+
+Monitor vGPU instances from the moment they provision to the moment they're destroyed. Detects contention, verifies teardown, catches ghost allocations — no other tool does this.
+
+```bash
+# Build with vGPU support
+cargo install gpu-roofline --features vgpu
+
+# Watch lifecycle events (simulation — no hardware needed)
+gpu-roofline vgpu watch --sim grid_contention
+
+# Daemon mode: JSON lines for log aggregation
+gpu-roofline vgpu watch --sim grid_contention --daemon --log vgpu.jsonl
+
+# List vGPU instances
+gpu-roofline vgpu list --sim mig_scale_up --json
+
+# List available simulation scenarios
+gpu-roofline vgpu scenarios
+```
+
+### Simulation Scenarios
+
+| Scenario | Description | Events |
+|----------|-------------|--------|
+| `mig_scale_up` | 7 MIG instances on H100, hardware-partitioned (no contention) | 7 |
+| `grid_contention` | 4 GRID time-sliced vGPUs, each squeezing existing tenants | 7 |
+| `ghost_allocation` | Create + destroy with 512MB unreleased memory | 2 |
+| `rapid_churn` | 20 create/destroy cycles to stress-test state management | 40 |
+
+### Alert Rules
+
+| Rule | Trigger | Severity |
+|------|---------|----------|
+| SlowProvision | Spin-up > 500ms | Warning |
+| ContentionSqueeze | Existing tenant bandwidth dropped >5% | Critical |
+| UnderperformingInstance | vGPU below expected fraction of physical GPU | Warning |
+| GhostAllocation | Teardown left unreleased memory | Critical |
+| SlowReclaim | Resource reclamation > 1000ms | Warning |
+| OverSubscription | vGPU count exceeds safe density (default: 8) | Warning |
+| MemoryOvercommit | Total vGPU VRAM exceeds physical GPU VRAM | Critical |
+
+### Supported Technologies
+
+- **NVIDIA GRID/vGPU** — sysfs mdev + NVML on Linux, NVML polling on Windows
+- **NVIDIA MIG** — hardware-partitioned, no contention (H100/H200)
+- **SR-IOV** — PCIe hardware virtualization
+- **Cloud Passthrough** — AWS p4d/p5, GCP a2/a3, Azure ND
+- **Kubernetes** — device-plugin GPU scheduling
+- **Simulated** — built-in scenarios for testing without hardware
+
 ## gpu-fleet (Coming Soon)
 
 Multi-GPU cluster validation — detects stragglers, NVLink degradation, NUMA misalignment, and GPUs running below their roofline.
@@ -237,13 +289,14 @@ gpu-roofline/
 ├── crates/
 │   ├── gpu-harness/          # Shared backend abstraction
 │   │   ├── sim/              # Physics-based GPU simulation engine
+│   │   ├── vgpu/             # vGPU lifecycle detection + contention + teardown
 │   │   ├── cuda_backend.rs   # Native CUDA compute (datacenter)
 │   │   ├── wgpu_backend.rs   # Vulkan/DX12/Metal/GL (consumer)
 │   │   └── nvml_telemetry.rs # Real GPU temp/clock/power via NVML
 │   ├── gpu-roofline/         # Roofline engine + CLI
 │   │   ├── ceilings/         # Burst + dynamic measurement
 │   │   ├── model/            # Roofline model + tension analysis
-│   │   ├── monitor/          # Live TUI + alerting + daemon
+│   │   ├── monitor/          # Live TUI + alerting + daemon + vGPU sampler
 │   │   ├── validate/         # Preflight GPU health checks
 │   │   └── shaders/          # WGSL + CUDA compute kernels
 │   └── gpu-fleet/            # Multi-GPU cluster validation (WIP)
@@ -283,8 +336,8 @@ println!("{}°C, {} MHz, {:.0}W", state.temperature_c, state.clock_mhz, state.po
 
 See the full [ROADMAP.md](docs/ROADMAP.md) for what's coming next.
 
-**v0.2 — vGPU Lifecycle Monitoring**
-Hook into vGPU provisioning events to measure from the moment of creation — spin-up latency, warm-up performance curves, cross-tenant contention detection, and teardown verification. Auto-attaches when a vGPU provisions, detaches when it drops. Zero overhead when idle.
+**v0.2 — vGPU Lifecycle Monitoring** ✅
+Implemented: trigger-point detection, contention measurement, teardown verification, 7 alert rules, TUI dashboard, 4 simulation scenarios. See [vGPU Lifecycle Monitoring](#vgpu-lifecycle-monitoring) above.
 
 **v0.2 — CUDA Events + CUDA Graphs**
 GPU-side hardware timestamps for sub-microsecond accuracy. Batch kernel dispatch via CUDA Graphs for zero-overhead monitoring. Graceful fallback: Graphs → Events → CPU timing.

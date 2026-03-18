@@ -22,4 +22,13 @@ pub enum HarnessError {
 
     #[error("simulation error: {0}")]
     SimulationError(String),
+
+    #[error("vGPU detection failed: {0}")]
+    VgpuDetectionFailed(String),
+
+    #[error("vGPU not supported on this platform/hardware")]
+    VgpuNotSupported,
+
+    #[error("vGPU instance not found: {0}")]
+    VgpuInstanceNotFound(String),
 }

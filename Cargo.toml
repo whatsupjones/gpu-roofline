@@ -45,5 +45,8 @@ statrs = "0.18"
 # Errors
 thiserror = "2"
 
+# Filesystem watching
+notify = "6"
+
 # Testing
 rand = "0.8"

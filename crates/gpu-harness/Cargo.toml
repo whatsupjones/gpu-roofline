@@ -14,6 +14,7 @@ default = ["wgpu-backend"]
 wgpu-backend = ["dep:wgpu", "dep:pollster"]
 cuda = ["dep:cudarc", "nvml"]
 nvml = ["dep:nvml-wrapper"]
+vgpu = ["dep:notify", "dep:chrono"]
 full = ["wgpu-backend", "cuda", "nvml"]
 
 [dependencies]
@@ -29,6 +30,8 @@ wgpu = { workspace = true, optional = true }
 pollster = { workspace = true, optional = true }
 cudarc = { workspace = true, optional = true }
 nvml-wrapper = { workspace = true, optional = true }
+notify = { version = "6", optional = true }
+chrono = { workspace = true, optional = true }
 
 [dev-dependencies]
 rand = { workspace = true }

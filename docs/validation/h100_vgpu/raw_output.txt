@@ -1,0 +1,431 @@
+=== GPU INFO ===
+name, memory.total [MiB], driver_version, compute_cap
+NVIDIA H100 80GB HBM3, 81559 MiB, 580.126.09, 9.0
+=== SCENARIOS ===
+Available vGPU simulation scenarios:
+
+  mig_scale_up         NVIDIA MIG | Hardware Partitioned | 7 events
+                       7 MIG instances on H100, sequential creation, no contention
+
+  grid_contention      NVIDIA GRID | Time-Sliced | 7 events
+                       4 GRID vGPUs with time-sliced contention
+
+  ghost_allocation     NVIDIA GRID | Time-Sliced | 2 events
+                       Create and destroy vGPU with 512MB ghost allocation
+
+  rapid_churn          NVIDIA MIG | Hardware Partitioned | 40 events
+                       20 create/destroy cycles in 60s to test state leaks
+
+Usage: gpu-roofline vgpu watch --sim <scenario>
+=== GHOST ALLOCATION (daemon) ===
+{"timestamp":"2026-03-18T19:49:50.978363701Z","event_type":{"Created":{"instance":{"id":"ghost-0","name":"GRID V100D-8Q","technology":"NvidiaGrid","physical_gpu_index":0,"physical_pci_bus_id":"0000:3b:00.0","phase":"Provisioning","vram_allocated_bytes":8589934592,"compute_fraction":null,"memory_fraction":0.5,"mig_profile":null},"spin_up_latency_ms":200.0}},"instance_id":"ghost-0","snapshot":null}
+{"timestamp":"2026-03-18T19:49:54.978317283Z","event_type":{"Destroyed":{"instance_id":"ghost-0","verification":{"memory_reclaimed":false,"expected_free_bytes":0,"actual_free_bytes":0,"reclaim_latency_ms":50.0,"ghost_allocations_bytes":536870912,"compute_reclaimed":false}}},"instance_id":"ghost-0","snapshot":null}
+{"level":"Critical","rule":"GhostAllocation","message":"vGPU ghost-0 teardown left 512 MB unreleased"}
+2 events processed
+=== GRID CONTENTION (daemon) ===
+{"timestamp":"2026-03-18T19:49:55.982190022Z","event_type":{"Created":{"instance":{"id":"grid-0","name":"GRID V100D-4Q #0","technology":"NvidiaGrid","physical_gpu_index":0,"physical_pci_bus_id":"0000:3b:00.0","phase":"Provisioning","vram_allocated_bytes":4294967296,"compute_fraction":null,"memory_fraction":0.25,"mig_profile":null},"spin_up_latency_ms":250.0}},"instance_id":"grid-0","snapshot":null}
+{"timestamp":"2026-03-18T19:49:58.982213920Z","event_type":{"Created":{"instance":{"id":"grid-1","name":"GRID V100D-4Q #1","technology":"NvidiaGrid","physical_gpu_index":0,"physical_pci_bus_id":"0000:3b:00.0","phase":"Provisioning","vram_allocated_bytes":4294967296,"compute_fraction":null,"memory_fraction":0.25,"mig_profile":null},"spin_up_latency_ms":300.0}},"instance_id":"grid-1","snapshot":null}
+{"timestamp":"2026-03-18T19:49:59.482175828Z","event_type":{"ContentionDetected":{"affected_instances":["grid-0"],"bandwidth_impact":[0.5],"compute_impact":[0.5],"caused_by":"grid-1"}},"instance_id":"grid-1","snapshot":null}
+{"level":"Critical","rule":"ContentionSqueeze","message":"vGPU grid-0 lost 50.0% bandwidth when grid-1 provisioned"}
+{"timestamp":"2026-03-18T19:50:01.982147317Z","event_type":{"Created":{"instance":{"id":"grid-2","name":"GRID V100D-4Q #2","technology":"NvidiaGrid","physical_gpu_index":0,"physical_pci_bus_id":"0000:3b:00.0","phase":"Provisioning","vram_allocated_bytes":4294967296,"compute_fraction":null,"memory_fraction":0.25,"mig_profile":null},"spin_up_latency_ms":350.0}},"instance_id":"grid-2","snapshot":null}
+{"timestamp":"2026-03-18T19:50:02.482233742Z","event_type":{"ContentionDetected":{"affected_instances":["grid-0","grid-1"],"bandwidth_impact":[0.6666666666666666,0.6666666666666666],"compute_impact":[0.6666666666666666,0.6666666666666666],"caused_by":"grid-2"}},"instance_id":"grid-2","snapshot":null}
+{"level":"Critical","rule":"ContentionSqueeze","message":"vGPU grid-0 lost 33.3% bandwidth when grid-2 provisioned"}
+{"level":"Critical","rule":"ContentionSqueeze","message":"vGPU grid-1 lost 33.3% bandwidth when grid-2 provisioned"}
+{"timestamp":"2026-03-18T19:50:04.982177089Z","event_type":{"Created":{"instance":{"id":"grid-3","name":"GRID V100D-4Q #3","technology":"NvidiaGrid","physical_gpu_index":0,"physical_pci_bus_id":"0000:3b:00.0","phase":"Provisioning","vram_allocated_bytes":4294967296,"compute_fraction":null,"memory_fraction":0.25,"mig_profile":null},"spin_up_latency_ms":400.0}},"instance_id":"grid-3","snapshot":null}
+{"timestamp":"2026-03-18T19:50:05.482193657Z","event_type":{"ContentionDetected":{"affected_instances":["grid-0","grid-1","grid-2"],"bandwidth_impact":[0.75,0.75,0.75],"compute_impact":[0.75,0.75,0.75],"caused_by":"grid-3"}},"instance_id":"grid-3","snapshot":null}
+{"level":"Critical","rule":"ContentionSqueeze","message":"vGPU grid-0 lost 25.0% bandwidth when grid-3 provisioned"}
+{"level":"Critical","rule":"ContentionSqueeze","message":"vGPU grid-1 lost 25.0% bandwidth when grid-3 provisioned"}
+{"level":"Critical","rule":"ContentionSqueeze","message":"vGPU grid-2 lost 25.0% bandwidth when grid-3 provisioned"}
+7 events processed
+=== MIG SCALE UP LIST (json) ===
+[
+  {
+    "id": "mig-0",
+    "name": "MIG 1g.10gb #0",
+    "technology": "NvidiaMig",
+    "physical_gpu_index": 0,
+    "physical_pci_bus_id": "0000:3b:00.0",
+    "phase": "Provisioning",
+    "vram_allocated_bytes": 10737418240,
+    "compute_fraction": 0.14285714285714285,
+    "memory_fraction": 0.125,
+    "mig_profile": "1g.10gb"
+  },
+  {
+    "id": "mig-1",
+    "name": "MIG 1g.10gb #1",
+    "technology": "NvidiaMig",
+    "physical_gpu_index": 0,
+    "physical_pci_bus_id": "0000:3b:00.0",
+    "phase": "Provisioning",
+    "vram_allocated_bytes": 10737418240,
+    "compute_fraction": 0.14285714285714285,
+    "memory_fraction": 0.125,
+    "mig_profile": "1g.10gb"
+  },
+  {
+    "id": "mig-2",
+    "name": "MIG 1g.10gb #2",
+    "technology": "NvidiaMig",
+    "physical_gpu_index": 0,
+    "physical_pci_bus_id": "0000:3b:00.0",
+    "phase": "Provisioning",
+    "vram_allocated_bytes": 10737418240,
+    "compute_fraction": 0.14285714285714285,
+    "memory_fraction": 0.125,
+    "mig_profile": "1g.10gb"
+  },
+  {
+    "id": "mig-3",
+    "name": "MIG 1g.10gb #3",
+    "technology": "NvidiaMig",
+    "physical_gpu_index": 0,
+    "physical_pci_bus_id": "0000:3b:00.0",
+    "phase": "Provisioning",
+    "vram_allocated_bytes": 10737418240,
+    "compute_fraction": 0.14285714285714285,
+    "memory_fraction": 0.125,
+    "mig_profile": "1g.10gb"
+  },
+  {
+    "id": "mig-4",
+    "name": "MIG 1g.10gb #4",
+    "technology": "NvidiaMig",
+    "physical_gpu_index": 0,
+    "physical_pci_bus_id": "0000:3b:00.0",
+    "phase": "Provisioning",
+    "vram_allocated_bytes": 10737418240,
+    "compute_fraction": 0.14285714285714285,
+    "memory_fraction": 0.125,
+    "mig_profile": "1g.10gb"
+  },
+  {
+    "id": "mig-5",
+    "name": "MIG 1g.10gb #5",
+    "technology": "NvidiaMig",
+    "physical_gpu_index": 0,
+    "physical_pci_bus_id": "0000:3b:00.0",
+    "phase": "Provisioning",
+    "vram_allocated_bytes": 10737418240,
+    "compute_fraction": 0.14285714285714285,
+    "memory_fraction": 0.125,
+    "mig_profile": "1g.10gb"
+  },
+  {
+    "id": "mig-6",
+    "name": "MIG 1g.10gb #6",
+    "technology": "NvidiaMig",
+    "physical_gpu_index": 0,
+    "physical_pci_bus_id": "0000:3b:00.0",
+    "phase": "Provisioning",
+    "vram_allocated_bytes": 10737418240,
+    "compute_fraction": 0.14285714285714285,
+    "memory_fraction": 0.125,
+    "mig_profile": "1g.10gb"
+  }
+]
+=== RAPID CHURN (daemon) ===
+{"timestamp":"2026-03-18T19:50:05.989694622Z","event_type":{"Created":{"instance":{"id":"churn-0","name":"MIG 1g.5gb #0","technology":"NvidiaMig","physical_gpu_index":0,"physical_pci_bus_id":"0000:3b:00.0","phase":"Provisioning","vram_allocated_bytes":5368709120,"compute_fraction":0.14285714285714285,"memory_fraction":0.125,"mig_profile":"1g.5gb"},"spin_up_latency_ms":100.0}},"instance_id":"churn-0","snapshot":null}
+{"timestamp":"2026-03-18T19:50:07.489727061Z","event_type":{"Destroyed":{"instance_id":"churn-0","verification":{"memory_reclaimed":true,"expected_free_bytes":0,"actual_free_bytes":0,"reclaim_latency_ms":50.0,"ghost_allocations_bytes":0,"compute_reclaimed":true}}},"instance_id":"churn-0","snapshot":null}
+{"timestamp":"2026-03-18T19:50:08.989669582Z","event_type":{"Created":{"instance":{"id":"churn-1","name":"MIG 1g.5gb #1","technology":"NvidiaMig","physical_gpu_index":0,"physical_pci_bus_id":"0000:3b:00.0","phase":"Provisioning","vram_allocated_bytes":5368709120,"compute_fraction":0.14285714285714285,"memory_fraction":0.125,"mig_profile":"1g.5gb"},"spin_up_latency_ms":100.0}},"instance_id":"churn-1","snapshot":null}
+{"timestamp":"2026-03-18T19:50:10.489676444Z","event_type":{"Destroyed":{"instance_id":"churn-1","verification":{"memory_reclaimed":true,"expected_free_bytes":0,"actual_free_bytes":0,"reclaim_latency_ms":50.0,"ghost_allocations_bytes":0,"compute_reclaimed":true}}},"instance_id":"churn-1","snapshot":null}
+{"timestamp":"2026-03-18T19:50:11.989697635Z","event_type":{"Created":{"instance":{"id":"churn-2","name":"MIG 1g.5gb #2","technology":"NvidiaMig","physical_gpu_index":0,"physical_pci_bus_id":"0000:3b:00.0","phase":"Provisioning","vram_allocated_bytes":5368709120,"compute_fraction":0.14285714285714285,"memory_fraction":0.125,"mig_profile":"1g.5gb"},"spin_up_latency_ms":100.0}},"instance_id":"churn-2","snapshot":null}
+{"timestamp":"2026-03-18T19:50:13.489701036Z","event_type":{"Destroyed":{"instance_id":"churn-2","verification":{"memory_reclaimed":true,"expected_free_bytes":0,"actual_free_bytes":0,"reclaim_latency_ms":50.0,"ghost_allocations_bytes":0,"compute_reclaimed":true}}},"instance_id":"churn-2","snapshot":null}
+{"timestamp":"2026-03-18T19:50:14.989730693Z","event_type":{"Created":{"instance":{"id":"churn-3","name":"MIG 1g.5gb #3","technology":"NvidiaMig","physical_gpu_index":0,"physical_pci_bus_id":"0000:3b:00.0","phase":"Provisioning","vram_allocated_bytes":5368709120,"compute_fraction":0.14285714285714285,"memory_fraction":0.125,"mig_profile":"1g.5gb"},"spin_up_latency_ms":100.0}},"instance_id":"churn-3","snapshot":null}
+{"timestamp":"2026-03-18T19:50:16.489699086Z","event_type":{"Destroyed":{"instance_id":"churn-3","verification":{"memory_reclaimed":true,"expected_free_bytes":0,"actual_free_bytes":0,"reclaim_latency_ms":50.0,"ghost_allocations_bytes":0,"compute_reclaimed":true}}},"instance_id":"churn-3","snapshot":null}
+{"timestamp":"2026-03-18T19:50:17.989697078Z","event_type":{"Created":{"instance":{"id":"churn-4","name":"MIG 1g.5gb #4","technology":"NvidiaMig","physical_gpu_index":0,"physical_pci_bus_id":"0000:3b:00.0","phase":"Provisioning","vram_allocated_bytes":5368709120,"compute_fraction":0.14285714285714285,"memory_fraction":0.125,"mig_profile":"1g.5gb"},"spin_up_latency_ms":100.0}},"instance_id":"churn-4","snapshot":null}
+{"timestamp":"2026-03-18T19:50:19.489675280Z","event_type":{"Destroyed":{"instance_id":"churn-4","verification":{"memory_reclaimed":true,"expected_free_bytes":0,"actual_free_bytes":0,"reclaim_latency_ms":50.0,"ghost_allocations_bytes":0,"compute_reclaimed":true}}},"instance_id":"churn-4","snapshot":null}
+{"timestamp":"2026-03-18T19:50:20.989668131Z","event_type":{"Created":{"instance":{"id":"churn-5","name":"MIG 1g.5gb #5","technology":"NvidiaMig","physical_gpu_index":0,"physical_pci_bus_id":"0000:3b:00.0","phase":"Provisioning","vram_allocated_bytes":5368709120,"compute_fraction":0.14285714285714285,"memory_fraction":0.125,"mig_profile":"1g.5gb"},"spin_up_latency_ms":100.0}},"instance_id":"churn-5","snapshot":null}
+{"timestamp":"2026-03-18T19:50:22.489699935Z","event_type":{"Destroyed":{"instance_id":"churn-5","verification":{"memory_reclaimed":true,"expected_free_bytes":0,"actual_free_bytes":0,"reclaim_latency_ms":50.0,"ghost_allocations_bytes":0,"compute_reclaimed":true}}},"instance_id":"churn-5","snapshot":null}
+{"timestamp":"2026-03-18T19:50:23.989692053Z","event_type":{"Created":{"instance":{"id":"churn-6","name":"MIG 1g.5gb #6","technology":"NvidiaMig","physical_gpu_index":0,"physical_pci_bus_id":"0000:3b:00.0","phase":"Provisioning","vram_allocated_bytes":5368709120,"compute_fraction":0.14285714285714285,"memory_fraction":0.125,"mig_profile":"1g.5gb"},"spin_up_latency_ms":100.0}},"instance_id":"churn-6","snapshot":null}
+{"timestamp":"2026-03-18T19:50:25.489702644Z","event_type":{"Destroyed":{"instance_id":"churn-6","verification":{"memory_reclaimed":true,"expected_free_bytes":0,"actual_free_bytes":0,"reclaim_latency_ms":50.0,"ghost_allocations_bytes":0,"compute_reclaimed":true}}},"instance_id":"churn-6","snapshot":null}
+{"timestamp":"2026-03-18T19:50:26.989698931Z","event_type":{"Created":{"instance":{"id":"churn-7","name":"MIG 1g.5gb #7","technology":"NvidiaMig","physical_gpu_index":0,"physical_pci_bus_id":"0000:3b:00.0","phase":"Provisioning","vram_allocated_bytes":5368709120,"compute_fraction":0.14285714285714285,"memory_fraction":0.125,"mig_profile":"1g.5gb"},"spin_up_latency_ms":100.0}},"instance_id":"churn-7","snapshot":null}
+{"timestamp":"2026-03-18T19:50:28.489698404Z","event_type":{"Destroyed":{"instance_id":"churn-7","verification":{"memory_reclaimed":true,"expected_free_bytes":0,"actual_free_bytes":0,"reclaim_latency_ms":50.0,"ghost_allocations_bytes":0,"compute_reclaimed":true}}},"instance_id":"churn-7","snapshot":null}
+{"timestamp":"2026-03-18T19:50:29.989688955Z","event_type":{"Created":{"instance":{"id":"churn-8","name":"MIG 1g.5gb #8","technology":"NvidiaMig","physical_gpu_index":0,"physical_pci_bus_id":"0000:3b:00.0","phase":"Provisioning","vram_allocated_bytes":5368709120,"compute_fraction":0.14285714285714285,"memory_fraction":0.125,"mig_profile":"1g.5gb"},"spin_up_latency_ms":100.0}},"instance_id":"churn-8","snapshot":null}
+{"timestamp":"2026-03-18T19:50:31.489699998Z","event_type":{"Destroyed":{"instance_id":"churn-8","verification":{"memory_reclaimed":true,"expected_free_bytes":0,"actual_free_bytes":0,"reclaim_latency_ms":50.0,"ghost_allocations_bytes":0,"compute_reclaimed":true}}},"instance_id":"churn-8","snapshot":null}
+{"timestamp":"2026-03-18T19:50:32.989688450Z","event_type":{"Created":{"instance":{"id":"churn-9","name":"MIG 1g.5gb #9","technology":"NvidiaMig","physical_gpu_index":0,"physical_pci_bus_id":"0000:3b:00.0","phase":"Provisioning","vram_allocated_bytes":5368709120,"compute_fraction":0.14285714285714285,"memory_fraction":0.125,"mig_profile":"1g.5gb"},"spin_up_latency_ms":100.0}},"instance_id":"churn-9","snapshot":null}
+{"timestamp":"2026-03-18T19:50:34.489700012Z","event_type":{"Destroyed":{"instance_id":"churn-9","verification":{"memory_reclaimed":true,"expected_free_bytes":0,"actual_free_bytes":0,"reclaim_latency_ms":50.0,"ghost_allocations_bytes":0,"compute_reclaimed":true}}},"instance_id":"churn-9","snapshot":null}
+{"timestamp":"2026-03-18T19:50:35.989720703Z","event_type":{"Created":{"instance":{"id":"churn-10","name":"MIG 1g.5gb #10","technology":"NvidiaMig","physical_gpu_index":0,"physical_pci_bus_id":"0000:3b:00.0","phase":"Provisioning","vram_allocated_bytes":5368709120,"compute_fraction":0.14285714285714285,"memory_fraction":0.125,"mig_profile":"1g.5gb"},"spin_up_latency_ms":100.0}},"instance_id":"churn-10","snapshot":null}
+{"timestamp":"2026-03-18T19:50:37.489700291Z","event_type":{"Destroyed":{"instance_id":"churn-10","verification":{"memory_reclaimed":true,"expected_free_bytes":0,"actual_free_bytes":0,"reclaim_latency_ms":50.0,"ghost_allocations_bytes":0,"compute_reclaimed":true}}},"instance_id":"churn-10","snapshot":null}
+{"timestamp":"2026-03-18T19:50:38.989735003Z","event_type":{"Created":{"instance":{"id":"churn-11","name":"MIG 1g.5gb #11","technology":"NvidiaMig","physical_gpu_index":0,"physical_pci_bus_id":"0000:3b:00.0","phase":"Provisioning","vram_allocated_bytes":5368709120,"compute_fraction":0.14285714285714285,"memory_fraction":0.125,"mig_profile":"1g.5gb"},"spin_up_latency_ms":100.0}},"instance_id":"churn-11","snapshot":null}
+{"timestamp":"2026-03-18T19:50:40.489700535Z","event_type":{"Destroyed":{"instance_id":"churn-11","verification":{"memory_reclaimed":true,"expected_free_bytes":0,"actual_free_bytes":0,"reclaim_latency_ms":50.0,"ghost_allocations_bytes":0,"compute_reclaimed":true}}},"instance_id":"churn-11","snapshot":null}
+{"timestamp":"2026-03-18T19:50:41.989660775Z","event_type":{"Created":{"instance":{"id":"churn-12","name":"MIG 1g.5gb #12","technology":"NvidiaMig","physical_gpu_index":0,"physical_pci_bus_id":"0000:3b:00.0","phase":"Provisioning","vram_allocated_bytes":5368709120,"compute_fraction":0.14285714285714285,"memory_fraction":0.125,"mig_profile":"1g.5gb"},"spin_up_latency_ms":100.0}},"instance_id":"churn-12","snapshot":null}
+{"timestamp":"2026-03-18T19:50:43.489699990Z","event_type":{"Destroyed":{"instance_id":"churn-12","verification":{"memory_reclaimed":true,"expected_free_bytes":0,"actual_free_bytes":0,"reclaim_latency_ms":50.0,"ghost_allocations_bytes":0,"compute_reclaimed":true}}},"instance_id":"churn-12","snapshot":null}
+{"timestamp":"2026-03-18T19:50:44.989787705Z","event_type":{"Created":{"instance":{"id":"churn-13","name":"MIG 1g.5gb #13","technology":"NvidiaMig","physical_gpu_index":0,"physical_pci_bus_id":"0000:3b:00.0","phase":"Provisioning","vram_allocated_bytes":5368709120,"compute_fraction":0.14285714285714285,"memory_fraction":0.125,"mig_profile":"1g.5gb"},"spin_up_latency_ms":100.0}},"instance_id":"churn-13","snapshot":null}
+{"timestamp":"2026-03-18T19:50:46.489656782Z","event_type":{"Destroyed":{"instance_id":"churn-13","verification":{"memory_reclaimed":true,"expected_free_bytes":0,"actual_free_bytes":0,"reclaim_latency_ms":50.0,"ghost_allocations_bytes":0,"compute_reclaimed":true}}},"instance_id":"churn-13","snapshot":null}
+{"timestamp":"2026-03-18T19:50:47.989686562Z","event_type":{"Created":{"instance":{"id":"churn-14","name":"MIG 1g.5gb #14","technology":"NvidiaMig","physical_gpu_index":0,"physical_pci_bus_id":"0000:3b:00.0","phase":"Provisioning","vram_allocated_bytes":5368709120,"compute_fraction":0.14285714285714285,"memory_fraction":0.125,"mig_profile":"1g.5gb"},"spin_up_latency_ms":100.0}},"instance_id":"churn-14","snapshot":null}
+{"timestamp":"2026-03-18T19:50:49.489643116Z","event_type":{"Destroyed":{"instance_id":"churn-14","verification":{"memory_reclaimed":true,"expected_free_bytes":0,"actual_free_bytes":0,"reclaim_latency_ms":50.0,"ghost_allocations_bytes":0,"compute_reclaimed":true}}},"instance_id":"churn-14","snapshot":null}
+{"timestamp":"2026-03-18T19:50:50.989684016Z","event_type":{"Created":{"instance":{"id":"churn-15","name":"MIG 1g.5gb #15","technology":"NvidiaMig","physical_gpu_index":0,"physical_pci_bus_id":"0000:3b:00.0","phase":"Provisioning","vram_allocated_bytes":5368709120,"compute_fraction":0.14285714285714285,"memory_fraction":0.125,"mig_profile":"1g.5gb"},"spin_up_latency_ms":100.0}},"instance_id":"churn-15","snapshot":null}
+{"timestamp":"2026-03-18T19:50:52.489684078Z","event_type":{"Destroyed":{"instance_id":"churn-15","verification":{"memory_reclaimed":true,"expected_free_bytes":0,"actual_free_bytes":0,"reclaim_latency_ms":50.0,"ghost_allocations_bytes":0,"compute_reclaimed":true}}},"instance_id":"churn-15","snapshot":null}
+{"timestamp":"2026-03-18T19:50:53.989738049Z","event_type":{"Created":{"instance":{"id":"churn-16","name":"MIG 1g.5gb #16","technology":"NvidiaMig","physical_gpu_index":0,"physical_pci_bus_id":"0000:3b:00.0","phase":"Provisioning","vram_allocated_bytes":5368709120,"compute_fraction":0.14285714285714285,"memory_fraction":0.125,"mig_profile":"1g.5gb"},"spin_up_latency_ms":100.0}},"instance_id":"churn-16","snapshot":null}
+{"timestamp":"2026-03-18T19:50:55.489671924Z","event_type":{"Destroyed":{"instance_id":"churn-16","verification":{"memory_reclaimed":true,"expected_free_bytes":0,"actual_free_bytes":0,"reclaim_latency_ms":50.0,"ghost_allocations_bytes":0,"compute_reclaimed":true}}},"instance_id":"churn-16","snapshot":null}
+{"timestamp":"2026-03-18T19:50:56.989766642Z","event_type":{"Created":{"instance":{"id":"churn-17","name":"MIG 1g.5gb #17","technology":"NvidiaMig","physical_gpu_index":0,"physical_pci_bus_id":"0000:3b:00.0","phase":"Provisioning","vram_allocated_bytes":5368709120,"compute_fraction":0.14285714285714285,"memory_fraction":0.125,"mig_profile":"1g.5gb"},"spin_up_latency_ms":100.0}},"instance_id":"churn-17","snapshot":null}
+{"timestamp":"2026-03-18T19:50:58.489644687Z","event_type":{"Destroyed":{"instance_id":"churn-17","verification":{"memory_reclaimed":true,"expected_free_bytes":0,"actual_free_bytes":0,"reclaim_latency_ms":50.0,"ghost_allocations_bytes":0,"compute_reclaimed":true}}},"instance_id":"churn-17","snapshot":null}
+{"timestamp":"2026-03-18T19:50:59.989674849Z","event_type":{"Created":{"instance":{"id":"churn-18","name":"MIG 1g.5gb #18","technology":"NvidiaMig","physical_gpu_index":0,"physical_pci_bus_id":"0000:3b:00.0","phase":"Provisioning","vram_allocated_bytes":5368709120,"compute_fraction":0.14285714285714285,"memory_fraction":0.125,"mig_profile":"1g.5gb"},"spin_up_latency_ms":100.0}},"instance_id":"churn-18","snapshot":null}
+{"timestamp":"2026-03-18T19:51:01.489643565Z","event_type":{"Destroyed":{"instance_id":"churn-18","verification":{"memory_reclaimed":true,"expected_free_bytes":0,"actual_free_bytes":0,"reclaim_latency_ms":50.0,"ghost_allocations_bytes":0,"compute_reclaimed":true}}},"instance_id":"churn-18","snapshot":null}
+{"timestamp":"2026-03-18T19:51:02.989694812Z","event_type":{"Created":{"instance":{"id":"churn-19","name":"MIG 1g.5gb #19","technology":"NvidiaMig","physical_gpu_index":0,"physical_pci_bus_id":"0000:3b:00.0","phase":"Provisioning","vram_allocated_bytes":5368709120,"compute_fraction":0.14285714285714285,"memory_fraction":0.125,"mig_profile":"1g.5gb"},"spin_up_latency_ms":100.0}},"instance_id":"churn-19","snapshot":null}
+{"timestamp":"2026-03-18T19:51:04.489645419Z","event_type":{"Destroyed":{"instance_id":"churn-19","verification":{"memory_reclaimed":true,"expected_free_bytes":0,"actual_free_bytes":0,"reclaim_latency_ms":50.0,"ghost_allocations_bytes":0,"compute_reclaimed":true}}},"instance_id":"churn-19","snapshot":null}
+40 events processed
+=== TEST SUITE ===
+[1m[92m    Finished[0m `release` profile [optimized] target(s) in 0.12s
+[1m[92m     Running[0m unittests src/lib.rs (target/release/deps/gpu_fleet-ede901373fae8958)
+
+running 0 tests
+
+test result: [32mok(B[m. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m     Running[0m unittests src/lib.rs (target/release/deps/gpu_harness-48b933e8c0c5bdef)
+
+running 71 tests
+test backend::tests::test_kernel_result_empty ... [32mok(B[m
+test device::tests::test_vendor_from_id ... [32mok(B[m
+test backend::tests::test_kernel_result_statistics ... [32mok(B[m
+test device::tests::test_nvidia_architecture_detection ... [32mok(B[m
+test device::tests::test_compute_capability_mapping ... [32mok(B[m
+test device::tests::test_intel_architecture_detection ... [32mok(B[m
+test device::tests::test_amd_architecture_detection ... [32mok(B[m
+test sim::bandwidth::tests::test_hbm_bandwidth_large_working_set ... [32mok(B[m
+test sim::bandwidth::tests::test_memory_hierarchy_ordering ... [32mok(B[m
+test sim::bandwidth::tests::test_l1_bandwidth_small_working_set ... [32mok(B[m
+test sim::bandwidth::tests::test_l2_bandwidth_medium_working_set ... [32mok(B[m
+test sim::bandwidth::tests::test_contention_degrades_bandwidth ... [32mok(B[m
+test sim::bandwidth::tests::test_sustained_less_than_burst ... [32mok(B[m
+test sim::fleet::tests::test_clock_stuck_degradation ... [32mok(B[m
+test sim::fleet::tests::test_consumer_fleet_no_nvswitch ... [32mok(B[m
+test sim::fleet::tests::test_homogeneous_fleet_creation ... [32mok(B[m
+test sim::power::tests::test_full_load_power ... [32mok(B[m
+test sim::power::tests::test_idle_power ... [32mok(B[m
+test sim::fleet::tests::test_nvlink_degradation_injection ... [32mok(B[m
+test sim::fleet::tests::test_p2p_bandwidth_matrix_symmetric ... [32mok(B[m
+test sim::fleet::tests::test_memory_subsystem_degradation ... [32mok(B[m
+test sim::power::tests::test_partial_load ... [32mok(B[m
+test sim::power::tests::test_thermal_throttle_reduces_clock ... [32mok(B[m
+test sim::profiles::tests::test_all_profiles_load ... [32mok(B[m
+test sim::power::tests::test_peak_flops_calculation ... [32mok(B[m
+test sim::profiles::tests::test_consumer_cards_no_nvlink ... [32mok(B[m
+test sim::profiles::tests::test_degraded_profiles_are_worse ... [32mok(B[m
+test sim::profiles::tests::test_h100_peak_tflops ... [32mok(B[m
+test sim::profiles::tests::test_ridge_point_reasonable ... [32mok(B[m
+test sim::profiles::tests::test_bandwidth_hierarchy ... [32mok(B[m
+test sim::profiles::tests::test_h100_has_nvlink ... [32mok(B[m
+test sim::simulated_backend::tests::test_device_state_clock_throttle ... [32mok(B[m
+test sim::profiles::tests::test_rtx_5090_peak_tflops ... [32mok(B[m
+test sim::simulated_backend::tests::test_fleet_p2p_bandwidth ... [32mok(B[m
+test sim::simulated_backend::tests::test_degraded_gpu_lower_bandwidth ... [32mok(B[m
+test sim::simulated_backend::tests::test_fleet_discover ... [32mok(B[m
+test sim::simulated_backend::tests::test_single_gpu_p2p_not_supported ... [32mok(B[m
+test sim::simulated_backend::tests::test_fleet_p2p_out_of_range ... [32mok(B[m
+test sim::simulated_backend::tests::test_memory_bound_vs_compute_bound ... [32mok(B[m
+test sim::simulated_backend::tests::test_device_state_thermal_ramp ... [32mok(B[m
+test sim::thermal::tests::test_temperature_approaches_equilibrium ... [32mok(B[m
+test sim::thermal::tests::test_throttle_factor_below_onset ... [32mok(B[m
+test sim::thermal::tests::test_temperature_rises_over_time ... [32mok(B[m
+test sim::thermal::tests::test_throttle_factor_at_max ... [32mok(B[m
+test vgpu::sim::tests::test_ghost_allocation_scenario ... [32mok(B[m
+test sim::thermal::tests::test_throttle_factor_above_onset ... [32mok(B[m
+test vgpu::contention::tests::test_no_contention_within_threshold ... [32mok(B[m
+test vgpu::sim::tests::test_grid_contention_emits_contention_events ... [32mok(B[m
+test vgpu::sim::tests::test_mig_scale_up_no_contention ... [32mok(B[m
+test sim::simulated_backend::tests::test_kernel_produces_results ... [32mok(B[m
+test vgpu::sim::tests::test_mig_scale_up_scenario ... [32mok(B[m
+test sim::simulated_backend::tests::test_single_gpu_discover ... [32mok(B[m
+test sim::thermal::tests::test_time_to_equilibrium ... [32mok(B[m
+test vgpu::sim::tests::test_available_scenarios ... [32mok(B[m
+test sim::thermal::tests::test_temperature_starts_at_ambient ... [32mok(B[m
+test vgpu::sim::tests::test_grid_contention_scenario ... [32mok(B[m
+test vgpu::contention::tests::test_remove_baseline ... [32mok(B[m
+test vgpu::sim::tests::test_rapid_churn_scenario ... [32mok(B[m
+test vgpu::state::tests::test_vgpu_event_serialization ... [32mok(B[m
+test vgpu::sim::tests::test_scenario_by_name ... [32mok(B[m
+test vgpu::state::tests::test_teardown_verification_ghost_detection ... [32mok(B[m
+test vgpu::sim::tests::test_simulated_detector_watch ... [32mok(B[m
+test vgpu::state::tests::test_vgpu_phase_display ... [32mok(B[m
+test vgpu::contention::tests::test_no_contention_when_hardware_partitioned ... [32mok(B[m
+test vgpu::sim::tests::test_simulated_detector_enumerate ... [32mok(B[m
+test vgpu::contention::tests::test_contention_detected_time_sliced ... [32mok(B[m
+test vgpu::state::tests::test_vgpu_technology_display ... [32mok(B[m
+test vgpu::state::tests::test_vgpu_instance_serialization ... [32mok(B[m
+test vgpu::teardown::tests::test_ghost_allocation_detected ... [32mok(B[m
+test vgpu::teardown::tests::test_unknown_instance_returns_none ... [32mok(B[m
+test vgpu::teardown::tests::test_clean_teardown ... [32mok(B[m
+
+test result: [32mok(B[m. 71 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+[1m[92m     Running[0m unittests src/lib.rs (target/release/deps/gpu_roofline-6c59f132640dbe69)
+
+running 63 tests
+test ceilings::dynamic::tests::test_degraded_gpu_shows_larger_drop ... [32mok(B[m
+test ceilings::dynamic::tests::test_dynamic_captures_trajectory ... [32mok(B[m
+test ceilings::dynamic::tests::test_dynamic_roofline_h100 ... [32mok(B[m
+test ceilings::dynamic::tests::test_dynamic_roofline_sim_rtx5090 ... [32mok(B[m
+test ceilings::dynamic::tests::test_summary_not_empty ... [32mok(B[m
+test ceilings::measure::tests::test_different_gpus_different_ceilings ... [32mok(B[m
+test ceilings::measure::tests::test_measure_specific_kernels ... [32mok(B[m
+test ceilings::measure::tests::test_measure_roofline_sim ... [32mok(B[m
+test ceilings::measure::tests::test_measure_roofline_h100 ... [32mok(B[m
+test kernels::definitions::tests::test_arithmetic_intensity_ordering ... [32mok(B[m
+test kernels::definitions::tests::test_all_kernels_have_wgsl ... [32mok(B[m
+test kernels::definitions::tests::test_kernel_spec_conversion ... [32mok(B[m
+test kernels::definitions::tests::test_bandwidth_kernels_low_ai ... [32mok(B[m
+test model::dynamic::tests::test_dynamic_roofline_construction ... [32mok(B[m
+test kernels::definitions::tests::test_compute_kernels_high_ai ... [32mok(B[m
+test model::dynamic::tests::test_no_tension_when_identical ... [32mok(B[m
+test model::dynamic::tests::test_summary_output ... [32mok(B[m
+test model::dynamic::tests::test_thermal_tension_detected ... [32mok(B[m
+test model::equilibrium::tests::test_converging_signal ... [32mok(B[m
+test model::equilibrium::tests::test_detection_index ... [32mok(B[m
+test model::equilibrium::tests::test_needs_full_window ... [32mok(B[m
+test model::equilibrium::tests::test_noisy_signal_no_equilibrium ... [32mok(B[m
+test model::equilibrium::tests::test_stable_signal_detects_equilibrium ... [32mok(B[m
+test model::equilibrium::tests::test_thermal_ramp_then_stabilize ... [32mok(B[m
+test model::roofline::tests::test_roofline_from_measurements ... [32mok(B[m
+test model::roofline::tests::test_underperformers ... [32mok(B[m
+test model::roofline::tests::test_ceiling_at ... [32mok(B[m
+test monitor::alerting::tests::test_bandwidth_drop_critical ... [32mok(B[m
+test monitor::alerting::tests::test_bandwidth_drop_warning ... [32mok(B[m
+test monitor::alerting::tests::test_instability_warning ... [32mok(B[m
+test monitor::alerting::tests::test_thermal_warning ... [32mok(B[m
+test monitor::alerting::tests::test_gradual_degradation ... [32mok(B[m
+test monitor::vgpu_alerting::tests::test_fast_provision_no_alert ... [32mok(B[m
+test monitor::alerting::tests::test_no_alerts_when_healthy ... [32mok(B[m
+test monitor::vgpu_alerting::tests::test_ghost_allocation_alert ... [32mok(B[m
+test monitor::vgpu_alerting::tests::test_memory_overcommit_alert ... [32mok(B[m
+test monitor::vgpu_alerting::tests::test_oversubscription_alert ... [32mok(B[m
+test monitor::vgpu_sampler::tests::test_auto_attach_on_create ... [32mok(B[m
+test monitor::vgpu_sampler::tests::test_auto_detach_on_destroy ... [32mok(B[m
+test monitor::alerting::tests::test_thermal_critical ... [32mok(B[m
+test monitor::vgpu_sampler::tests::test_ghost_allocation_triggers_alert ... [32mok(B[m
+test monitor::vgpu_alerting::tests::test_slow_reclaim_alert ... [32mok(B[m
+test monitor::vgpu_alerting::tests::test_slow_provision_alert ... [32mok(B[m
+test monitor::vgpu_alerting::tests::test_contention_squeeze_alert ... [32mok(B[m
+test validate::baselines::tests::test_all_baselines_have_valid_ranges ... [32mok(B[m
+test validate::baselines::tests::test_find_rtx4090_by_name ... [32mok(B[m
+test validate::adaptive::tests::test_integrated_gets_small_buffer ... [32mok(B[m
+test validate::checks::tests::test_degraded_compute_fails ... [32mok(B[m
+test monitor::vgpu_sampler::tests::test_run_with_simulated_events ... [32mok(B[m
+test validate::adaptive::tests::test_mi300x_gets_1gb_buffer ... [32mok(B[m
+test validate::checks::tests::test_strict_threshold ... [32mok(B[m
+test validate::adaptive::tests::test_buffer_exceeds_l2_for_all_known_gpus ... [32mok(B[m
+test validate::adaptive::tests::test_h100_gets_256mb_buffer ... [32mok(B[m
+test validate::checks::tests::test_h100_passes_validation ... [32mok(B[m
+test validate::baselines::tests::test_find_intel_uhd ... [32mok(B[m
+test validate::baselines::tests::test_unknown_gpu_returns_none ... [32mok(B[m
+test validate::checks::tests::test_high_cv_fails ... [32mok(B[m
+test validate::adaptive::tests::test_rtx4090_gets_256mb_buffer ... [32mok(B[m
+test validate::adaptive::tests::test_unknown_gpu_gets_defaults ... [32mok(B[m
+test validate::baselines::tests::test_find_h100_by_name ... [32mok(B[m
+test validate::checks::tests::test_degraded_bandwidth_fails ... [32mok(B[m
+test validate::baselines::tests::test_find_mi300x ... [32mok(B[m
+test validate::baselines::tests::test_h100_baseline_matches_validated_results ... [32mok(B[m
+
+test result: [32mok(B[m. 63 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m     Running[0m unittests src/main.rs (target/release/deps/gpu_roofline-fef36716f6ba613d)
+
+running 63 tests
+test ceilings::dynamic::tests::test_degraded_gpu_shows_larger_drop ... [32mok(B[m
+test ceilings::dynamic::tests::test_dynamic_roofline_h100 ... [32mok(B[m
+test ceilings::dynamic::tests::test_dynamic_roofline_sim_rtx5090 ... [32mok(B[m
+test ceilings::dynamic::tests::test_dynamic_captures_trajectory ... [32mok(B[m
+test ceilings::dynamic::tests::test_summary_not_empty ... [32mok(B[m
+test ceilings::measure::tests::test_measure_roofline_sim ... [32mok(B[m
+test ceilings::measure::tests::test_different_gpus_different_ceilings ... [32mok(B[m
+test ceilings::measure::tests::test_measure_roofline_h100 ... [32mok(B[m
+test kernels::definitions::tests::test_all_kernels_have_wgsl ... [32mok(B[m
+test kernels::definitions::tests::test_arithmetic_intensity_ordering ... [32mok(B[m
+test kernels::definitions::tests::test_bandwidth_kernels_low_ai ... [32mok(B[m
+test ceilings::measure::tests::test_measure_specific_kernels ... [32mok(B[m
+test kernels::definitions::tests::test_kernel_spec_conversion ... [32mok(B[m
+test kernels::definitions::tests::test_compute_kernels_high_ai ... [32mok(B[m
+test model::dynamic::tests::test_dynamic_roofline_construction ... [32mok(B[m
+test model::dynamic::tests::test_no_tension_when_identical ... [32mok(B[m
+test model::dynamic::tests::test_summary_output ... [32mok(B[m
+test model::dynamic::tests::test_thermal_tension_detected ... [32mok(B[m
+test model::equilibrium::tests::test_converging_signal ... [32mok(B[m
+test model::equilibrium::tests::test_detection_index ... [32mok(B[m
+test model::equilibrium::tests::test_needs_full_window ... [32mok(B[m
+test model::equilibrium::tests::test_noisy_signal_no_equilibrium ... [32mok(B[m
+test model::roofline::tests::test_roofline_from_measurements ... [32mok(B[m
+test model::equilibrium::tests::test_stable_signal_detects_equilibrium ... [32mok(B[m
+test model::roofline::tests::test_ceiling_at ... [32mok(B[m
+test model::equilibrium::tests::test_thermal_ramp_then_stabilize ... [32mok(B[m
+test monitor::alerting::tests::test_bandwidth_drop_warning ... [32mok(B[m
+test monitor::alerting::tests::test_gradual_degradation ... [32mok(B[m
+test monitor::alerting::tests::test_bandwidth_drop_critical ... [32mok(B[m
+test model::roofline::tests::test_underperformers ... [32mok(B[m
+test monitor::alerting::tests::test_instability_warning ... [32mok(B[m
+test monitor::alerting::tests::test_thermal_critical ... [32mok(B[m
+test monitor::vgpu_alerting::tests::test_contention_squeeze_alert ... [32mok(B[m
+test monitor::vgpu_alerting::tests::test_fast_provision_no_alert ... [32mok(B[m
+test monitor::vgpu_alerting::tests::test_ghost_allocation_alert ... [32mok(B[m
+test monitor::alerting::tests::test_no_alerts_when_healthy ... [32mok(B[m
+test monitor::vgpu_alerting::tests::test_slow_provision_alert ... [32mok(B[m
+test monitor::vgpu_alerting::tests::test_memory_overcommit_alert ... [32mok(B[m
+test monitor::vgpu_sampler::tests::test_auto_attach_on_create ... [32mok(B[m
+test monitor::vgpu_alerting::tests::test_oversubscription_alert ... [32mok(B[m
+test monitor::vgpu_sampler::tests::test_ghost_allocation_triggers_alert ... [32mok(B[m
+test monitor::vgpu_alerting::tests::test_slow_reclaim_alert ... [32mok(B[m
+test monitor::alerting::tests::test_thermal_warning ... [32mok(B[m
+test validate::adaptive::tests::test_unknown_gpu_gets_defaults ... [32mok(B[m
+test validate::adaptive::tests::test_mi300x_gets_1gb_buffer ... [32mok(B[m
+test validate::adaptive::tests::test_buffer_exceeds_l2_for_all_known_gpus ... [32mok(B[m
+test monitor::vgpu_sampler::tests::test_auto_detach_on_destroy ... [32mok(B[m
+test validate::baselines::tests::test_all_baselines_have_valid_ranges ... [32mok(B[m
+test validate::baselines::tests::test_find_h100_by_name ... [32mok(B[m
+test validate::adaptive::tests::test_rtx4090_gets_256mb_buffer ... [32mok(B[m
+test validate::baselines::tests::test_find_intel_uhd ... [32mok(B[m
+test validate::adaptive::tests::test_h100_gets_256mb_buffer ... [32mok(B[m
+test validate::baselines::tests::test_find_rtx4090_by_name ... [32mok(B[m
+test validate::baselines::tests::test_find_mi300x ... [32mok(B[m
+test validate::baselines::tests::test_unknown_gpu_returns_none ... [32mok(B[m
+test validate::baselines::tests::test_h100_baseline_matches_validated_results ... [32mok(B[m
+test validate::checks::tests::test_degraded_compute_fails ... [32mok(B[m
+test validate::checks::tests::test_degraded_bandwidth_fails ... [32mok(B[m
+test validate::checks::tests::test_high_cv_fails ... [32mok(B[m
+test validate::checks::tests::test_strict_threshold ... [32mok(B[m
+test validate::checks::tests::test_h100_passes_validation ... [32mok(B[m
+test validate::adaptive::tests::test_integrated_gets_small_buffer ... [32mok(B[m
+test monitor::vgpu_sampler::tests::test_run_with_simulated_events ... [32mok(B[m
+
+test result: [32mok(B[m. 63 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m     Running[0m tests/vgpu_integration.rs (target/release/deps/vgpu_integration-3977a3e236613663)
+
+running 4 tests
+test test_ghost_allocation_e2e ... [32mok(B[m
+test test_grid_contention_e2e ... [32mok(B[m
+test test_mig_scale_up_e2e ... [32mok(B[m
+test test_rapid_churn_no_state_leak ... [32mok(B[m
+
+test result: [32mok(B[m. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m     Running[0m tests/vgpu_stress.rs (target/release/deps/vgpu_stress-8b546a70048a711c)
+
+running 5 tests
+test test_churn_1000_cycles ... [33mignored(B[m
+test test_peak_density_oversubscription ... [32mok(B[m
+test test_peak_density_memory_overcommit ... [32mok(B[m
+test test_daemon_json_output_structure ... [32mok(B[m
+test test_churn_100_cycles ... [32mok(B[m
+
+test result: [32mok(B[m. 4 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m   Doc-tests[0m gpu_fleet
+
+running 0 tests
+
+test result: [32mok(B[m. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m   Doc-tests[0m gpu_harness
+
+running 0 tests
+
+test result: [32mok(B[m. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m   Doc-tests[0m gpu_roofline
+
+running 1 test
+test crates/gpu-roofline/src/lib.rs - (line 9) ... [32mok(B[m
+
+test result: [32mok(B[m. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+
