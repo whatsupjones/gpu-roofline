@@ -117,12 +117,12 @@ mod inner {
                 HarnessError::KernelFailed(format!("NVRTC compilation failed: {e}"))
             })?;
 
-            // Load module and get function
-            let module = dev_info.stream.load_ptx(ptx, kernel_name).map_err(|e| {
+            // Load module and get function (cudarc 0.19 API)
+            let module = dev_info.ctx.load_module(ptx).map_err(|e| {
                 HarnessError::KernelFailed(format!("Failed to load PTX module: {e}"))
             })?;
 
-            let func = module.get_fn(kernel_name).map_err(|e| {
+            let func = module.load_function(kernel_name).map_err(|e| {
                 HarnessError::KernelFailed(format!(
                     "Kernel function '{kernel_name}' not found: {e}"
                 ))
@@ -137,7 +137,7 @@ mod inner {
                 HarnessError::KernelFailed(format!("Failed to copy src to device: {e}"))
             })?;
 
-            let dst: CudaSlice<f32> = stream.alloc_zeros(element_count * 4).map_err(|e| {
+            let mut dst: CudaSlice<f32> = stream.alloc_zeros(element_count * 4).map_err(|e| {
                 HarnessError::KernelFailed(format!("Failed to allocate dst on device: {e}"))
             })?;
 
@@ -150,11 +150,17 @@ mod inner {
                 shared_mem_bytes: 0,
             };
 
-            // Warmup
-            unsafe {
-                func.launch(cfg, (&src, &dst, n)).map_err(|e| {
-                    HarnessError::KernelFailed(format!("Warmup launch failed: {e}"))
-                })?;
+            // Warmup (cudarc 0.19 launch_builder API)
+            {
+                let mut builder = stream.launch_builder(&func);
+                builder.arg(&src);
+                builder.arg(&mut dst);
+                builder.arg(&n);
+                unsafe {
+                    builder.launch(cfg).map_err(|e| {
+                        HarnessError::KernelFailed(format!("Warmup launch failed: {e}"))
+                    })?;
+                }
             }
             stream
                 .synchronize()
@@ -164,9 +170,16 @@ mod inner {
             let mut timings = Vec::with_capacity(iterations as usize);
             for _ in 0..iterations {
                 let start = Instant::now();
-                unsafe {
-                    func.launch(cfg, (&src, &dst, n))
-                        .map_err(|e| HarnessError::KernelFailed(format!("Launch failed: {e}")))?;
+                {
+                    let mut builder = stream.launch_builder(&func);
+                    builder.arg(&src);
+                    builder.arg(&mut dst);
+                    builder.arg(&n);
+                    unsafe {
+                        builder.launch(cfg).map_err(|e| {
+                            HarnessError::KernelFailed(format!("Launch failed: {e}"))
+                        })?;
+                    }
                 }
                 stream
                     .synchronize()
