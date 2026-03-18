@@ -9,7 +9,8 @@ use clap::{Parser, Subcommand, ValueEnum};
         gpu-roofline measure                     Full dynamic roofline (~120s)\n  \
         gpu-roofline measure --burst             Quick burst-only (~10s)\n  \
         gpu-roofline measure --sim rtx_5090      Simulated RTX 5090 (no GPU needed)\n  \
-        gpu-roofline measure --json              Machine-readable output\n  \
+        gpu-roofline measure --format json        Machine-readable output\n  \
+        gpu-roofline validate                    Preflight GPU health check\n  \
         gpu-roofline check --baseline r.json     CI regression check"
 )]
 pub struct Cli {

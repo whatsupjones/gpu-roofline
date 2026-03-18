@@ -92,16 +92,24 @@ gpu-roofline measure --burst --backend cuda    # Datacenter (headless)
 gpu-roofline measure --burst --backend vulkan  # Consumer Linux
 gpu-roofline measure --burst --backend dx12    # Windows
 
+# Validate GPU against known baselines (preflight health check)
+gpu-roofline validate                          # Auto-detect GPU, check against baseline
+gpu-roofline validate --strict                 # 90% threshold (default: 80%)
+gpu-roofline validate --sim h100_sxm           # Validate simulation accuracy
+
 # CI mode: fail if sustained performance regressed
 gpu-roofline check --baseline roofline.json --threshold 0.9
+
+# Save baseline for later comparison
+gpu-roofline measure --save-baseline roofline.json
 ```
 
 ## Output Formats
 
 ```bash
-gpu-roofline measure --json              # Machine-readable
-gpu-roofline measure --ascii             # Terminal chart
-gpu-roofline measure --svg roofline.svg  # For papers and docs
+gpu-roofline measure --format json       # Machine-readable
+gpu-roofline measure --format ascii      # Terminal roofline chart
+gpu-roofline measure --format table      # Colored table (default)
 ```
 
 ## Simulation Mode (No GPU Required)
@@ -114,22 +122,36 @@ gpu-roofline measure --sim h100_sxm --json
 gpu-roofline measure --sim mi300x --ascii
 ```
 
-Available profiles: `rtx_5090`, `rtx_4090`, `h100_sxm`, `h200_sxm`, `b200`, `mi300x`, `arc_a770`
-
-## gpu-fleet: Multi-GPU Cluster Validation
-
-The workspace includes `gpu-fleet` for validating multi-GPU clusters:
-
+List all profiles:
 ```bash
-cargo install gpu-fleet
-
-gpu-fleet topology              # PCIe/NVLink tree view
-gpu-fleet validate --roofline   # Per-GPU roofline-based health check
-gpu-fleet symmetry              # Flag mismatched configs across fleet
-gpu-fleet monitor               # Live TUI dashboard
+gpu-roofline profiles
 ```
 
-Detects stragglers, NVLink degradation, NUMA misalignment, and GPUs running below their roofline — problems that hardware health checks miss.
+Available: `rtx_5090`, `rtx_4090`, `h100_sxm`, `h200_sxm`, `b200`, `mi300x`, `arc_a770` + degraded variants for testing straggler detection.
+
+## GPU Validation Engine
+
+Preflight health check against per-GPU hardware baselines. Supports 12 GPU models with auto-detection:
+
+```bash
+gpu-roofline validate
+```
+```
+┌──────────────┬─────────┬──────────┬──────────┬────────┐
+│ Check        ┆ Status  ┆ Measured ┆ Expected ┆ Result │
+╞══════════════╪═════════╪══════════╪══════════╪════════╡
+│ Bandwidth    ┆ ✓ PASS  ┆ 2893 GB/s┆ 2700-3100┆ 100%   │
+│ FP32 Compute ┆ ✓ PASS  ┆ 59.5T   ┆ 55-65T   ┆ 100%   │
+│ Stability    ┆ ✓ PASS  ┆ CV 0.3% ┆ <5%      ┆ 100%   │
+│ Roofline     ┆ ✓ PASS  ┆ 20.6    ┆ 17-25    ┆ 100%   │
+└──────────────┴─────────┴──────────┴──────────┴────────┘
+```
+
+Smart diagnosis: distinguishes HBM degradation from thermal throttling from driver issues.
+
+## gpu-fleet (Coming Soon)
+
+Multi-GPU cluster validation — detects stragglers, NVLink degradation, NUMA misalignment, and GPUs running below their roofline.
 
 ## Architecture
 
