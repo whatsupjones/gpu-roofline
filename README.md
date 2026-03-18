@@ -1,29 +1,81 @@
 # gpu-roofline
 
-**Cross-vendor GPU roofline model with dynamic tension analysis.**
+**GPU lifecycle monitoring and performance analysis for virtualized infrastructure.**
 
-Measure burst vs sustained performance ceilings across NVIDIA, AMD, and Intel GPUs from a single Rust binary. No multi-GB toolkit required.
+The first tool that monitors vGPU instances from the moment they provision — detecting contention, verifying teardown, catching ghost allocations. Plus cross-vendor roofline measurement, degradation alerting, and CI-native GPU health checks. Single Rust binary, <10 MB.
 
-> Traditional roofline models lie to you. They measure peak performance in a 1-second burst. Your ML training job runs for hours at the *sustained* ceiling — which is 15-30% lower. gpu-roofline measures both.
+> Every existing GPU monitoring tool polls a vGPU **after** it exists. Nobody measures from the moment of creation. Spin-up overhead is invisible. Contention impact on existing tenants goes undetected until workloads fail. Ghost allocations after teardown silently leak resources. gpu-roofline fixes this.
 
-## What Makes This Different
+## The Problem
 
-| Feature | Nsight Compute | Intel Advisor | AMD Omniperf | **gpu-roofline** |
-|---------|:---:|:---:|:---:|:---:|
-| Cross-vendor | NVIDIA only | Intel only | AMD MI-series only | **NVIDIA + AMD + Intel** |
-| Install size | ~5 GB | ~15 GB | ~3 GB | **<10 MB** |
-| Dynamic roofline | No | No | No | **Yes** |
-| Live TUI monitoring | No | No | No | **Yes** |
-| CI-native (JSON, exit codes) | No | No | No | **Yes** |
-| Sustained ceiling measurement | No | No | No | **Yes** |
-| Tension analysis | No | No | No | **Yes** |
-| Degradation alerting | No | No | No | **Yes** |
-| vGPU lifecycle monitoring | No | No | No | **Yes** |
-| Single binary | No | No | No | **Yes** |
+DGX Cloud, AWS, GCP, and Azure manage thousands of GPU lifecycles. MIG partitions on H100/H200, GRID time-slicing, SR-IOV, Kubernetes device plugins — all create and destroy virtual GPUs constantly. But:
 
-## Dynamic Roofline: The Tension Model
+- **Provisioning latency is invisible** — no tool measures spin-up overhead
+- **Contention goes undetected** — when a new vGPU appears, existing tenants get squeezed silently
+- **Teardown leaks resources** — ghost allocations persist after vGPU destruction
+- **Performance baselines don't exist** — nobody measures the burst-to-sustained gap under virtualization
 
-Real GPU performance is shaped by competing forces — not a flat line:
+## vGPU Lifecycle Monitoring
+
+Auto-attaches when a vGPU provisions, detaches when it drops. Zero overhead when idle.
+
+```bash
+# Install with vGPU + CUDA support
+cargo install gpu-roofline --features vgpu,cuda
+
+# Watch lifecycle events in real time (TUI dashboard)
+gpu-roofline vgpu watch --sim grid_contention
+
+# Daemon mode: JSON lines for Prometheus/Grafana/Datadog
+gpu-roofline vgpu watch --sim grid_contention --daemon --log vgpu.jsonl
+
+# List current vGPU instances
+gpu-roofline vgpu list --sim mig_scale_up --json
+```
+
+### What It Catches
+
+| Alert | Trigger | Severity |
+|-------|---------|----------|
+| **ContentionSqueeze** | Existing tenant bandwidth dropped >5% when new vGPU appeared | Critical |
+| **GhostAllocation** | Teardown left unreleased memory on physical GPU | Critical |
+| **MemoryOvercommit** | Sum of vGPU VRAM exceeds physical GPU capacity | Critical |
+| **SlowProvision** | vGPU spin-up took >500ms | Warning |
+| **SlowReclaim** | Resource reclamation >1000ms after teardown | Warning |
+| **OverSubscription** | More vGPUs than safe density threshold | Warning |
+| **UnderperformingInstance** | vGPU below expected fraction of physical GPU | Warning |
+
+### Supported Technologies
+
+| Technology | Linux Detection | Fallback |
+|-----------|----------------|----------|
+| **NVIDIA MIG** | procfs + NVML MIG APIs | NVML polling |
+| **NVIDIA GRID** | inotify on sysfs mdev + NVML | NVML polling |
+| **SR-IOV** | inotify on sysfs VFs | sysfs polling |
+| **Cloud Passthrough** | udev device events | device enumeration delta |
+| **Kubernetes** | kubelet device-plugins watch | kubelet API polling |
+| **Simulated** | Built-in scenarios for testing | — |
+
+### Simulation Scenarios (No Hardware Required)
+
+```bash
+gpu-roofline vgpu scenarios
+```
+
+| Scenario | What It Tests |
+|----------|--------------|
+| `mig_scale_up` | 7 MIG instances on H100 — hardware-partitioned, no contention |
+| `grid_contention` | 4 GRID vGPUs — each new one squeezes existing tenants |
+| `ghost_allocation` | Create + destroy with 512MB not reclaimed |
+| `rapid_churn` | 20 create/destroy cycles — stress-tests for state leaks |
+
+---
+
+## Performance Measurement
+
+Beyond lifecycle monitoring, gpu-roofline measures what no other tool does: the **sustained** performance ceiling — not just the burst peak that benchmarks report.
+
+### Dynamic Roofline with Tension Analysis
 
 ```
               Performance (GFLOP/s)
@@ -34,253 +86,82 @@ Real GPU performance is shaped by competing forces — not a flat line:
     65.1T  +  ╲   ╲═══════════════ Power-Limited Sustained (t=120s, 2100 MHz, 83°C)
               ╲     ╲
               +───+───+───+───+──→ Arithmetic Intensity (FLOP/byte)
-              0.1  1   10  82  1K
 
-    Tension Analysis:
-    ├─ Thermal Tension:  82.6T → 71.3T (−13.7%) after 34s
-    ├─ Power Tension:    71.3T → 65.1T (−8.7%) after 120s
-    └─ Net Ceiling Drop: 82.6T → 65.1T (−21.2%) burst-to-sustained
+    Tension: 82.6T → 65.1T (−21.2%) burst-to-sustained
 ```
 
-The tool measures three roofline modes:
-- **Burst** (t=0) — what benchmarks report
-- **Sustained** (t=60s) — what production workloads actually see
-- **Degraded** — what multi-tenant environments deliver
+Your ML training job runs for hours at the **sustained** ceiling — 15-30% lower than what benchmarks report.
 
-## Validated Hardware
-
-Measured on real datacenter and consumer GPUs. Bandwidth measures achievable compute kernel throughput (not hardware DMA ceiling).
+### Validated Hardware
 
 | GPU | HBM BW | FP32 | FP16 Tensor | BF16 Tensor | Backend |
 |-----|--------|------|-------------|-------------|---------|
 | **NVIDIA H200 141GB** | **4,028 GB/s** | **59.5 TFLOPS** | **686 TFLOPS** | **686 TFLOPS** | CUDA |
-| **NVIDIA H100 80GB** | **2,905 GB/s** | **59.1 TFLOPS** | **495 TFLOPS** | **495 TFLOPS** | CUDA |
+| **NVIDIA H100 80GB** | **2,958 GB/s** | **59.0 TFLOPS** | **495 TFLOPS** | **495 TFLOPS** | CUDA |
 | **NVIDIA RTX 5090 32GB** | **1,503 GB/s** | **95.8 TFLOPS** | **247 TFLOPS** | **247 TFLOPS** | CUDA |
 | Intel UHD Graphics | 7 GB/s | 0.15 TFLOPS | — | — | Vulkan |
 
-*More GPUs coming: RTX 4090, MI300X. [Contribute your results!](https://github.com/whatsupjones/gpu-roofline/issues)*
+GPU-side CUDA Event timestamps for sub-microsecond accuracy. Automatic fallback to CPU timing on non-CUDA backends.
 
-### Multi-Precision Roofline — NVIDIA H200
-
-```
-  TFLOP/s  (log scale)
-  989T ── ── ── ── ── ── ── ═══════════ FP16/BF16 Tensor Core (spec)
-                            ╱
-  686T ── ── ── ── ── ═════╪═══════════ FP16/BF16 Tensor Core (measured)
-                       ╱   │
-   59T ── ═══════════╪═════╪═══════════ FP32 CUDA Core (measured)
-              ╱      │     │
-  4028 GB/s  ╱       │     │
-            ╱────────┼─────┼──────────→ Arithmetic Intensity (FLOP/byte)
-           0.1      1     10    100
-
-  Tensor Cores deliver 11.5x the throughput of CUDA Cores.
-  ML training runs on the upper ceiling — that's what this tool measures.
-```
-
-### H100 Roofline (CUDA Backend)
-```
-gpu-roofline 0.1.0 | NVIDIA H100 80GB HBM3
-  Peak FLOPS:     59.5 TFLOP/s (FP32)
-  Peak Bandwidth: 2893 GB/s
-  Ridge Point:    20.6 FLOP/byte
-
-┌────────────┬─────────────┬─────────┬───────────┬────────────┬───────────────────┐
-│ Kernel     ┆ AI (FLOP/B) ┆ GFLOP/s ┆ BW (GB/s) ┆ Efficiency ┆ Bottleneck        │
-╞════════════╪═════════════╪═════════╪═══════════╪════════════╪═══════════════════╡
-│ copy       ┆ 0.00        ┆ 0.0     ┆ 2893      ┆ 100%       ┆ Memory (HBM/DRAM) │
-│ fma_light  ┆ 1.00        ┆ 2893    ┆ 2893      ┆ 100%       ┆ Memory (HBM/DRAM) │
-│ fma_medium ┆ 8.00        ┆ 23169   ┆ 2896      ┆ 100%       ┆ Memory (HBM/DRAM) │
-│ fma_heavy  ┆ 64.00       ┆ 59541   ┆ 930       ┆ 100%       ┆ Compute           │
-└────────────┴─────────────┴─────────┴───────────┴────────────┴───────────────────┘
-```
-
-## Quick Start
+### Quick Start
 
 ```bash
 # Install (consumer GPUs — Vulkan/DX12/Metal)
 cargo install gpu-roofline
 
-# Install with CUDA support (datacenter H100/H200/A100)
+# Install with CUDA (datacenter H100/H200/A100)
 cargo install gpu-roofline --features cuda
 
-# Full install: CUDA + NVML telemetry (real temp/clock/power)
-cargo install gpu-roofline --features full
-
-# Quick burst roofline (~10 seconds)
+# Burst roofline (~10s)
 gpu-roofline measure --burst
 
-# Full dynamic roofline with tension analysis (~120 seconds)
+# Full dynamic roofline with tension analysis (~120s)
 gpu-roofline measure
 
-# Force specific backend
-gpu-roofline measure --burst --backend cuda    # Datacenter (headless)
-gpu-roofline measure --burst --backend vulkan  # Consumer Linux
-gpu-roofline measure --burst --backend dx12    # Windows
-
-# Validate GPU against known baselines (preflight health check)
-gpu-roofline validate                          # Auto-detect GPU, check against baseline
-gpu-roofline validate --strict                 # 90% threshold (default: 80%)
-gpu-roofline validate --sim h100_sxm           # Validate simulation accuracy
-
-# CI mode: fail if sustained performance regressed
-gpu-roofline check --baseline roofline.json --threshold 0.9
-
-# Save baseline for later comparison
-gpu-roofline measure --save-baseline roofline.json
-```
-
-## Output Formats
-
-```bash
-gpu-roofline measure --format json       # Machine-readable
-gpu-roofline measure --format ascii      # Terminal roofline chart
-gpu-roofline measure --format table      # Colored table (default)
-```
-
-## Simulation Mode (No GPU Required)
-
-The built-in physics-based simulation engine lets you explore roofline behavior without hardware:
-
-```bash
-gpu-roofline measure --sim rtx_5090
-gpu-roofline measure --sim h100_sxm --json
-gpu-roofline measure --sim mi300x --ascii
-```
-
-List all profiles:
-```bash
-gpu-roofline profiles
-```
-
-Available: `rtx_5090`, `rtx_4090`, `h100_sxm`, `h200_sxm`, `b200`, `mi300x`, `arc_a770` + degraded variants for testing straggler detection.
-
-## GPU Validation Engine
-
-Preflight health check against per-GPU hardware baselines. Supports 12 GPU models with auto-detection:
-
-```bash
+# Validate GPU against known baselines
 gpu-roofline validate
-```
-```
-┌──────────────┬─────────┬──────────┬──────────┬────────┐
-│ Check        ┆ Status  ┆ Measured ┆ Expected ┆ Result │
-╞══════════════╪═════════╪══════════╪══════════╪════════╡
-│ Bandwidth    ┆ ✓ PASS  ┆ 2893 GB/s┆ 2700-3100┆ 100%   │
-│ FP32 Compute ┆ ✓ PASS  ┆ 59.5T   ┆ 55-65T   ┆ 100%   │
-│ Stability    ┆ ✓ PASS  ┆ CV 0.3% ┆ <5%      ┆ 100%   │
-│ Roofline     ┆ ✓ PASS  ┆ 20.6    ┆ 17-25    ┆ 100%   │
-└──────────────┴─────────┴──────────┴──────────┴────────┘
+
+# CI mode: fail if performance regressed
+gpu-roofline check --baseline roofline.json --threshold 0.9
 ```
 
-Smart diagnosis: distinguishes HBM degradation from thermal throttling from driver issues.
+### Continuous Monitoring
 
-## Continuous Monitoring
-
-Live TUI dashboard — like `htop` for your GPU's performance envelope:
-
-```
-gpu-roofline monitor ── NVIDIA H100 SXM5 80GB ── Driver 550.54 ── sm_90
-┌ Performance ──────────────────────┐┌ Tension Analysis ─────────────────┐
-│ BW    2891 GB/s  99.9%  ▁▂▃▃▃▃▃▃││ Burst:     59.5T (t=0)           │
-│ FP32  59.2T      99.4%  ▁▃▅▅▅▅▅▅││ Current:   59.2T (−0.5%)         │
-│ CV    0.3%       stable  ▁▁▁▁▁▁▁▁││ Thermal:   −0.3% (72°C)         │
-├ Thermals & Power ─────────────────┤│ Power:     −0.2% (685W)          │
-│ Temp   72°C         ▁▂▃▄▅▅▅▅▅▅▅▅││ Net drop:  −0.5%                 │
-│ Power  685W/700W    ▃▅▆▇▇▇▇▇▇▇▇▇│├ Session ──────────────────────────┤
-│ Clock  1980 MHz     ▇▇▇▆▆▆▆▆▆▆▆▆││ Samples: 47  Uptime: 47m 12s     │
-│ Throttle: none                    ││ Avg BW: 2889  Min BW: 2871 GB/s  │
-├ Memory ───────────────────────────┤│ Max Temp: 74°C  Alerts: 0        │
-│ VRAM  12.4 / 80.0 GB  ████░░░░░░│├ Alerts ────────────────────────────┤
-│ HBM BW utilization: 86%          ││ (none)                            │
-└───────────────────────────────────┘└──────────────────────────────────┘
- q quit  Samples: 47  Uptime: 47m 12s
-```
+Live TUI dashboard with degradation alerting:
 
 ```bash
-# Live TUI dashboard (default)
-gpu-roofline monitor
-
-# Custom interval and duration
-gpu-roofline monitor --interval 10 --duration 3600
-
-# Alert if performance drops below 80% of baseline
-gpu-roofline monitor --alert-threshold 0.8
-
-# Daemon mode: JSON lines to file (for Prometheus/Grafana/Datadog)
-gpu-roofline monitor --daemon --log monitor.json
-
-# Simulated monitoring (no GPU required)
-gpu-roofline monitor --sim h100_sxm --interval 5 --duration 60
+gpu-roofline monitor                           # Interactive TUI
+gpu-roofline monitor --daemon --log monitor.json  # JSON lines for log aggregation
 ```
 
-### What It Detects
-- **Sudden degradation** — bandwidth or compute drops below threshold
-- **Thermal throttling** — temperature exceeding operating range
-- **Gradual decline** — rolling average trending down over time
-- **Measurement instability** — increasing CV indicating noisy results
+Detects: sudden degradation, thermal throttling, gradual decline, measurement instability.
 
-### Daemon Mode (Prometheus/Grafana)
-`--daemon` outputs one JSON object per line, scrapable by any log aggregator:
-```json
-{"timestamp":"2026-03-18T14:00:00Z","bandwidth_gbps":2891,"gflops":59200,"temperature_c":42,"status":"normal"}
-{"timestamp":"2026-03-18T14:01:00Z","bandwidth_gbps":2102,"gflops":58900,"temperature_c":67,"status":"warning","alerts":[...]}
-```
+### Simulation Mode
 
-## vGPU Lifecycle Monitoring
-
-Monitor vGPU instances from the moment they provision to the moment they're destroyed. Detects contention, verifies teardown, catches ghost allocations — no other tool does this.
+11 pre-built GPU profiles — test without hardware:
 
 ```bash
-# Build with vGPU support
-cargo install gpu-roofline --features vgpu
-
-# Watch lifecycle events (simulation — no hardware needed)
-gpu-roofline vgpu watch --sim grid_contention
-
-# Daemon mode: JSON lines for log aggregation
-gpu-roofline vgpu watch --sim grid_contention --daemon --log vgpu.jsonl
-
-# List vGPU instances
-gpu-roofline vgpu list --sim mig_scale_up --json
-
-# List available simulation scenarios
-gpu-roofline vgpu scenarios
+gpu-roofline measure --sim h100_sxm
+gpu-roofline profiles     # List all available profiles
 ```
 
-### Simulation Scenarios
+---
 
-| Scenario | Description | Events |
-|----------|-------------|--------|
-| `mig_scale_up` | 7 MIG instances on H100, hardware-partitioned (no contention) | 7 |
-| `grid_contention` | 4 GRID time-sliced vGPUs, each squeezing existing tenants | 7 |
-| `ghost_allocation` | Create + destroy with 512MB unreleased memory | 2 |
-| `rapid_churn` | 20 create/destroy cycles to stress-test state management | 40 |
+## What Makes This Different
 
-### Alert Rules
+| Feature | Nsight Compute | Intel Advisor | AMD Omniperf | **gpu-roofline** |
+|---------|:---:|:---:|:---:|:---:|
+| vGPU lifecycle monitoring | No | No | No | **Yes** |
+| Cross-vendor | NVIDIA only | Intel only | AMD only | **NVIDIA + AMD + Intel** |
+| Install size | ~5 GB | ~15 GB | ~3 GB | **<10 MB** |
+| CI-native (JSON, exit codes) | No | No | No | **Yes** |
+| Sustained ceiling measurement | No | No | No | **Yes** |
+| Contention detection | No | No | No | **Yes** |
+| Ghost allocation detection | No | No | No | **Yes** |
+| Live TUI monitoring | No | No | No | **Yes** |
+| Single binary | No | No | No | **Yes** |
 
-| Rule | Trigger | Severity |
-|------|---------|----------|
-| SlowProvision | Spin-up > 500ms | Warning |
-| ContentionSqueeze | Existing tenant bandwidth dropped >5% | Critical |
-| UnderperformingInstance | vGPU below expected fraction of physical GPU | Warning |
-| GhostAllocation | Teardown left unreleased memory | Critical |
-| SlowReclaim | Resource reclamation > 1000ms | Warning |
-| OverSubscription | vGPU count exceeds safe density (default: 8) | Warning |
-| MemoryOvercommit | Total vGPU VRAM exceeds physical GPU VRAM | Critical |
-
-### Supported Technologies
-
-- **NVIDIA GRID/vGPU** — sysfs mdev + NVML on Linux, NVML polling on Windows
-- **NVIDIA MIG** — hardware-partitioned, no contention (H100/H200)
-- **SR-IOV** — PCIe hardware virtualization
-- **Cloud Passthrough** — AWS p4d/p5, GCP a2/a3, Azure ND
-- **Kubernetes** — device-plugin GPU scheduling
-- **Simulated** — built-in scenarios for testing without hardware
-
-## gpu-fleet (Coming Soon)
-
-Multi-GPU cluster validation — detects stragglers, NVLink degradation, NUMA misalignment, and GPUs running below their roofline.
+---
 
 ## Architecture
 
@@ -288,75 +169,31 @@ Multi-GPU cluster validation — detects stragglers, NVLink degradation, NUMA mi
 gpu-roofline/
 ├── crates/
 │   ├── gpu-harness/          # Shared backend abstraction
-│   │   ├── sim/              # Physics-based GPU simulation engine
 │   │   ├── vgpu/             # vGPU lifecycle detection + contention + teardown
-│   │   ├── cuda_backend.rs   # Native CUDA compute (datacenter)
+│   │   ├── sim/              # Physics-based GPU simulation engine
+│   │   ├── cuda_backend.rs   # CUDA compute + Event timing (datacenter)
 │   │   ├── wgpu_backend.rs   # Vulkan/DX12/Metal/GL (consumer)
 │   │   └── nvml_telemetry.rs # Real GPU temp/clock/power via NVML
-│   ├── gpu-roofline/         # Roofline engine + CLI
-│   │   ├── ceilings/         # Burst + dynamic measurement
-│   │   ├── model/            # Roofline model + tension analysis
-│   │   ├── monitor/          # Live TUI + alerting + daemon + vGPU sampler
+│   ├── gpu-roofline/         # CLI + measurement + monitoring
+│   │   ├── monitor/          # TUI + alerting + vGPU sampler + daemon
+│   │   ├── ceilings/         # Burst + dynamic roofline measurement
 │   │   ├── validate/         # Preflight GPU health checks
 │   │   └── shaders/          # WGSL + CUDA compute kernels
 │   └── gpu-fleet/            # Multi-GPU cluster validation (WIP)
 ```
 
-All code programs against the `GpuBackend` trait — swap between simulated and real GPU backends without changing application logic.
-
-## Simulation Engine
-
-The simulation models GPU behavior as competing physical forces:
-
-- **ThermalModel** — Newton's law of cooling with throttle curve
-- **PowerModel** — TDP-limited clock scaling with V/F curve
-- **BandwidthModel** — Hierarchical L1/L2/HBM/DRAM with contention
-
-11 pre-built profiles (RTX 5090, H100, H200, B200, MI300X, Arc A770) plus degraded variants for testing straggler detection. Calibrated against real hardware — H100 simulation matches validated results within 0.4%.
-
-## Library Usage
-
-```rust
-use gpu_harness::sim::{SimulatedBackend, profiles};
-use gpu_harness::GpuBackend;
-
-// Create a simulated H100
-let backend = SimulatedBackend::new(profiles::h100_sxm());
-
-// Discover devices
-let devices = backend.discover_devices()?;
-println!("Found: {}", devices[0].name);
-
-// Query device state (thermal, clock, power)
-let state = backend.device_state(0)?;
-println!("{}°C, {} MHz, {:.0}W", state.temperature_c, state.clock_mhz, state.power_watts);
-```
-
 ## Roadmap
 
-See the full [ROADMAP.md](docs/ROADMAP.md) for what's coming next.
+See [ROADMAP.md](docs/ROADMAP.md) for details.
 
-**v0.2 — vGPU Lifecycle Monitoring** ✅
-Implemented: trigger-point detection, contention measurement, teardown verification, 7 alert rules, TUI dashboard, 4 simulation scenarios. See [vGPU Lifecycle Monitoring](#vgpu-lifecycle-monitoring) above.
-
-**v0.2 — CUDA Events** ✅
-GPU-side hardware timestamps via CUDA Events for sub-microsecond accuracy. GpuTimer with automatic fallback to CPU timing. Validated on H100: ~2% bandwidth improvement.
-
-**v0.3 — "Why Is My GPU Slow?" Diagnostic Engine**
-Automatic root-cause analysis: L2 thrashing, HBM degradation, thermal throttling, PCIe bottleneck, MIG misconfiguration — diagnosed and explained, not just measured.
-
-**v0.3 — gpu-fleet: Multi-GPU Cluster Validation**
-NVLink topology mapping, per-GPU roofline health checks, straggler detection with cause analysis.
+- **v0.2** ✅ vGPU Lifecycle Monitoring — trigger-point detection, contention, teardown verification, 7 alert rules
+- **v0.2** ✅ CUDA Events — GPU-side hardware timestamps, automatic CPU fallback
+- **v0.3** "Why Is My GPU Slow?" Diagnostic Engine — automatic root-cause analysis
+- **v0.3** gpu-fleet — multi-GPU cluster validation, NVLink topology, straggler detection
 
 ## Contributing
 
 Contributions welcome! See [CONTRIBUTING_VALIDATION.md](docs/CONTRIBUTING_VALIDATION.md) to validate your GPU hardware.
-
-- **Validate your GPU** — run two commands, submit results ([template](docs/CONTRIBUTING_VALIDATION.md))
-- Add GPU simulation profiles (RX 9070 XT, RTX 3060/3070/3080)
-- Add ROCm-SMI backend for AMD GPU monitoring
-- Add Intel Level Zero backend
-- Add SVG roofline chart export
 
 ## License
 
