@@ -3,6 +3,8 @@ use std::process;
 use clap::Parser;
 use gpu_harness::sim::{profiles, SimulatedBackend};
 use gpu_harness::GpuBackend;
+#[cfg(feature = "wgpu-backend")]
+use gpu_harness::WgpuBackend;
 
 mod ceilings;
 mod cli;
@@ -58,10 +60,22 @@ fn get_backend(sim: &Option<String>) -> Result<Box<dyn GpuBackend>, String> {
             Ok(Box::new(SimulatedBackend::new(profile)))
         }
         None => {
-            // TODO: Wire up RealGpuBackend when wgpu integration is ready
-            Err("Real GPU backend not yet implemented. Use --sim <profile> for simulation mode.\n\
-                 Run 'gpu-roofline profiles' to list available profiles."
-                .to_string())
+            #[cfg(feature = "wgpu-backend")]
+            {
+                match WgpuBackend::new() {
+                    Ok(backend) => Ok(Box::new(backend)),
+                    Err(e) => Err(format!(
+                        "No GPU found: {e}\nUse --sim <profile> for simulation mode.\n\
+                         Run 'gpu-roofline profiles' to list available profiles."
+                    )),
+                }
+            }
+            #[cfg(not(feature = "wgpu-backend"))]
+            {
+                Err("Built without GPU support. Use --sim <profile> for simulation mode.\n\
+                     Run 'gpu-roofline profiles' to list available profiles."
+                    .to_string())
+            }
         }
     }
 }

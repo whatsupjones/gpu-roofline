@@ -9,6 +9,10 @@ description = "Cross-vendor dynamic GPU roofline model with tension-based perfor
 name = "gpu-roofline"
 path = "src/main.rs"
 
+[features]
+default = ["wgpu-backend"]
+wgpu-backend = ["gpu-harness/wgpu-backend"]
+
 [dependencies]
 gpu-harness = { workspace = true }
 serde = { workspace = true }
