@@ -817,9 +817,24 @@ fn cmd_vgpu_watch(
                 return 2;
             }
             let tech = composite.technology();
+            // Query physical VRAM from NVML if available
+            let vram = {
+                #[cfg(feature = "cuda")]
+                {
+                    gpu_harness::NvmlTelemetry::new()
+                        .ok()
+                        .and_then(|t| t.query_state(0).ok())
+                        .map(|s| s.memory_total_bytes)
+                        .unwrap_or(0)
+                }
+                #[cfg(not(feature = "cuda"))]
+                {
+                    0u64
+                }
+            };
             (
                 Box::new(composite) as Box<dyn VgpuDetector>,
-                0, // Will be filled from NVML if available
+                vram,
                 tech,
                 gpu_harness::vgpu::state::PartitioningMode::HardwarePartitioned,
                 "live".to_string(),
