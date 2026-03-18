@@ -21,6 +21,7 @@
 pub mod ceilings;
 pub mod kernels;
 pub mod model;
+pub mod output;
 
 // Re-export key types for convenience
 pub use ceilings::{measure_dynamic, measure_roofline, MeasureConfig};
