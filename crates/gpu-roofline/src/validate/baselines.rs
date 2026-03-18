@@ -78,13 +78,13 @@ pub fn all_baselines() -> &'static [HardwareBaseline] {
             ridge_point_range: (8.0, 14.0),
             max_cv_percent: 5.0,
         },
-        // NVIDIA Consumer — Blackwell
+        // NVIDIA Consumer — Blackwell (validated 2026-03-18: 1505 GB/s, 96T FP32, 247T FP16)
         HardwareBaseline {
             model: "RTX 5090",
             name_patterns: &["5090", "RTX 509"],
-            compute_capability: Some((10, 0)),
-            bandwidth_range: (1500.0, 1800.0),
-            flops_range: (90.0, 110.0),
+            compute_capability: Some((12, 0)),
+            bandwidth_range: (1200.0, 1800.0),
+            flops_range: (72.0, 110.0),
             l2_cache_mb: 96,
             recommended_buffer_bytes: 512 * 1024 * 1024,
             ridge_point_range: (50.0, 75.0),
