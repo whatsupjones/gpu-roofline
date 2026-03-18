@@ -20,6 +20,10 @@ pub struct SimGpuProfile {
     pub nvlink_bandwidth_gbps: Option<f64>,
     pub pcie_gen: u32,
     pub pcie_lanes: u32,
+    /// Peak FP16 Tensor Core TFLOPS (None if no tensor cores).
+    pub tensor_fp16_tflops: Option<f64>,
+    /// Peak BF16 Tensor Core TFLOPS (None if no tensor cores).
+    pub tensor_bf16_tflops: Option<f64>,
 }
 
 impl SimGpuProfile {
@@ -45,5 +49,15 @@ impl SimGpuProfile {
     pub fn ridge_point_burst(&self) -> f64 {
         let peak_flops_gbyte = self.peak_burst_tflops() * 1e3; // GFLOP/s
         peak_flops_gbyte / self.bandwidth.hbm_bandwidth_gbps
+    }
+
+    /// Peak FP16 Tensor Core TFLOPS (returns 0 if no tensor cores).
+    pub fn peak_tensor_fp16_tflops(&self) -> f64 {
+        self.tensor_fp16_tflops.unwrap_or(0.0)
+    }
+
+    /// Peak BF16 Tensor Core TFLOPS (returns 0 if no tensor cores).
+    pub fn peak_tensor_bf16_tflops(&self) -> f64 {
+        self.tensor_bf16_tflops.unwrap_or(0.0)
     }
 }

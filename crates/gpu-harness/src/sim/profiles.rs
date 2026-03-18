@@ -48,6 +48,8 @@ pub fn rtx_5090() -> SimGpuProfile {
         nvlink_bandwidth_gbps: None, // Consumer card, no NVLink
         pcie_gen: 5,
         pcie_lanes: 16,
+        tensor_fp16_tflops: Some(380.0),
+        tensor_bf16_tflops: Some(380.0),
     }
 }
 
@@ -90,6 +92,8 @@ pub fn rtx_4090() -> SimGpuProfile {
         nvlink_bandwidth_gbps: None,
         pcie_gen: 4,
         pcie_lanes: 16,
+        tensor_fp16_tflops: Some(330.0),
+        tensor_bf16_tflops: Some(330.0),
     }
 }
 
@@ -136,6 +140,8 @@ pub fn h100_sxm() -> SimGpuProfile {
         nvlink_bandwidth_gbps: Some(900.0), // 18 links, 50 GB/s each
         pcie_gen: 5,
         pcie_lanes: 16,
+        tensor_fp16_tflops: Some(989.0), // Spec: 989T, measured ~686T (69%)
+        tensor_bf16_tflops: Some(989.0),
     }
 }
 
@@ -190,6 +196,8 @@ pub fn b200() -> SimGpuProfile {
         nvlink_bandwidth_gbps: Some(1800.0), // NVLink 5.0
         pcie_gen: 6,
         pcie_lanes: 16,
+        tensor_fp16_tflops: Some(2250.0), // Blackwell 2nd-gen Tensor Cores
+        tensor_bf16_tflops: Some(2250.0),
     }
 }
 
@@ -236,6 +244,8 @@ pub fn mi300x() -> SimGpuProfile {
         nvlink_bandwidth_gbps: None, // Uses Infinity Fabric
         pcie_gen: 5,
         pcie_lanes: 16,
+        tensor_fp16_tflops: Some(1300.0), // CDNA3 Matrix Cores
+        tensor_bf16_tflops: Some(1300.0),
     }
 }
 
@@ -282,6 +292,8 @@ pub fn arc_a770() -> SimGpuProfile {
         nvlink_bandwidth_gbps: None,
         pcie_gen: 4,
         pcie_lanes: 16,
+        tensor_fp16_tflops: Some(330.0), // XMX (Xe Matrix eXtensions)
+        tensor_bf16_tflops: Some(330.0),
     }
 }
 

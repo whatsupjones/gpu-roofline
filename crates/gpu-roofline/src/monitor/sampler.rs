@@ -137,8 +137,30 @@ impl Sampler {
 
             let sample_start = Instant::now();
 
-            // Run lightweight burst measurement
-            let roofline = measure_roofline(backend, &measure_config)?;
+            // Graceful degradation: check GPU load before measuring.
+            // If GPU is under heavy load (gaming, training), reduce our
+            // measurement footprint to avoid impacting the user's workload.
+            let pre_state = backend.device_state(0).ok();
+            let gpu_busy = pre_state
+                .as_ref()
+                .map(|s| s.utilization_pct > 80.0)
+                .unwrap_or(false);
+
+            let active_config = if gpu_busy {
+                // Light touch: fewer iterations, smaller buffer
+                MeasureConfig {
+                    buffer_size_bytes: self.config.buffer_size_bytes / 4,
+                    measurement_iterations: 3.max(self.config.iterations_per_sample / 4),
+                    warmup_iterations: 1,
+                    kernels: vec![crate::kernels::BuiltinKernel::Copy],
+                    device_index: 0,
+                }
+            } else {
+                measure_config.clone()
+            };
+
+            // Run measurement (lightweight when GPU is busy)
+            let roofline = measure_roofline(backend, &active_config)?;
 
             // Get device telemetry
             let device_state = backend.device_state(0).unwrap_or(DeviceState {

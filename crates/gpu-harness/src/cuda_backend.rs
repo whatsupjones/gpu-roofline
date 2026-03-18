@@ -8,14 +8,12 @@ mod inner {
     use std::sync::Arc;
     use std::time::Instant;
 
-    use cudarc::driver::{CudaContext, CudaSlice, CudaStream, LaunchConfig, PushKernelArg};
-    use cudarc::nvrtc::Ptx;
-
     use crate::backend::{
         BandwidthResult, DeviceState, GpuBackend, KernelResult, KernelSpec, RunConfig,
     };
     use crate::device::{GpuArchitecture, GpuDevice, GpuFeatures, GpuLimits, GpuVendor};
     use crate::error::HarnessError;
+    use cudarc::driver::{CudaContext, CudaSlice, CudaStream, LaunchConfig, PushKernelArg};
 
     const CUDA_KERNEL_SOURCE: &str = include_str!("../shaders/cuda/roofline_kernels.cu");
     const TENSOR_KERNEL_SOURCE: &str = include_str!("../shaders/cuda/tensor_kernels.cu");
@@ -352,7 +350,7 @@ mod inner {
         fn dispatch_tensor_kernel(
             dev_info: &CudaDeviceInfo,
             kernel_name: &str,
-            kernel_type: &str,
+            _kernel_type: &str,
             buffer_size_bytes: usize,
             iterations: u32,
         ) -> Result<Vec<f64>, HarnessError> {

@@ -50,13 +50,31 @@ The tool measures three roofline modes:
 
 Measured on real datacenter and consumer GPUs. Bandwidth measures achievable compute kernel throughput (not hardware DMA ceiling).
 
-| GPU | Bandwidth | Peak FP32 | Ridge Point | CV | Backend |
-|-----|-----------|-----------|-------------|-----|---------|
-| **NVIDIA H200 141GB HBM3e** | **4,028 GB/s** | **59.5 TFLOPS** | 14.8 FLOP/byte | 0.1-1.4% | CUDA |
-| **NVIDIA H100 80GB HBM3** | **2,893 GB/s** | **59.5 TFLOPS** | 20.6 FLOP/byte | 0.1-0.5% | CUDA |
-| Intel UHD Graphics | 7 GB/s | 0.15 TFLOPS | 22.7 FLOP/byte | 7-9% | Vulkan |
+| GPU | HBM BW | FP32 | FP16 Tensor | BF16 Tensor | Backend |
+|-----|--------|------|-------------|-------------|---------|
+| **NVIDIA H200 141GB** | **4,028 GB/s** | **59.5 TFLOPS** | **686 TFLOPS** | **686 TFLOPS** | CUDA |
+| **NVIDIA H100 80GB** | **2,893 GB/s** | **59.5 TFLOPS** | *pending* | *pending* | CUDA |
+| Intel UHD Graphics | 7 GB/s | 0.15 TFLOPS | — | — | Vulkan |
 
 *More GPUs coming: RTX 4090, RTX 5090, MI300X. [Contribute your results!](https://github.com/whatsupjones/gpu-roofline/issues)*
+
+### Multi-Precision Roofline — NVIDIA H200
+
+```
+  TFLOP/s  (log scale)
+  989T ── ── ── ── ── ── ── ═══════════ FP16/BF16 Tensor Core (spec)
+                            ╱
+  686T ── ── ── ── ── ═════╪═══════════ FP16/BF16 Tensor Core (measured)
+                       ╱   │
+   59T ── ═══════════╪═════╪═══════════ FP32 CUDA Core (measured)
+              ╱      │     │
+  4028 GB/s  ╱       │     │
+            ╱────────┼─────┼──────────→ Arithmetic Intensity (FLOP/byte)
+           0.1      1     10    100
+
+  Tensor Cores deliver 11.5x the throughput of CUDA Cores.
+  ML training runs on the upper ceiling — that's what this tool measures.
+```
 
 ### H100 Roofline (CUDA Backend)
 ```
