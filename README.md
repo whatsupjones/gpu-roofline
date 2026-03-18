@@ -15,6 +15,80 @@ DGX Cloud, AWS, GCP, and Azure manage thousands of GPU lifecycles. MIG partition
 - **Teardown leaks resources** — ghost allocations persist after vGPU destruction
 - **Performance baselines don't exist** — nobody measures the burst-to-sustained gap under virtualization
 
+## Use Cases
+
+### ML Platform Team
+
+You manage 100+ H100s. Training jobs randomly slow down and nobody knows why. A straggler GPU turns a 3-day run into a 5-day run — or causes silent accuracy degradation.
+
+```bash
+# Find the straggler and get a root cause in one command
+gpu-fleet straggler
+
+# Pre-flight validation before launching a $50K training run
+gpu-fleet validate --threshold 0.85
+```
+
+### Cloud GPU Provider / Multi-Tenant
+
+You sell MIG slices or GRID time-sliced vGPUs. When a new tenant provisions, existing tenants get squeezed — but you don't know until they complain. Teardown leaks VRAM silently.
+
+```bash
+# Real-time lifecycle monitoring with 7 alert rules
+gpu-roofline vgpu watch --daemon --log vgpu.jsonl
+
+# Enumerate all MIG instances with metadata (JSON for Prometheus/Grafana)
+gpu-roofline vgpu list --json
+```
+
+Detects: ContentionSqueeze, GhostAllocation, MemoryOvercommit, SlowProvision, SlowReclaim, OverSubscription, UnderperformingInstance.
+
+### ML Engineer / Researcher
+
+Your H100 training is 30% slower than the paper claims. You don't know if it's the GPU, the workload, or the cluster.
+
+```bash
+# Get an actionable diagnosis, not just "GPU slow"
+gpu-roofline diagnose --device 0
+
+# See the burst-to-sustained gap that benchmarks hide
+gpu-roofline measure
+```
+
+Output: "L2 cache thrashing — working set 180MB exceeds 50MB L2. Increase batch size to amortize memory access."
+
+### DevOps / CI Pipeline
+
+GPU performance as a CI gate. Fail the build if the GPU regressed, before bad hardware reaches production.
+
+```bash
+# Save a baseline, then check against it in CI
+gpu-roofline measure --save-baseline roofline.json
+gpu-roofline check --baseline roofline.json --threshold 0.9  # exit code 1 on failure
+
+# Quick health check (no baseline needed)
+gpu-roofline validate --strict
+```
+
+JSON output + exit codes for integration with any CI system.
+
+### Simulation-First Development
+
+Every command supports `--sim` with profiles validated against real H100, H200, and RTX 5090 hardware. Develop your monitoring pipeline, alerting rules, and integration tests without paying for GPU time.
+
+```bash
+# Develop and test without hardware
+gpu-roofline diagnose --sim degraded_h100_memory    # triggers HBM degradation finding
+gpu-fleet straggler --sim h100_sxm --count 8        # tests outlier detection
+gpu-roofline vgpu watch --sim grid_contention        # tests contention alerting
+
+# Same binary deploys to production — no code changes
+```
+
+> All simulation profiles are validated against real hardware. See [docs/validation/](docs/validation/) for H100/H200/RTX 5090 test artifacts with full provenance.
+
+---
+
 ## vGPU Lifecycle Monitoring
 
 Auto-attaches when a vGPU provisions, detaches when it drops. Zero overhead when idle.
@@ -186,6 +260,35 @@ gpu-roofline/
 │       ├── fleet_validate.rs # Per-GPU roofline health checks
 │       └── straggler.rs      # Outlier detection + automatic diagnosis
 ```
+
+## Library Usage
+
+`gpu-harness` is a standalone Rust crate — embed GPU monitoring directly in your services without shelling out to the CLI:
+
+```toml
+[dependencies]
+gpu-harness = { version = "0.1", features = ["vgpu", "cuda"] }
+```
+
+```rust
+use gpu_harness::vgpu::detect::{auto_detect, VgpuDetector};
+use std::sync::mpsc;
+
+// Enumerate all MIG instances on the system
+let detector = auto_detect();
+let instances = detector.enumerate()?;
+
+// Watch for lifecycle events in real time
+let (tx, rx) = mpsc::channel();
+std::thread::spawn(move || detector.watch(tx));
+for event in rx {
+    println!("vGPU event: {:?}", event.event_type);
+}
+```
+
+Available modules: `backend` (GpuBackend trait), `device` (discovery), `sim` (physics-based simulation), `vgpu` (lifecycle detection), `cuda_backend`, `nvml_telemetry`.
+
+---
 
 ## "Why Is My GPU Slow?" Diagnostic Engine
 
