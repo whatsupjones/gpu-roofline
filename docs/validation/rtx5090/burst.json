@@ -1,0 +1,112 @@
+{
+  "device_name": "NVIDIA GeForce RTX 5090",
+  "peak_gflops": 95713.8434247766,
+  "peak_bandwidth_gbps": 1501.860746551114,
+  "ridge_point": 63.730171818242596,
+  "clock_mhz": 0,
+  "temperature_c": 0,
+  "power_watts": 0.0,
+  "placements": [
+    {
+      "name": "copy",
+      "arithmetic_intensity": 0.0,
+      "achieved_gflops": 0.0,
+      "achieved_bandwidth_gbps": 1493.1745570852456,
+      "efficiency": 0.9942163815880963,
+      "bottleneck": {
+        "MemoryBound": {
+          "level": "Hbm"
+        }
+      },
+      "median_us": 359.55,
+      "stddev_us": 5.270680547398723,
+      "cv": 0.014624122422890119
+    },
+    {
+      "name": "add",
+      "arithmetic_intensity": 0.083,
+      "achieved_gflops": 64.66977862922033,
+      "achieved_bandwidth_gbps": 1034.7164580675253,
+      "efficiency": 0.5187924121310532,
+      "bottleneck": {
+        "MemoryBound": {
+          "level": "Hbm"
+        }
+      },
+      "median_us": 518.858,
+      "stddev_us": 119.11568954451026,
+      "cv": 0.22396020904431926
+    },
+    {
+      "name": "scale",
+      "arithmetic_intensity": 0.125,
+      "achieved_gflops": 187.73259331888926,
+      "achieved_bandwidth_gbps": 1501.860746551114,
+      "efficiency": 1.0,
+      "bottleneck": {
+        "MemoryBound": {
+          "level": "Hbm"
+        }
+      },
+      "median_us": 357.4705,
+      "stddev_us": 2.7675528834562995,
+      "cv": 0.0077244856140904605
+    },
+    {
+      "name": "triad",
+      "arithmetic_intensity": 0.167,
+      "achieved_gflops": 161.75113572381662,
+      "achieved_bandwidth_gbps": 1035.2072686324263,
+      "efficiency": 0.6449131034399465,
+      "bottleneck": {
+        "MemoryBound": {
+          "level": "Hbm"
+        }
+      },
+      "median_us": 518.6120000000001,
+      "stddev_us": 3.0960377397505305,
+      "cv": 0.0059660800107298175
+    },
+    {
+      "name": "fma_light",
+      "arithmetic_intensity": 1.0,
+      "achieved_gflops": 1496.8234675826345,
+      "achieved_bandwidth_gbps": 1496.8234675826345,
+      "efficiency": 0.9966459746817092,
+      "bottleneck": {
+        "MemoryBound": {
+          "level": "Hbm"
+        }
+      },
+      "median_us": 358.6735,
+      "stddev_us": 2.166146420034966,
+      "cv": 0.006033691348176657
+    },
+    {
+      "name": "fma_medium",
+      "arithmetic_intensity": 8.0,
+      "achieved_gflops": 11967.564160007132,
+      "achieved_bandwidth_gbps": 1495.9455200008915,
+      "efficiency": 0.9960614014556234,
+      "bottleneck": {
+        "MemoryBound": {
+          "level": "Hbm"
+        }
+      },
+      "median_us": 358.884,
+      "stddev_us": 3.000062876176113,
+      "cv": 0.008344691266457024
+    },
+    {
+      "name": "fma_heavy",
+      "arithmetic_intensity": 64.0,
+      "achieved_gflops": 95713.8434247766,
+      "achieved_bandwidth_gbps": 1495.5288035121343,
+      "efficiency": 1.0,
+      "bottleneck": "ComputeBound",
+      "median_us": 358.98400000000004,
+      "stddev_us": 2.9095156048644086,
+      "cv": 0.00809545007501755
+    }
+  ]
+}

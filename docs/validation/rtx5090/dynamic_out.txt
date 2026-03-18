@@ -1,0 +1,9 @@
+  GPU: NVIDIA GeForce RTX 5090 | CUDA sm_120 | 31.4 GB VRAM
+
+gpu-roofline 0.1.0 | NVIDIA GeForce RTX 5090 | Dynamic Roofline
+
+  Burst:     95367.4 GFLOP/s | 1495 GB/s | 0 MHz | 0°C | 0W
+  Sustained: 96274.8 GFLOP/s | 1507 GB/s | 0 MHz | 0°C | 0W
+  Equilibrium: 10.0s | Net drop: -1.0%
+
+Baseline saved to /tmp/rtx5090_validation/dynamic.json

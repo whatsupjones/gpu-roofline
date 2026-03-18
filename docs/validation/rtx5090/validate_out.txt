@@ -1,0 +1,17 @@
+  GPU: NVIDIA GeForce RTX 5090 | CUDA sm_120 | 31.4 GB VRAM
+  Config: 512MB buffer (L2: 96MB) | 100 iterations | 5 warmup
+
+gpu-roofline validate 0.1.0 | NVIDIA GeForce RTX 5090
+
+┌────────────────┬─────────────┬────────────────┬────────┐
+│ Check          ┆ Measured    ┆ Expected       ┆ Status │
+╞════════════════╪═════════════╪════════════════╪════════╡
+│ Bandwidth      ┆ 1517 GB/s   ┆ 1200-1800 GB/s ┆ PASS   │
+│ FP32 Compute   ┆ 96.7 TFLOPS ┆ 72-110 TFLOPS  ┆ PASS   │
+│ Stability      ┆ CV 0.7%     ┆ < 5%           ┆ PASS   │
+│ Roofline Shape ┆ 6/6         ┆ All correct    ┆ PASS   │
+└────────────────┴─────────────┴────────────────┴────────┘
+
+  Result: PASS (4/4 checks)
+  Exit code: 0
+

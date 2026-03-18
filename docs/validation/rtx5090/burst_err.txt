@@ -1,0 +1,1 @@
+  GPU: NVIDIA GeForce RTX 5090 | CUDA sm_120 | 31.4 GB VRAM

@@ -1,0 +1,9 @@
+  GPU: NVIDIA GeForce RTX 5090 | CUDA sm_120 | 31.4 GB VRAM
+Taking baseline measurement on NVIDIA GeForce RTX 5090...
+Baseline: 1500 GB/s | 96123.0 GFLOP/s
+{"timestamp":"2026-03-18T18:56:41.510944033Z","sample_index":0,"bandwidth_gbps":1501.247599034161,"gflops":95524.5155082563,"cv":0.007285774291386833,"temperature_c":0,"clock_mhz":0,"power_watts":0.0,"utilization_pct":0.0,"status":{"status":"normal"}}
+{"timestamp":"2026-03-18T18:56:51.566608317Z","sample_index":1,"bandwidth_gbps":1503.0738167096888,"gflops":95977.7270982718,"cv":0.009489456555213686,"temperature_c":0,"clock_mhz":0,"power_watts":0.0,"utilization_pct":0.0,"status":{"status":"normal"}}
+{"timestamp":"2026-03-18T18:57:01.616054207Z","sample_index":2,"bandwidth_gbps":1496.9695445413697,"gflops":95676.53057996681,"cv":0.008115516783415697,"temperature_c":0,"clock_mhz":0,"power_watts":0.0,"utilization_pct":0.0,"status":{"status":"normal"}}
+{"timestamp":"2026-03-18T18:57:11.608973992Z","sample_index":3,"bandwidth_gbps":1501.8691493096594,"gflops":95655.62146143192,"cv":0.006331454151987472,"temperature_c":0,"clock_mhz":0,"power_watts":0.0,"utilization_pct":0.0,"status":{"status":"normal"}}
+{"timestamp":"2026-03-18T18:57:21.618367605Z","sample_index":4,"bandwidth_gbps":1502.510136685735,"gflops":95836.78160009037,"cv":0.007292693348075816,"temperature_c":0,"clock_mhz":0,"power_watts":0.0,"utilization_pct":0.0,"status":{"status":"normal"}}
+{"timestamp":"2026-03-18T18:57:31.542779795Z","sample_index":5,"bandwidth_gbps":1499.3190337818874,"gflops":96351.15825013073,"cv":0.011586035310400093,"temperature_c":0,"clock_mhz":0,"power_watts":0.0,"utilization_pct":0.0,"status":{"status":"normal"}}
