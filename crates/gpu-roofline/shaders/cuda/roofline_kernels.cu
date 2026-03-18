@@ -10,12 +10,14 @@
 // BANDWIDTH KERNELS
 // ===========================================================================
 
-// Copy kernel with streaming memory access (bypasses L2 cache)
+// Copy kernel with grid-stride loop and streaming memory access.
+// Thread coarsening: each thread processes multiple elements to amortize
+// launch overhead and maximize memory controller utilization on HBM3.
+// __ldcs/__stcs bypass L2 cache for pure HBM bandwidth measurement.
 extern "C" __global__
 void copy_kernel(const float4* __restrict__ src, float4* __restrict__ dst, unsigned int n) {
-    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx < n) {
-        // Streaming load + store: bypass L2 cache for pure HBM bandwidth measurement
+    unsigned int stride = blockDim.x * gridDim.x;
+    for (unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x; idx < n; idx += stride) {
         float4 val = __ldcs(src + idx);
         __stcs(dst + idx, val);
     }
