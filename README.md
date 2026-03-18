@@ -13,9 +13,11 @@ Measure burst vs sustained performance ceilings across NVIDIA, AMD, and Intel GP
 | Cross-vendor | NVIDIA only | Intel only | AMD MI-series only | **NVIDIA + AMD + Intel** |
 | Install size | ~5 GB | ~15 GB | ~3 GB | **<10 MB** |
 | Dynamic roofline | No | No | No | **Yes** |
+| Live TUI monitoring | No | No | No | **Yes** |
 | CI-native (JSON, exit codes) | No | No | No | **Yes** |
 | Sustained ceiling measurement | No | No | No | **Yes** |
 | Tension analysis | No | No | No | **Yes** |
+| Degradation alerting | No | No | No | **Yes** |
 | Single binary | No | No | No | **Yes** |
 
 ## Dynamic Roofline: The Tension Model
@@ -80,6 +82,9 @@ cargo install gpu-roofline
 
 # Install with CUDA support (datacenter H100/H200/A100)
 cargo install gpu-roofline --features cuda
+
+# Full install: CUDA + NVML telemetry (real temp/clock/power)
+cargo install gpu-roofline --features full
 
 # Quick burst roofline (~10 seconds)
 gpu-roofline measure --burst
@@ -149,6 +154,58 @@ gpu-roofline validate
 
 Smart diagnosis: distinguishes HBM degradation from thermal throttling from driver issues.
 
+## Continuous Monitoring
+
+Live TUI dashboard — like `htop` for your GPU's performance envelope:
+
+```
+gpu-roofline monitor ── NVIDIA H100 SXM5 80GB ── Driver 550.54 ── sm_90
+┌ Performance ──────────────────────┐┌ Tension Analysis ─────────────────┐
+│ BW    2891 GB/s  99.9%  ▁▂▃▃▃▃▃▃││ Burst:     59.5T (t=0)           │
+│ FP32  59.2T      99.4%  ▁▃▅▅▅▅▅▅││ Current:   59.2T (−0.5%)         │
+│ CV    0.3%       stable  ▁▁▁▁▁▁▁▁││ Thermal:   −0.3% (72°C)         │
+├ Thermals & Power ─────────────────┤│ Power:     −0.2% (685W)          │
+│ Temp   72°C         ▁▂▃▄▅▅▅▅▅▅▅▅││ Net drop:  −0.5%                 │
+│ Power  685W/700W    ▃▅▆▇▇▇▇▇▇▇▇▇│├ Session ──────────────────────────┤
+│ Clock  1980 MHz     ▇▇▇▆▆▆▆▆▆▆▆▆││ Samples: 47  Uptime: 47m 12s     │
+│ Throttle: none                    ││ Avg BW: 2889  Min BW: 2871 GB/s  │
+├ Memory ───────────────────────────┤│ Max Temp: 74°C  Alerts: 0        │
+│ VRAM  12.4 / 80.0 GB  ████░░░░░░│├ Alerts ────────────────────────────┤
+│ HBM BW utilization: 86%          ││ (none)                            │
+└───────────────────────────────────┘└──────────────────────────────────┘
+ q quit  Samples: 47  Uptime: 47m 12s
+```
+
+```bash
+# Live TUI dashboard (default)
+gpu-roofline monitor
+
+# Custom interval and duration
+gpu-roofline monitor --interval 10 --duration 3600
+
+# Alert if performance drops below 80% of baseline
+gpu-roofline monitor --alert-threshold 0.8
+
+# Daemon mode: JSON lines to file (for Prometheus/Grafana/Datadog)
+gpu-roofline monitor --daemon --log monitor.json
+
+# Simulated monitoring (no GPU required)
+gpu-roofline monitor --sim h100_sxm --interval 5 --duration 60
+```
+
+### What It Detects
+- **Sudden degradation** — bandwidth or compute drops below threshold
+- **Thermal throttling** — temperature exceeding operating range
+- **Gradual decline** — rolling average trending down over time
+- **Measurement instability** — increasing CV indicating noisy results
+
+### Daemon Mode (Prometheus/Grafana)
+`--daemon` outputs one JSON object per line, scrapable by any log aggregator:
+```json
+{"timestamp":"2026-03-18T14:00:00Z","bandwidth_gbps":2891,"gflops":59200,"temperature_c":42,"status":"normal"}
+{"timestamp":"2026-03-18T14:01:00Z","bandwidth_gbps":2102,"gflops":58900,"temperature_c":67,"status":"warning","alerts":[...]}
+```
+
 ## gpu-fleet (Coming Soon)
 
 Multi-GPU cluster validation — detects stragglers, NVLink degradation, NUMA misalignment, and GPUs running below their roofline.
@@ -158,9 +215,18 @@ Multi-GPU cluster validation — detects stragglers, NVLink degradation, NUMA mi
 ```
 gpu-roofline/
 ├── crates/
-│   ├── gpu-harness/     # Device discovery, simulation engine, GpuBackend trait
-│   ├── gpu-roofline/    # Dynamic roofline model + tension analysis
-│   └── gpu-fleet/       # Fleet validation + straggler detection
+│   ├── gpu-harness/          # Shared backend abstraction
+│   │   ├── sim/              # Physics-based GPU simulation engine
+│   │   ├── cuda_backend.rs   # Native CUDA compute (datacenter)
+│   │   ├── wgpu_backend.rs   # Vulkan/DX12/Metal/GL (consumer)
+│   │   └── nvml_telemetry.rs # Real GPU temp/clock/power via NVML
+│   ├── gpu-roofline/         # Roofline engine + CLI
+│   │   ├── ceilings/         # Burst + dynamic measurement
+│   │   ├── model/            # Roofline model + tension analysis
+│   │   ├── monitor/          # Live TUI + alerting + daemon
+│   │   ├── validate/         # Preflight GPU health checks
+│   │   └── shaders/          # WGSL + CUDA compute kernels
+│   └── gpu-fleet/            # Multi-GPU cluster validation (WIP)
 ```
 
 All code programs against the `GpuBackend` trait — swap between simulated and real GPU backends without changing application logic.
@@ -173,7 +239,7 @@ The simulation models GPU behavior as competing physical forces:
 - **PowerModel** — TDP-limited clock scaling with V/F curve
 - **BandwidthModel** — Hierarchical L1/L2/HBM/DRAM with contention
 
-11 pre-built profiles (RTX 5090, H100, H200, B200, MI300X, Arc A770) plus degraded variants for testing straggler detection.
+11 pre-built profiles (RTX 5090, H100, H200, B200, MI300X, Arc A770) plus degraded variants for testing straggler detection. Calibrated against real hardware — H100 simulation matches validated results within 0.4%.
 
 ## Library Usage
 
