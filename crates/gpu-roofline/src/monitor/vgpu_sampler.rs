@@ -130,7 +130,7 @@ impl VgpuSampler {
     }
 
     /// Process a single event and return any triggered alerts.
-    fn process_event(&mut self, event: &VgpuEvent) -> Vec<VgpuAlert> {
+    pub fn process_event(&mut self, event: &VgpuEvent) -> Vec<VgpuAlert> {
         let mut alerts = Vec::new();
 
         match &event.event_type {
@@ -241,6 +241,10 @@ impl VgpuSampler {
             .filter(|i| i.phase == VgpuPhase::Active)
             .count() as u32;
 
+        // Include last 10 events for state-level alert checks
+        let recent_events: Vec<VgpuEvent> =
+            self.events.iter().rev().take(10).rev().cloned().collect();
+
         VgpuState {
             physical_gpu_index: 0,
             instances,
@@ -249,7 +253,7 @@ impl VgpuSampler {
             active_count,
             technology: self.technology,
             partitioning_mode: self.partitioning_mode,
-            recent_events: Vec::new(),
+            recent_events,
         }
     }
 
@@ -269,6 +273,16 @@ impl VgpuSampler {
             .values()
             .filter(|m| m.instance.phase == VgpuPhase::Active)
             .count()
+    }
+
+    /// Get number of tracked contention baselines (for leak testing).
+    pub fn contention_baseline_count(&self) -> usize {
+        self.contention.tracked_count()
+    }
+
+    /// Get total instance count (including non-active).
+    pub fn total_instance_count(&self) -> usize {
+        self.instances.len()
     }
 }
 
