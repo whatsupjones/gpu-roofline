@@ -1,4 +1,7 @@
 //! Real GPU backend using wgpu for cross-vendor compute shader dispatch.
+//!
+//! Supports multiple graphics API backends (Vulkan, DX12, Metal) with
+//! auto-detection and graceful fallback for headless/datacenter environments.
 
 #[cfg(feature = "wgpu-backend")]
 mod inner {
@@ -12,13 +15,62 @@ mod inner {
     use crate::device::{GpuArchitecture, GpuDevice, GpuFeatures, GpuLimits, GpuVendor};
     use crate::error::HarnessError;
 
-    /// Real GPU backend using wgpu for compute shader dispatch.
-    pub struct WgpuBackend {
-        _instance: wgpu::Instance,
-        adapters: Vec<AdapterInfo>,
+    /// Graphics API backend selection.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub enum GpuApiBackend {
+        /// Auto-detect best available backend.
+        Auto,
+        /// Force Vulkan (Linux default, also available on Windows).
+        Vulkan,
+        /// Force DirectX 12 (Windows only).
+        Dx12,
+        /// Force Metal (macOS/iOS only).
+        Metal,
+        /// Force OpenGL (broad compatibility fallback).
+        Gl,
     }
 
-    struct AdapterInfo {
+    impl GpuApiBackend {
+        fn to_wgpu_backends(self) -> wgpu::Backends {
+            match self {
+                Self::Auto => wgpu::Backends::all(),
+                Self::Vulkan => wgpu::Backends::VULKAN,
+                Self::Dx12 => wgpu::Backends::DX12,
+                Self::Metal => wgpu::Backends::METAL,
+                Self::Gl => wgpu::Backends::GL,
+            }
+        }
+    }
+
+    /// Detected environment metadata for a GPU adapter.
+    #[derive(Debug, Clone)]
+    pub struct AdapterMetadata {
+        /// GPU name from driver.
+        pub name: String,
+        /// Graphics API backend in use (Vulkan, DX12, Metal, GL).
+        pub backend: String,
+        /// Driver version string.
+        pub driver: String,
+        /// Driver description.
+        pub driver_info: String,
+        /// Device type (Discrete, Integrated, Virtual, CPU).
+        pub device_type: String,
+        /// Whether this appears to be a virtual/cloud GPU.
+        pub is_virtual: bool,
+        /// Vendor ID.
+        pub vendor_id: u32,
+        /// Device ID.
+        pub device_id: u32,
+    }
+
+    /// Real GPU backend using wgpu for compute shader dispatch.
+    pub struct WgpuBackend {
+        adapters: Vec<AdapterEntry>,
+        /// Metadata about each detected adapter.
+        pub metadata: Vec<AdapterMetadata>,
+    }
+
+    struct AdapterEntry {
         adapter: wgpu::Adapter,
         device: wgpu::Device,
         queue: wgpu::Queue,
@@ -26,20 +78,59 @@ mod inner {
     }
 
     impl WgpuBackend {
-        /// Create a new wgpu backend, discovering all available GPUs.
+        /// Create a new wgpu backend with auto-detected API backend.
         pub fn new() -> Result<Self, HarnessError> {
+            Self::with_backend(GpuApiBackend::Auto)
+        }
+
+        /// Create a new wgpu backend with a specific API backend.
+        pub fn with_backend(api: GpuApiBackend) -> Result<Self, HarnessError> {
+            // Catch panics from wgpu initialization (e.g., missing Vulkan ICD)
+            let result = std::panic::catch_unwind(|| Self::init_backend(api));
+
+            match result {
+                Ok(Ok(backend)) => Ok(backend),
+                Ok(Err(e)) => Err(e),
+                Err(_panic) => {
+                    let hint = match api {
+                        GpuApiBackend::Vulkan => {
+                            "Vulkan initialization failed. This often happens on headless \
+                             datacenter GPUs without Vulkan ICD installed.\n\
+                             Try: --backend dx12 (Windows), --backend auto, or run inside a \
+                             Docker container with nvidia/vulkan image."
+                        }
+                        GpuApiBackend::Dx12 => {
+                            "DirectX 12 initialization failed. Ensure you're on Windows 10+ \
+                             with a compatible GPU driver."
+                        }
+                        _ => {
+                            "GPU backend initialization failed. Try --backend auto to let \
+                             gpu-roofline detect the best available backend, or use \
+                             --sim <profile> for simulation mode."
+                        }
+                    };
+                    Err(HarnessError::BackendUnavailable(hint.to_string()))
+                }
+            }
+        }
+
+        fn init_backend(api: GpuApiBackend) -> Result<Self, HarnessError> {
+            let backends = api.to_wgpu_backends();
+
             let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-                backends: wgpu::Backends::all(),
+                backends,
                 ..Default::default()
             });
 
-            let adapters_raw = instance.enumerate_adapters(wgpu::Backends::all());
+            let adapters_raw = instance.enumerate_adapters(backends);
 
             if adapters_raw.is_empty() {
                 return Err(HarnessError::NoDevice);
             }
 
             let mut adapters = Vec::new();
+            let mut metadata = Vec::new();
+
             for adapter in adapters_raw {
                 let info = adapter.get_info();
 
@@ -47,6 +138,32 @@ mod inner {
                 if info.device_type == wgpu::DeviceType::Cpu {
                     continue;
                 }
+
+                // Detect virtual/cloud GPU
+                let is_virtual = info.device_type == wgpu::DeviceType::VirtualGpu
+                    || info.name.to_lowercase().contains("virtual")
+                    || info.name.to_lowercase().contains("grid")
+                    || info.driver_info.to_lowercase().contains("virtual");
+
+                let backend_name = format!("{:?}", info.backend);
+                let device_type_name = match info.device_type {
+                    wgpu::DeviceType::DiscreteGpu => "Discrete",
+                    wgpu::DeviceType::IntegratedGpu => "Integrated",
+                    wgpu::DeviceType::VirtualGpu => "Virtual",
+                    wgpu::DeviceType::Cpu => "CPU",
+                    wgpu::DeviceType::Other => "Other",
+                };
+
+                metadata.push(AdapterMetadata {
+                    name: info.name.clone(),
+                    backend: backend_name,
+                    driver: info.driver.clone(),
+                    driver_info: info.driver_info.clone(),
+                    device_type: device_type_name.to_string(),
+                    is_virtual,
+                    vendor_id: info.vendor,
+                    device_id: info.device,
+                });
 
                 // Request device with timestamp queries if available
                 let features = adapter.features();
@@ -56,6 +173,7 @@ mod inner {
                     wgpu::Features::empty()
                 };
 
+                // Configure wgpu to NOT panic on errors
                 match pollster::block_on(adapter.request_device(
                     &wgpu::DeviceDescriptor {
                         label: Some(&format!("gpu-roofline-{}", info.name)),
@@ -66,7 +184,12 @@ mod inner {
                     None,
                 )) {
                     Ok((device, queue)) => {
-                        adapters.push(AdapterInfo {
+                        // Set error handler to log instead of panic
+                        device.on_uncaptured_error(Box::new(|err| {
+                            tracing::error!("wgpu device error: {}", err);
+                        }));
+
+                        adapters.push(AdapterEntry {
                             adapter,
                             device,
                             queue,
@@ -83,21 +206,34 @@ mod inner {
                 return Err(HarnessError::NoDevice);
             }
 
-            Ok(Self {
-                _instance: instance,
-                adapters,
-            })
+            // Log what we found
+            for meta in &metadata {
+                tracing::info!(
+                    "Detected GPU: {} | {} | {} | Driver: {} | {}",
+                    meta.name,
+                    meta.backend,
+                    meta.device_type,
+                    meta.driver,
+                    if meta.is_virtual {
+                        "VIRTUAL (cloud passthrough detected)"
+                    } else {
+                        "bare metal"
+                    }
+                );
+            }
+
+            Ok(Self { adapters, metadata })
         }
 
         /// Run a compute shader on a specific device.
         fn dispatch_kernel(
-            adapter_info: &AdapterInfo,
+            adapter_entry: &AdapterEntry,
             shader_source: &str,
             buffer_size_bytes: usize,
             iterations: u32,
         ) -> Result<Vec<f64>, HarnessError> {
-            let device = &adapter_info.device;
-            let queue = &adapter_info.queue;
+            let device = &adapter_entry.device;
+            let queue = &adapter_entry.queue;
 
             // Create shader module
             let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -127,7 +263,7 @@ mod inner {
             // Use auto-layout — let wgpu derive the bind group layout from the shader
             let pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
                 label: Some("roofline-pipeline"),
-                layout: None, // Auto-layout from shader reflection
+                layout: None,
                 module: &shader,
                 entry_point: Some("main"),
                 compilation_options: Default::default(),
@@ -203,19 +339,16 @@ mod inner {
             kernel: &KernelSpec,
             config: &RunConfig,
         ) -> Result<KernelResult, HarnessError> {
-            let adapter_info = self.adapters.first().ok_or(HarnessError::NoDevice)?;
+            let adapter_entry = self.adapters.first().ok_or(HarnessError::NoDevice)?;
 
             // Look up WGSL source for built-in kernels.
-            // Only 2-binding kernels (src + dst) are supported in v0.1.
-            // 3-binding kernels (add, triad) need separate bind group layout — v0.2.
+            // Only 2-binding kernels (src + dst) supported in v0.1.
             let wgsl_source = match kernel.name.as_str() {
                 "copy" => include_str!("../../gpu-roofline/shaders/copy.wgsl"),
                 "fma_light" => include_str!("../../gpu-roofline/shaders/fma_light.wgsl"),
                 "fma_medium" => include_str!("../../gpu-roofline/shaders/fma_medium.wgsl"),
                 "fma_heavy" => include_str!("../../gpu-roofline/shaders/fma_heavy.wgsl"),
                 "scale" | "add" | "triad" => {
-                    // These kernels need >2 bindings (uniform or 3rd buffer).
-                    // Skip gracefully — return synthetic result so measurement continues.
                     tracing::info!(
                         "Skipping kernel '{}' (multi-binding not yet supported on real GPU)",
                         kernel.name
@@ -235,14 +368,14 @@ mod inner {
             };
 
             let timings = Self::dispatch_kernel(
-                adapter_info,
+                adapter_entry,
                 wgsl_source,
                 config.buffer_size_bytes,
                 config.measurement_iterations,
             )?;
 
-            let elements = config.buffer_size_bytes / 16; // vec4<f32>
-            let flops_per_element = (kernel.arithmetic_intensity * 16.0) as u64; // AI * bytes_per_element
+            let elements = config.buffer_size_bytes / 16;
+            let flops_per_element = (kernel.arithmetic_intensity * 16.0) as u64;
             let total_flops = elements as u64 * flops_per_element;
 
             Ok(KernelResult {
@@ -259,8 +392,8 @@ mod inner {
                 .get(device_index as usize)
                 .ok_or(HarnessError::DeviceIndexOutOfRange(device_index))?;
 
-            // wgpu doesn't expose thermal/power telemetry — return defaults.
-            // NVML feature would enrich this.
+            // wgpu doesn't expose thermal/power telemetry.
+            // NVML feature will enrich this in a future version.
             Ok(DeviceState {
                 clock_mhz: 0,
                 temperature_c: 0,
@@ -287,14 +420,14 @@ mod inner {
                         name: a.info.name.clone(),
                         vendor,
                         architecture: arch,
-                        memory_bytes: 0, // wgpu doesn't expose VRAM size directly
+                        memory_bytes: 0,
                         pci_bus_id: None,
                         driver_version: Some(a.info.driver.clone()),
                         features: GpuFeatures {
                             timestamp_queries: features.contains(wgpu::Features::TIMESTAMP_QUERY),
                             shader_f16: features.contains(wgpu::Features::SHADER_F16),
-                            shader_int64: false, // wgpu doesn't expose this directly
-                            compute_capability: None, // CUDA-specific
+                            shader_int64: false,
+                            compute_capability: None,
                             tensor_cores: matches!(
                                 arch,
                                 GpuArchitecture::Blackwell
@@ -337,4 +470,4 @@ mod inner {
 }
 
 #[cfg(feature = "wgpu-backend")]
-pub use inner::WgpuBackend;
+pub use inner::{AdapterMetadata, GpuApiBackend, WgpuBackend};

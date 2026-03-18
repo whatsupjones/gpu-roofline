@@ -17,7 +17,7 @@ mod kernels;
 mod model;
 mod output;
 
-use cli::{Cli, Commands, OutputFormat};
+use cli::{BackendChoice, Cli, Commands, OutputFormat};
 
 fn main() {
     let cli = Cli::parse();
@@ -48,19 +48,23 @@ fn main() {
             save_baseline,
             &cli.format,
             cli.no_color,
+            &cli.backend,
         ),
         Commands::Check {
             baseline,
             threshold,
             sim,
-        } => cmd_check(&baseline, threshold, sim, cli.no_color),
+        } => cmd_check(&baseline, threshold, sim, cli.no_color, &cli.backend),
         Commands::Profiles => cmd_profiles(),
     };
 
     process::exit(exit_code);
 }
 
-fn get_backend(sim: &Option<String>) -> Result<Box<dyn GpuBackend>, String> {
+fn get_backend(
+    sim: &Option<String>,
+    backend_choice: &BackendChoice,
+) -> Result<Box<dyn GpuBackend>, String> {
     match sim {
         Some(profile_name) => {
             let profile = profiles::profile_by_name(profile_name).ok_or_else(|| {
@@ -74,16 +78,41 @@ fn get_backend(sim: &Option<String>) -> Result<Box<dyn GpuBackend>, String> {
         None => {
             #[cfg(feature = "wgpu-backend")]
             {
-                match WgpuBackend::new() {
-                    Ok(backend) => Ok(Box::new(backend)),
+                use gpu_harness::wgpu_backend::GpuApiBackend;
+                let api = match backend_choice {
+                    BackendChoice::Auto => GpuApiBackend::Auto,
+                    BackendChoice::Vulkan => GpuApiBackend::Vulkan,
+                    BackendChoice::Dx12 => GpuApiBackend::Dx12,
+                    BackendChoice::Metal => GpuApiBackend::Metal,
+                    BackendChoice::Gl => GpuApiBackend::Gl,
+                };
+                match WgpuBackend::with_backend(api) {
+                    Ok(backend) => {
+                        for meta in &backend.metadata {
+                            eprintln!(
+                                "  GPU: {} | {} | {} | Driver: {}{}",
+                                meta.name,
+                                meta.backend,
+                                meta.device_type,
+                                meta.driver,
+                                if meta.is_virtual {
+                                    " | ⚠ Virtual GPU (cloud passthrough)"
+                                } else {
+                                    ""
+                                }
+                            );
+                        }
+                        Ok(Box::new(backend))
+                    }
                     Err(e) => Err(format!(
-                        "No GPU found: {e}\nUse --sim <profile> for simulation mode.\n\
+                        "{e}\n\nUse --sim <profile> for simulation mode.\n\
                          Run 'gpu-roofline profiles' to list available profiles."
                     )),
                 }
             }
             #[cfg(not(feature = "wgpu-backend"))]
             {
+                let _ = backend_choice;
                 Err(
                     "Built without GPU support. Use --sim <profile> for simulation mode.\n\
                      Run 'gpu-roofline profiles' to list available profiles."
@@ -101,8 +130,9 @@ fn cmd_measure(
     save_baseline: Option<String>,
     format: &OutputFormat,
     no_color: bool,
+    backend_choice: &BackendChoice,
 ) -> i32 {
-    let backend = match get_backend(&sim) {
+    let backend = match get_backend(&sim, backend_choice) {
         Ok(b) => b,
         Err(e) => {
             eprintln!("Error: {e}");
@@ -160,7 +190,13 @@ fn cmd_measure(
     }
 }
 
-fn cmd_check(baseline_path: &str, threshold: f64, sim: Option<String>, _no_color: bool) -> i32 {
+fn cmd_check(
+    baseline_path: &str,
+    threshold: f64,
+    sim: Option<String>,
+    _no_color: bool,
+    backend_choice: &BackendChoice,
+) -> i32 {
     // Load baseline
     let baseline_json = match std::fs::read_to_string(baseline_path) {
         Ok(s) => s,
@@ -179,7 +215,7 @@ fn cmd_check(baseline_path: &str, threshold: f64, sim: Option<String>, _no_color
     };
 
     // Measure current
-    let backend = match get_backend(&sim) {
+    let backend = match get_backend(&sim, backend_choice) {
         Ok(b) => b,
         Err(e) => {
             eprintln!("Error: {e}");

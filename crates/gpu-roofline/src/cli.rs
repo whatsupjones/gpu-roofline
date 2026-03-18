@@ -27,6 +27,10 @@ pub struct Cli {
     /// Verbosity level (-v, -vv, -vvv)
     #[arg(short, long, action = clap::ArgAction::Count, global = true)]
     pub verbose: u8,
+
+    /// Graphics API backend (auto-detects by default)
+    #[arg(long, global = true, default_value = "auto")]
+    pub backend: BackendChoice,
 }
 
 #[derive(Subcommand)]
@@ -81,4 +85,18 @@ pub enum OutputFormat {
     Ascii,
     /// Machine-readable JSON
     Json,
+}
+
+#[derive(Clone, ValueEnum)]
+pub enum BackendChoice {
+    /// Auto-detect best available backend
+    Auto,
+    /// Force Vulkan (Linux default)
+    Vulkan,
+    /// Force DirectX 12 (Windows)
+    Dx12,
+    /// Force Metal (macOS)
+    Metal,
+    /// Force OpenGL (broad compatibility)
+    Gl,
 }
