@@ -14,18 +14,13 @@ Trigger-point vGPU lifecycle monitoring is implemented behind `--features vgpu`:
 - **4 Simulation Scenarios** — mig_scale_up, grid_contention, ghost_allocation, rapid_churn
 - **Validated** — End-to-end integration tests for all scenarios + scale stress tests (100/1000 lifecycle cycles)
 
-### CUDA Events + CUDA Graphs
+### CUDA Events ✅ Implemented
 
-**CUDA Events** — Replace CPU-side `Instant::now()` timing with GPU-side hardware timestamps for sub-microsecond accuracy. Eliminates kernel launch overhead from measurements. Critical for Tensor Core kernels where dispatch time rivals execution time.
+GPU-side hardware timestamps via CUDA Events replace CPU-side `Instant::now()` timing. GpuTimer wraps CudaEvent pairs with automatic fallback to CPU timing if events are unavailable. Validated on H100: ~2% bandwidth improvement from eliminating kernel launch overhead.
 
-**CUDA Graphs** — Batch multiple kernel launches into a single GPU graph submission. Reduces per-kernel CPU overhead from ~5µs to near zero. Enables higher-frequency monitoring without impacting workload performance.
+### CUDA Graphs (Planned)
 
-**Graceful Fallback Chain:**
-1. CUDA Graphs (lowest overhead, batch dispatch)
-2. CUDA Events (GPU-side timing, per-kernel dispatch)
-3. CPU timing with stream sync (current, broadest compatibility)
-
-System auto-selects based on GPU capability and driver version.
+Batch multiple kernel launches into a single GPU graph submission. Reduces per-kernel CPU overhead from ~5µs to near zero. Enables higher-frequency monitoring without impacting workload performance.
 
 ### Consumer GPU Validation
 
