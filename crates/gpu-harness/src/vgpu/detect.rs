@@ -160,7 +160,7 @@ impl NvidiaMigDetector {
                     name: name.clone(),
                     technology: VgpuTechnology::NvidiaMig,
                     physical_gpu_index: gpu_idx,
-                    physical_pci_bus_id: pci_bus_id.clone().unwrap_or_default(),
+                    physical_pci_bus_id: pci_bus_id.clone(),
                     phase: VgpuPhase::Active,
                     vram_allocated_bytes: vram,
                     compute_fraction: Some(1.0 / total_instances),
