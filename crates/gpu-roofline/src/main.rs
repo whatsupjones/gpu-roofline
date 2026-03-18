@@ -777,30 +777,55 @@ fn cmd_vgpu_watch(
     use monitor::vgpu_sampler::{VgpuMonitorConfig, VgpuSampler};
     use std::sync::mpsc;
 
-    let scenario = match &sim {
-        Some(name) => match vgpu::scenario_by_name(name) {
-            Some(s) => s,
-            None => {
-                eprintln!(
-                    "Unknown scenario '{}'. Run 'gpu-roofline vgpu scenarios' for a list.",
-                    name
-                );
+    let (detector, physical_vram, technology, partitioning_mode, scenario_name): (
+        Box<dyn VgpuDetector>,
+        u64,
+        _,
+        _,
+        String,
+    ) = match &sim {
+        Some(name) => {
+            let scenario = match vgpu::scenario_by_name(name) {
+                Some(s) => s,
+                None => {
+                    eprintln!(
+                        "Unknown scenario '{}'. Run 'gpu-roofline vgpu scenarios' for a list.",
+                        name
+                    );
+                    return 2;
+                }
+            };
+            let tech = scenario.technology;
+            let mode = scenario.partitioning_mode;
+            let vram = scenario.physical_vram_bytes;
+            let sname = scenario.name.clone();
+            (
+                Box::new(SimulatedDetector::new(scenario)) as Box<dyn VgpuDetector>,
+                vram,
+                tech,
+                mode,
+                sname,
+            )
+        }
+        None => {
+            // Real hardware detection
+            let composite = vgpu::detect::auto_detect();
+            if !composite.is_available() {
+                eprintln!("No vGPU technology detected on this system.");
+                eprintln!("Use --sim <scenario> for simulation mode.");
+                eprintln!("Run 'gpu-roofline vgpu scenarios' for available scenarios.");
                 return 2;
             }
-        },
-        None => {
-            eprintln!("Live hardware detection not yet implemented.");
-            eprintln!("Use --sim <scenario> for simulation mode.");
-            eprintln!("Run 'gpu-roofline vgpu scenarios' for available scenarios.");
-            return 2;
+            let tech = composite.technology();
+            (
+                Box::new(composite) as Box<dyn VgpuDetector>,
+                0, // Will be filled from NVML if available
+                tech,
+                gpu_harness::vgpu::state::PartitioningMode::HardwarePartitioned,
+                "live".to_string(),
+            )
         }
     };
-
-    let detector = SimulatedDetector::new(scenario.clone());
-    let physical_vram = scenario.physical_vram_bytes;
-    let technology = scenario.technology;
-    let partitioning_mode = scenario.partitioning_mode;
-    let scenario_name = scenario.name.clone();
 
     let config = VgpuMonitorConfig {
         sample_interval_secs: 1,
@@ -943,8 +968,20 @@ fn cmd_vgpu_list(sim: Option<String>, json: bool) -> i32 {
             instances
         }
         None => {
-            eprintln!("Live hardware listing not yet implemented. Use --sim <scenario>.");
-            return 2;
+            // Real hardware enumeration
+            let composite = vgpu::detect::auto_detect();
+            if !composite.is_available() {
+                eprintln!("No vGPU technology detected on this system.");
+                eprintln!("Use --sim <scenario> for simulation.");
+                return 2;
+            }
+            match composite.enumerate() {
+                Ok(insts) => insts,
+                Err(e) => {
+                    eprintln!("Enumeration failed: {e}");
+                    return 1;
+                }
+            }
         }
     };
 
