@@ -20,10 +20,15 @@ pub enum BuiltinKernel {
     FmaLight,
     FmaMedium,
     FmaHeavy,
+    /// FP16 Tensor Core (WMMA) — requires CUDA sm_70+
+    TensorFp16,
+    /// BF16 Tensor Core (WMMA) — requires CUDA sm_80+
+    TensorBf16,
 }
 
 impl BuiltinKernel {
     /// All built-in kernels in order of increasing arithmetic intensity.
+    /// Does NOT include Tensor Core kernels (use `all_with_tensor()` for those).
     pub fn all() -> &'static [BuiltinKernel] {
         &[
             Self::Copy,
@@ -33,6 +38,21 @@ impl BuiltinKernel {
             Self::FmaLight,
             Self::FmaMedium,
             Self::FmaHeavy,
+        ]
+    }
+
+    /// All kernels including Tensor Core (for CUDA backends with sm_70+).
+    pub fn all_with_tensor() -> &'static [BuiltinKernel] {
+        &[
+            Self::Copy,
+            Self::Add,
+            Self::Scale,
+            Self::Triad,
+            Self::FmaLight,
+            Self::FmaMedium,
+            Self::FmaHeavy,
+            Self::TensorFp16,
+            Self::TensorBf16,
         ]
     }
 
@@ -122,6 +142,31 @@ impl BuiltinKernel {
                 write_buffers: 1,
                 needs_uniform: false,
                 description: "256 FMA ops/element — compute-bound on all GPUs",
+            },
+            Self::TensorFp16 => KernelDefinition {
+                name: "tensor_fp16",
+                category: KernelCategory::Compute,
+                wgsl_source: "", // CUDA-only, no WGSL equivalent
+                // 32 WMMA ops per tile, each 8192 FLOPs, tile = 512 bytes input
+                arithmetic_intensity: 512.0, // (32 * 8192) / 512 = 512 FLOP/byte
+                flops_per_element: 32 * 8192, // per 16x16 tile
+                bytes_per_element: 512,      // 16x16 * 2 bytes (fp16)
+                read_buffers: 1,
+                write_buffers: 1,
+                needs_uniform: false,
+                description: "FP16 Tensor Core WMMA — 8 independent 16x16x16 matmul lanes",
+            },
+            Self::TensorBf16 => KernelDefinition {
+                name: "tensor_bf16",
+                category: KernelCategory::Compute,
+                wgsl_source: "", // CUDA-only, no WGSL equivalent
+                arithmetic_intensity: 512.0,
+                flops_per_element: 32 * 8192,
+                bytes_per_element: 512,
+                read_buffers: 1,
+                write_buffers: 1,
+                needs_uniform: false,
+                description: "BF16 Tensor Core WMMA — 8 independent 16x16x16 matmul lanes",
             },
         }
     }

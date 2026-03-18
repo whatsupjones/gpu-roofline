@@ -345,6 +345,128 @@ mod inner {
 
             Ok(timings)
         }
+
+        /// Dispatch Tensor Core kernels (FP16/BF16 WMMA).
+        /// These use 16x16 tile-based warp operations instead of per-element float4.
+        fn dispatch_tensor_kernel(
+            dev_info: &CudaDeviceInfo,
+            kernel_name: &str,
+            kernel_type: &str,
+            buffer_size_bytes: usize,
+            iterations: u32,
+        ) -> Result<Vec<f64>, HarnessError> {
+            let stream = &dev_info.stream;
+
+            // Each tile is 16x16 = 256 elements, 2 bytes each (fp16/bf16) = 512 bytes
+            let tile_bytes = 256 * 2; // 16x16 tiles, 2 bytes per element
+            let num_tiles = buffer_size_bytes / tile_bytes;
+
+            // Compile with sm_90 architecture for WMMA support
+            let compile_opts = cudarc::nvrtc::CompileOptions {
+                arch: Some("sm_90"),
+                include_paths: vec!["/usr/local/cuda/include".to_string()],
+                ..Default::default()
+            };
+            let ptx = cudarc::nvrtc::compile_ptx_with_opts(CUDA_KERNEL_SOURCE, compile_opts)
+                .map_err(|e| {
+                    HarnessError::KernelFailed(format!("NVRTC Tensor Core compilation failed: {e}"))
+                })?;
+
+            let module = dev_info.ctx.load_module(ptx).map_err(|e| {
+                HarnessError::KernelFailed(format!("Failed to load PTX module: {e}"))
+            })?;
+
+            let func = module.load_function(kernel_name).map_err(|e| {
+                HarnessError::KernelFailed(format!(
+                    "Tensor Core kernel '{kernel_name}' not found: {e}"
+                ))
+            })?;
+
+            // Allocate source buffer (fp16 = u16 on host side)
+            // Fill with small values to avoid overflow in matrix multiply
+            let src_data: Vec<u16> = (0..num_tiles * 256)
+                .map(|i| {
+                    // Convert small float to fp16 bits
+                    let val = ((i % 256) as f32) * 0.001 + 0.1;
+                    half_from_f32(val)
+                })
+                .collect();
+
+            let src: CudaSlice<u16> = stream.clone_htod(&src_data).map_err(|e| {
+                HarnessError::KernelFailed(format!("Failed to copy tensor src to device: {e}"))
+            })?;
+
+            // Output is FP32 (accumulator)
+            let mut dst: CudaSlice<f32> = stream.alloc_zeros(num_tiles * 256).map_err(|e| {
+                HarnessError::KernelFailed(format!("Failed to allocate tensor dst on device: {e}"))
+            })?;
+
+            let n = num_tiles as u32;
+            // Each warp (32 threads) processes one tile
+            let warps_per_block = BLOCK_SIZE / 32;
+            let grid_size = n.div_ceil(warps_per_block);
+
+            let cfg = LaunchConfig {
+                block_dim: (BLOCK_SIZE, 1, 1),
+                grid_dim: (grid_size, 1, 1),
+                shared_mem_bytes: 0,
+            };
+
+            // Warmup
+            {
+                let mut builder = stream.launch_builder(&func);
+                builder.arg(&src);
+                builder.arg(&mut dst);
+                builder.arg(&n);
+                unsafe {
+                    builder.launch(cfg).map_err(|e| {
+                        HarnessError::KernelFailed(format!("Tensor warmup failed: {e}"))
+                    })?;
+                }
+            }
+            stream
+                .synchronize()
+                .map_err(|e| HarnessError::KernelFailed(format!("Warmup sync failed: {e}")))?;
+
+            // Timed iterations
+            let mut timings = Vec::with_capacity(iterations as usize);
+            for _ in 0..iterations {
+                let start = Instant::now();
+                {
+                    let mut builder = stream.launch_builder(&func);
+                    builder.arg(&src);
+                    builder.arg(&mut dst);
+                    builder.arg(&n);
+                    unsafe {
+                        builder.launch(cfg).map_err(|e| {
+                            HarnessError::KernelFailed(format!("Tensor launch failed: {e}"))
+                        })?;
+                    }
+                }
+                stream
+                    .synchronize()
+                    .map_err(|e| HarnessError::KernelFailed(format!("Sync failed: {e}")))?;
+                let elapsed_us = start.elapsed().as_secs_f64() * 1e6;
+                timings.push(elapsed_us);
+            }
+
+            Ok(timings)
+        }
+    }
+
+    /// Convert f32 to IEEE 754 half-precision (fp16) bits.
+    fn half_from_f32(val: f32) -> u16 {
+        let bits = val.to_bits();
+        let sign = (bits >> 16) & 0x8000;
+        let exp = ((bits >> 23) & 0xFF) as i32 - 127 + 15;
+        let mantissa = (bits >> 13) & 0x3FF;
+        if exp <= 0 {
+            sign as u16 // Flush to zero for subnormals
+        } else if exp >= 31 {
+            (sign | 0x7C00) as u16 // Infinity
+        } else {
+            (sign | ((exp as u32) << 10) | mantissa) as u16
+        }
     }
 
     impl GpuBackend for CudaBackend {
@@ -363,6 +485,8 @@ mod inner {
                 "scale" => "scale_kernel",
                 "add" => "add_kernel",
                 "triad" => "triad_kernel",
+                "tensor_fp16" => "tensor_fp16_kernel",
+                "tensor_bf16" => "tensor_bf16_kernel",
                 other => {
                     return Err(HarnessError::KernelFailed(format!(
                         "Unknown kernel: {other}"
@@ -378,6 +502,13 @@ mod inner {
                     config.buffer_size_bytes,
                     config.measurement_iterations,
                 )?,
+                "tensor_fp16" | "tensor_bf16" => Self::dispatch_tensor_kernel(
+                    dev_info,
+                    cuda_kernel_name,
+                    &kernel.name,
+                    config.buffer_size_bytes,
+                    config.measurement_iterations,
+                )?,
                 _ => Self::dispatch_kernel(
                     dev_info,
                     cuda_kernel_name,
@@ -386,10 +517,23 @@ mod inner {
                 )?,
             };
 
-            let elements = config.buffer_size_bytes / 16; // float4 = 16 bytes
-                                                          // AI = FLOP / bytes_transferred. Bytes = read (16) + write (16) = 32
-            let flops_per_element = (kernel.arithmetic_intensity * 32.0) as u64;
-            let total_flops = elements as u64 * flops_per_element;
+            let total_flops = match kernel.name.as_str() {
+                "tensor_fp16" | "tensor_bf16" => {
+                    // Tensor Core: each tile = 16x16x16 WMMA, 2 FLOPs per multiply-add
+                    // = 8192 FLOPs per WMMA op. 32 ops per warp (8 lanes x 4 iterations)
+                    let tile_bytes = 256 * 2; // 16x16 elements, 2 bytes each
+                    let num_tiles = config.buffer_size_bytes / tile_bytes;
+                    let wmma_ops_per_tile = 32u64; // 8 lanes x 4 iterations
+                    let flops_per_wmma = 16 * 16 * 16 * 2; // 8192
+                    num_tiles as u64 * wmma_ops_per_tile * flops_per_wmma
+                }
+                _ => {
+                    let elements = config.buffer_size_bytes / 16; // float4 = 16 bytes
+                                                                  // AI = FLOP / bytes_transferred. Bytes = read (16) + write (16) = 32
+                    let flops_per_element = (kernel.arithmetic_intensity * 32.0) as u64;
+                    elements as u64 * flops_per_element
+                }
+            };
 
             Ok(KernelResult {
                 kernel_name: kernel.name.clone(),
