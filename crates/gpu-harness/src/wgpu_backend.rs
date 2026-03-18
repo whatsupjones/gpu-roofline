@@ -374,8 +374,9 @@ mod inner {
                 config.measurement_iterations,
             )?;
 
-            let elements = config.buffer_size_bytes / 16;
-            let flops_per_element = (kernel.arithmetic_intensity * 16.0) as u64;
+            let elements = config.buffer_size_bytes / 16; // float4/vec4 = 16 bytes
+                                                          // AI = FLOP / bytes_transferred. Bytes = read (16) + write (16) = 32
+            let flops_per_element = (kernel.arithmetic_intensity * 32.0) as u64;
             let total_flops = elements as u64 * flops_per_element;
 
             Ok(KernelResult {
