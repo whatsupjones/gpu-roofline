@@ -18,6 +18,7 @@ default = ["wgpu-backend"]
 wgpu-backend = ["gpu-harness/wgpu-backend"]
 cuda = ["gpu-harness/cuda"]
 nvml = ["gpu-harness/nvml"]
+vgpu = ["gpu-harness/vgpu"]
 full = ["wgpu-backend", "cuda", "nvml"]
 
 [dependencies]

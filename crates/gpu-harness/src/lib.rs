@@ -12,6 +12,9 @@ pub mod nvml_telemetry;
 pub mod sim;
 pub mod wgpu_backend;
 
+#[cfg(feature = "vgpu")]
+pub mod vgpu;
+
 pub use backend::{BandwidthResult, DeviceState, GpuBackend, KernelResult, KernelSpec, RunConfig};
 pub use device::{GpuArchitecture, GpuDevice, GpuFeatures, GpuLimits, GpuVendor};
 pub use error::HarnessError;
