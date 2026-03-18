@@ -8,7 +8,7 @@ use std::sync::mpsc;
 
 use crate::error::HarnessError;
 
-use super::state::{VgpuEvent, VgpuInstance, VgpuTechnology};
+use super::state::{VgpuEvent, VgpuEventType, VgpuInstance, VgpuPhase, VgpuTechnology};
 
 /// Trait for detecting vGPU lifecycle events at the trigger point.
 pub trait VgpuDetector: Send + Sync {
@@ -150,22 +150,22 @@ impl NvidiaMigDetector {
             let pci_bus_id = telemetry.pci_bus_id(gpu_idx);
             let instances = telemetry.enumerate_mig_instances(gpu_idx)?;
 
+            let total_instances = instances.len().max(1) as f64;
             for inst in instances {
                 let vram = inst.memory_total_bytes;
-                // Derive compute fraction from instance count
-                let total_instances = instances.len().max(1) as f64;
 
+                let name = inst.name.clone();
                 all_instances.push(VgpuInstance {
                     id: format!("mig-{}-{}", gpu_idx, inst.index),
-                    name: inst.name,
+                    name: name.clone(),
                     technology: VgpuTechnology::NvidiaMig,
                     physical_gpu_index: gpu_idx,
-                    physical_pci_bus_id: pci_bus_id.clone(),
+                    physical_pci_bus_id: pci_bus_id.clone().unwrap_or_default(),
                     phase: VgpuPhase::Active,
                     vram_allocated_bytes: vram,
                     compute_fraction: Some(1.0 / total_instances),
-                    memory_fraction: 0.0, // Would need total GPU VRAM to compute
-                    mig_profile: Some(inst.name.clone()),
+                    memory_fraction: 0.0,
+                    mig_profile: Some(name),
                 });
             }
         }

@@ -86,7 +86,7 @@ mod inner {
                 .device_by_index(device_index)
                 .ok()
                 .and_then(|d| d.mig_mode().ok())
-                .map(|mode| mode.currently_on)
+                .map(|mode| mode.current)
                 .unwrap_or(false)
         }
 
@@ -106,7 +106,7 @@ mod inner {
                 HarnessError::VgpuDetectionFailed(format!("MIG mode query failed: {e}"))
             })?;
 
-            if !mig_mode.currently_on {
+            if !mig_mode.current {
                 return Ok(Vec::new());
             }
 
