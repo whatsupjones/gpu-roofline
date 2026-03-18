@@ -22,6 +22,12 @@ pub struct BandwidthModel {
     pub vram_gb: u32,
     /// Sustained bandwidth ratio (sustained / burst). Typically 0.90-0.97.
     pub sustained_ratio: f64,
+    /// Kernel efficiency: ratio of achievable compute kernel throughput vs
+    /// theoretical hardware maximum. Accounts for coalescing overhead,
+    /// memory controller scheduling, kernel launch overhead, and L2 writeback
+    /// contention. Calibrated from real hardware validation.
+    /// Typical: 0.85-0.95 for optimized kernels, 0.70 for integrated GPUs.
+    pub kernel_efficiency: f64,
 }
 
 /// Which memory level is the bandwidth bottleneck.
@@ -103,6 +109,7 @@ mod tests {
             l2_size_mb: 72,
             vram_gb: 24,
             sustained_ratio: 0.93,
+            kernel_efficiency: 0.88,
         }
     }
 

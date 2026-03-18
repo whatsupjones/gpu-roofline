@@ -43,6 +43,7 @@ pub fn rtx_5090() -> SimGpuProfile {
             l2_size_mb: 96,
             vram_gb: 32,
             sustained_ratio: 0.93,
+            kernel_efficiency: 0.88, // Estimate — will validate on hardware
         },
         nvlink_bandwidth_gbps: None, // Consumer card, no NVLink
         pcie_gen: 5,
@@ -84,6 +85,7 @@ pub fn rtx_4090() -> SimGpuProfile {
             l2_size_mb: 72,
             vram_gb: 24,
             sustained_ratio: 0.93,
+            kernel_efficiency: 0.88, // Estimate — will validate on hardware
         },
         nvlink_bandwidth_gbps: None,
         pcie_gen: 4,
@@ -128,7 +130,8 @@ pub fn h100_sxm() -> SimGpuProfile {
             l1_size_kb: 256,
             l2_size_mb: 50,
             vram_gb: 80,
-            sustained_ratio: 0.95, // HBM sustains better than GDDR
+            sustained_ratio: 0.95,   // HBM sustains better than GDDR
+            kernel_efficiency: 0.86, // Calibrated: 2894/3350 from H100 validation
         },
         nvlink_bandwidth_gbps: Some(900.0), // 18 links, 50 GB/s each
         pcie_gen: 5,
@@ -181,6 +184,7 @@ pub fn b200() -> SimGpuProfile {
             l2_size_mb: 64,
             vram_gb: 192,
             sustained_ratio: 0.96,
+            kernel_efficiency: 0.88, // Estimate for Blackwell
         },
         nvlink_bandwidth_gbps: Some(1800.0), // NVLink 5.0
         pcie_gen: 6,
@@ -226,6 +230,7 @@ pub fn mi300x() -> SimGpuProfile {
             l2_size_mb: 256, // Infinity Cache
             vram_gb: 192,
             sustained_ratio: 0.94,
+            kernel_efficiency: 0.90, // Estimate — AMD typically good BW efficiency
         },
         nvlink_bandwidth_gbps: None, // Uses Infinity Fabric
         pcie_gen: 5,
@@ -271,6 +276,7 @@ pub fn arc_a770() -> SimGpuProfile {
             l2_size_mb: 16,
             vram_gb: 16,
             sustained_ratio: 0.91,
+            kernel_efficiency: 0.80, // Intel discrete — lower efficiency
         },
         nvlink_bandwidth_gbps: None,
         pcie_gen: 4,

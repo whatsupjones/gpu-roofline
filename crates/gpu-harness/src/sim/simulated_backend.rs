@@ -109,14 +109,18 @@ impl SimulatedBackend {
             .compute_state(self.workload_intensity, throttle);
 
         // Determine effective bandwidth for this working set
-        let (bandwidth_gbps, _level) = profile
+        let (theoretical_bw_gbps, _level) = profile
             .bandwidth
             .effective_bandwidth(kernel.working_set_bytes);
 
+        // Apply kernel efficiency: real kernels achieve less than theoretical max
+        let achievable_bw_gbps = theoretical_bw_gbps * profile.bandwidth.kernel_efficiency;
+
         // Calculate expected timing
         let bytes = config.buffer_size_bytes as f64;
-        let flops_per_element = kernel.arithmetic_intensity;
-        let elements = bytes / 4.0; // Assume 4 bytes per element (f32)
+        let elements = bytes / 16.0; // float4/vec4 = 16 bytes per element
+                                     // AI = FLOP / bytes_transferred. bytes_transferred = read + write = 32 per element
+        let flops_per_element = kernel.arithmetic_intensity * 32.0;
         let total_flops = (elements * flops_per_element) as u64;
 
         // Time is max(compute_time, memory_time) — roofline model
@@ -127,8 +131,10 @@ impl SimulatedBackend {
             f64::MAX
         };
 
-        let memory_time_us = if bandwidth_gbps > 0.0 {
-            (bytes / (bandwidth_gbps * 1e9)) * 1e6
+        // Memory time: total traffic (read + write) / achievable bandwidth
+        let total_traffic_bytes = bytes * 2.0; // read + write for copy-like kernels
+        let memory_time_us = if achievable_bw_gbps > 0.0 {
+            (total_traffic_bytes / (achievable_bw_gbps * 1e9)) * 1e6
         } else {
             f64::MAX
         };
