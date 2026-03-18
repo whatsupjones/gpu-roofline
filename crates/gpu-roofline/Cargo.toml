@@ -3,10 +3,20 @@ name = "gpu-roofline"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Cross-vendor dynamic roofline model generator with tension-based performance analysis"
+description = "Cross-vendor dynamic GPU roofline model with tension-based performance analysis"
+
+[[bin]]
+name = "gpu-roofline"
+path = "src/main.rs"
 
 [dependencies]
 gpu-harness = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
+clap = { workspace = true }
+comfy-table = { workspace = true }
+colored = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+chrono = { workspace = true }
