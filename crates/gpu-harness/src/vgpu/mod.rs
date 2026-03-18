@@ -20,4 +20,7 @@ pub use detect::{
 pub use contention::ContentionMeasurer;
 pub use teardown::TeardownVerifier;
 
-pub use sim::{available_scenarios, scenario_by_name, SimulatedDetector, VgpuSimScenario};
+pub use sim::{
+    available_scenarios, scenario_by_name, ScheduledEvent, SimAction, SimulatedDetector,
+    VgpuSimScenario,
+};
