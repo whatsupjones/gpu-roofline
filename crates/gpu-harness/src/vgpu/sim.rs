@@ -41,6 +41,18 @@ pub struct VgpuSimScenario {
     pub physical_vram_bytes: u64,
 }
 
+impl VgpuSimScenario {
+    /// Human-readable label for the partitioning mode.
+    pub fn partitioning_mode_label(&self) -> &'static str {
+        match self.partitioning_mode {
+            PartitioningMode::HardwarePartitioned => "Hardware Partitioned",
+            PartitioningMode::TimeSliced => "Time-Sliced",
+            PartitioningMode::Passthrough => "Passthrough",
+            PartitioningMode::Unknown => "Unknown",
+        }
+    }
+}
+
 /// List all available scenario names.
 pub fn available_scenarios() -> Vec<&'static str> {
     vec![
