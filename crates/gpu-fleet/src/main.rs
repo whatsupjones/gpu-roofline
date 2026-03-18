@@ -59,10 +59,32 @@ fn get_fleet_backend(sim: &Option<String>, count: u32) -> Result<Box<dyn GpuBack
             Ok(Box::new(SimulatedBackend::with_fleet(fleet)))
         }
         None => {
-            // Real hardware: try to create a backend
-            eprintln!("Live hardware fleet discovery not yet implemented.");
-            eprintln!("Use --sim <profile> --count <n> for simulation mode.");
-            Err("No --sim provided".to_string())
+            // Real hardware: try CUDA first, then wgpu
+            #[cfg(feature = "cuda")]
+            {
+                if let Ok(backend) = gpu_harness::CudaBackend::new() {
+                    let devices = backend.discover_devices().unwrap_or_default();
+                    eprintln!("Discovered {} GPU(s) via CUDA", devices.len());
+                    for d in &devices {
+                        eprintln!(
+                            "  GPU {}: {} | {:.1} GB VRAM",
+                            d.index,
+                            d.name,
+                            d.memory_bytes as f64 / (1024.0 * 1024.0 * 1024.0)
+                        );
+                    }
+                    return Ok(Box::new(backend));
+                }
+            }
+            #[cfg(feature = "wgpu-backend")]
+            {
+                if let Ok(backend) = gpu_harness::WgpuBackend::new() {
+                    let devices = backend.discover_devices().unwrap_or_default();
+                    eprintln!("Discovered {} GPU(s) via wgpu", devices.len());
+                    return Ok(Box::new(backend));
+                }
+            }
+            Err("No GPU backend available. Use --sim <profile> --count <n> for simulation.".to_string())
         }
     }
 }

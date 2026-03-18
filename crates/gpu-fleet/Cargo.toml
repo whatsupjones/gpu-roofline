@@ -13,8 +13,13 @@ categories = ["hardware-support"]
 name = "gpu-fleet"
 path = "src/main.rs"
 
+[features]
+default = ["wgpu-backend"]
+wgpu-backend = ["gpu-harness/wgpu-backend"]
+cuda = ["gpu-harness/cuda"]
+
 [dependencies]
-gpu-harness = { workspace = true }
+gpu-harness = { workspace = true, default-features = false }
 gpu-roofline = { path = "../gpu-roofline", version = "0.1.0" }
 serde = { workspace = true }
 serde_json = { workspace = true }
