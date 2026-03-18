@@ -8,7 +8,7 @@ mod inner {
     use std::sync::Arc;
     use std::time::Instant;
 
-    use cudarc::driver::{CudaContext, CudaSlice, CudaStream, LaunchConfig};
+    use cudarc::driver::{CudaContext, CudaSlice, CudaStream, LaunchConfig, PushKernelArg};
     use cudarc::nvrtc::Ptx;
 
     use crate::backend::{
