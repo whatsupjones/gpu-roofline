@@ -147,6 +147,7 @@ pub fn h200_sxm() -> SimGpuProfile {
     profile.bandwidth.hbm_bandwidth_gbps = 4800.0; // HBM3e
     profile.bandwidth.l2_bandwidth_gbps = 5500.0; // Faster L2 to maintain hierarchy
     profile.bandwidth.vram_gb = 141;
+    profile.bandwidth.kernel_efficiency = 0.84; // Calibrated: 4028/4800 from H200 validation
     profile
 }
 
