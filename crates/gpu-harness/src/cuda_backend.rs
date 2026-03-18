@@ -118,7 +118,7 @@ mod inner {
             })?;
 
             // Load module and get function
-            let module = dev_info.ctx.load_ptx(ptx, kernel_name).map_err(|e| {
+            let module = dev_info.stream.load_ptx(ptx, kernel_name).map_err(|e| {
                 HarnessError::KernelFailed(format!("Failed to load PTX module: {e}"))
             })?;
 
