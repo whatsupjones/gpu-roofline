@@ -44,19 +44,53 @@ The tool measures three roofline modes:
 - **Sustained** (t=60s) — what production workloads actually see
 - **Degraded** — what multi-tenant environments deliver
 
+## Validated Hardware
+
+Measured on real datacenter and consumer GPUs. Bandwidth measures achievable compute kernel throughput (not hardware DMA ceiling).
+
+| GPU | Bandwidth | Peak FP32 | Ridge Point | CV | Backend |
+|-----|-----------|-----------|-------------|-----|---------|
+| **NVIDIA H100 80GB HBM3** | **2,893 GB/s** | **59.5 TFLOPS** | 20.6 FLOP/byte | 0.1-0.5% | CUDA |
+| Intel UHD Graphics | 7 GB/s | 0.15 TFLOPS | 22.7 FLOP/byte | 7-9% | Vulkan |
+
+*More GPUs coming: H200, RTX 4090, RTX 5090, MI300X. [Contribute your results!](https://github.com/whatsupjones/gpu-roofline/issues)*
+
+### H100 Roofline (CUDA Backend)
+```
+gpu-roofline 0.1.0 | NVIDIA H100 80GB HBM3
+  Peak FLOPS:     59.5 TFLOP/s (FP32)
+  Peak Bandwidth: 2893 GB/s
+  Ridge Point:    20.6 FLOP/byte
+
+┌────────────┬─────────────┬─────────┬───────────┬────────────┬───────────────────┐
+│ Kernel     ┆ AI (FLOP/B) ┆ GFLOP/s ┆ BW (GB/s) ┆ Efficiency ┆ Bottleneck        │
+╞════════════╪═════════════╪═════════╪═══════════╪════════════╪═══════════════════╡
+│ copy       ┆ 0.00        ┆ 0.0     ┆ 2893      ┆ 100%       ┆ Memory (HBM/DRAM) │
+│ fma_light  ┆ 1.00        ┆ 2893    ┆ 2893      ┆ 100%       ┆ Memory (HBM/DRAM) │
+│ fma_medium ┆ 8.00        ┆ 23169   ┆ 2896      ┆ 100%       ┆ Memory (HBM/DRAM) │
+│ fma_heavy  ┆ 64.00       ┆ 59541   ┆ 930       ┆ 100%       ┆ Compute           │
+└────────────┴─────────────┴─────────┴───────────┴────────────┴───────────────────┘
+```
+
 ## Quick Start
 
 ```bash
+# Install (consumer GPUs — Vulkan/DX12/Metal)
 cargo install gpu-roofline
+
+# Install with CUDA support (datacenter H100/H200/A100)
+cargo install gpu-roofline --features cuda
+
+# Quick burst roofline (~10 seconds)
+gpu-roofline measure --burst
 
 # Full dynamic roofline with tension analysis (~120 seconds)
 gpu-roofline measure
 
-# Quick burst-only (traditional static roofline, ~10 seconds)
-gpu-roofline measure --burst
-
-# All GPUs, overlay comparison
-gpu-roofline measure --all
+# Force specific backend
+gpu-roofline measure --burst --backend cuda    # Datacenter (headless)
+gpu-roofline measure --burst --backend vulkan  # Consumer Linux
+gpu-roofline measure --burst --backend dx12    # Windows
 
 # CI mode: fail if sustained performance regressed
 gpu-roofline check --baseline roofline.json --threshold 0.9
@@ -139,12 +173,14 @@ println!("{}°C, {} MHz, {:.0}W", state.temperature_c, state.clock_mhz, state.po
 
 ## Contributing
 
-Contributions welcome! Good first issues:
+Contributions welcome! See [open issues](https://github.com/whatsupjones/gpu-roofline/issues) for good starting points:
 
-- Add GPU profile for RX 9070 XT (RDNA 4)
-- Add ROCm-SMI backend for AMD monitoring
+- Add GPU simulation profiles (RX 9070 XT, RTX 3060/3070/3080)
+- Test and report results on your hardware
+- Add ROCm-SMI backend for AMD GPU monitoring
 - Add Intel Level Zero backend
-- Improve thermal model accuracy for specific GPU models
+- Improve ASCII chart rendering
+- Add SVG roofline chart export
 
 ## License
 
