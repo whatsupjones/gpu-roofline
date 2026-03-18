@@ -278,15 +278,30 @@ let state = backend.device_state(0)?;
 println!("{}°C, {} MHz, {:.0}W", state.temperature_c, state.clock_mhz, state.power_watts);
 ```
 
+## Roadmap
+
+See the full [ROADMAP.md](docs/ROADMAP.md) for what's coming next.
+
+**v0.2 — vGPU Lifecycle Monitoring**
+Hook into vGPU provisioning events to measure from the moment of creation — spin-up latency, warm-up performance curves, cross-tenant contention detection, and teardown verification. Auto-attaches when a vGPU provisions, detaches when it drops. Zero overhead when idle.
+
+**v0.2 — CUDA Events + CUDA Graphs**
+GPU-side hardware timestamps for sub-microsecond accuracy. Batch kernel dispatch via CUDA Graphs for zero-overhead monitoring. Graceful fallback: Graphs → Events → CPU timing.
+
+**v0.3 — "Why Is My GPU Slow?" Diagnostic Engine**
+Automatic root-cause analysis: L2 thrashing, HBM degradation, thermal throttling, PCIe bottleneck, MIG misconfiguration — diagnosed and explained, not just measured.
+
+**v0.3 — gpu-fleet: Multi-GPU Cluster Validation**
+NVLink topology mapping, per-GPU roofline health checks, straggler detection with cause analysis.
+
 ## Contributing
 
-Contributions welcome! See [open issues](https://github.com/whatsupjones/gpu-roofline/issues) for good starting points:
+Contributions welcome! See [CONTRIBUTING_VALIDATION.md](docs/CONTRIBUTING_VALIDATION.md) to validate your GPU hardware.
 
+- **Validate your GPU** — run two commands, submit results ([template](docs/CONTRIBUTING_VALIDATION.md))
 - Add GPU simulation profiles (RX 9070 XT, RTX 3060/3070/3080)
-- Test and report results on your hardware
 - Add ROCm-SMI backend for AMD GPU monitoring
 - Add Intel Level Zero backend
-- Improve ASCII chart rendering
 - Add SVG roofline chart export
 
 ## License
