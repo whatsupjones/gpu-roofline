@@ -362,10 +362,10 @@ mod inner {
 
             // Compile tensor kernels with device's actual compute capability + mma.h support
             // WMMA requires sm_70+; use device arch for best codegen (sm_120 for Blackwell, etc.)
+            // Pass arch via options vec (owned String) to avoid 'static lifetime on CompileOptions::arch
             let (cc_major, cc_minor) = dev_info.compute_capability;
-            let arch_str = format!("sm_{}{}", cc_major, cc_minor);
             let compile_opts = cudarc::nvrtc::CompileOptions {
-                arch: Some(&arch_str),
+                options: vec![format!("--gpu-architecture=sm_{}{}", cc_major, cc_minor)],
                 include_paths: vec!["/usr/local/cuda/include".to_string()],
                 ..Default::default()
             };
