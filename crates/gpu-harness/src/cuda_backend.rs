@@ -8,7 +8,7 @@ mod inner {
     use std::sync::Arc;
     use std::time::Instant;
 
-    use cudarc::driver::{CudaDevice, CudaFunction, CudaSlice, LaunchAsync, LaunchConfig};
+    use cudarc::driver::{CudaContext, CudaSlice, CudaStream, LaunchConfig};
     use cudarc::nvrtc::Ptx;
 
     use crate::backend::{
@@ -27,11 +27,11 @@ mod inner {
     }
 
     struct CudaDeviceInfo {
-        device: Arc<CudaDevice>,
+        ctx: Arc<CudaContext>,
+        stream: Arc<CudaStream>,
         name: String,
         compute_capability: (i32, i32),
         total_memory_bytes: usize,
-        ptx: Ptx,
     }
 
     impl CudaBackend {
@@ -50,61 +50,35 @@ mod inner {
         }
 
         fn init() -> Result<Self, HarnessError> {
-            let device_count = CudaDevice::count().map_err(|e| {
+            let device_count = CudaContext::device_count().map_err(|e| {
                 HarnessError::BackendUnavailable(format!("CUDA device count failed: {e}"))
-            })?;
+            })? as u32;
 
             if device_count == 0 {
                 return Err(HarnessError::NoDevice);
             }
 
-            // Compile PTX once (shared across all devices with same compute capability)
-            let ptx = cudarc::nvrtc::compile_ptx(CUDA_KERNEL_SOURCE).map_err(|e| {
-                HarnessError::KernelFailed(format!("NVRTC compilation failed: {e}"))
-            })?;
-
             let mut devices = Vec::new();
             for ordinal in 0..device_count {
-                let device = CudaDevice::new(ordinal as usize).map_err(|e| {
+                let ctx = CudaContext::new(ordinal as usize).map_err(|e| {
                     HarnessError::BackendUnavailable(format!(
                         "Failed to create CUDA context on device {ordinal}: {e}"
                     ))
                 })?;
 
-                // Load all kernel functions
-                device
-                    .load_ptx(
-                        ptx.clone(),
-                        "roofline",
-                        &[
-                            "copy_kernel",
-                            "fma_light_kernel",
-                            "fma_medium_kernel",
-                            "fma_heavy_kernel",
-                        ],
-                    )
-                    .map_err(|e| {
-                        HarnessError::KernelFailed(format!("Failed to load PTX module: {e}"))
-                    })?;
+                let stream = ctx.default_stream();
 
-                let name = device
+                let name = ctx
                     .name()
                     .unwrap_or_else(|_| "Unknown CUDA Device".to_string());
 
-                // Query compute capability
-                let major = device
+                let major = ctx
                     .attribute(cudarc::driver::sys::CUdevice_attribute::CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR)
                     .unwrap_or(0);
-                let minor = device
+                let minor = ctx
                     .attribute(cudarc::driver::sys::CUdevice_attribute::CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR)
                     .unwrap_or(0);
 
-                // Query total memory
-                let total_mem = device
-                    .attribute(cudarc::driver::sys::CUdevice_attribute::CU_DEVICE_ATTRIBUTE_TOTAL_CONSTANT_MEMORY)
-                    .unwrap_or(0) as usize;
-
-                // Better memory query via free/total
                 let (_, total_memory_bytes) =
                     cudarc::driver::result::mem_get_info().unwrap_or((0, 0));
 
@@ -114,11 +88,11 @@ mod inner {
                 );
 
                 devices.push(CudaDeviceInfo {
-                    device,
+                    ctx,
+                    stream,
                     name,
                     compute_capability: (major, minor),
                     total_memory_bytes,
-                    ptx: ptx.clone(),
                 });
             }
 
@@ -135,31 +109,40 @@ mod inner {
             buffer_size_bytes: usize,
             iterations: u32,
         ) -> Result<Vec<f64>, HarnessError> {
-            let device = &dev_info.device;
+            let stream = &dev_info.stream;
             let element_count = buffer_size_bytes / 16; // float4 = 16 bytes
+
+            // Compile PTX
+            let ptx = cudarc::nvrtc::compile_ptx(CUDA_KERNEL_SOURCE).map_err(|e| {
+                HarnessError::KernelFailed(format!("NVRTC compilation failed: {e}"))
+            })?;
+
+            // Load module and get function
+            let module = dev_info.ctx.load_ptx(ptx, kernel_name).map_err(|e| {
+                HarnessError::KernelFailed(format!("Failed to load PTX module: {e}"))
+            })?;
+
+            let func = module.get_fn(kernel_name).map_err(|e| {
+                HarnessError::KernelFailed(format!(
+                    "Kernel function '{kernel_name}' not found: {e}"
+                ))
+            })?;
 
             // Allocate device buffers
             let src_data: Vec<f32> = (0..element_count * 4)
                 .map(|i| (i as f32) * 0.001 + 1.0)
                 .collect();
 
-            let src: CudaSlice<f32> = device.htod_copy(src_data).map_err(|e| {
+            let src: CudaSlice<f32> = stream.clone_htod(&src_data).map_err(|e| {
                 HarnessError::KernelFailed(format!("Failed to copy src to device: {e}"))
             })?;
 
-            let dst: CudaSlice<f32> = device.alloc_zeros(element_count * 4).map_err(|e| {
+            let dst: CudaSlice<f32> = stream.alloc_zeros(element_count * 4).map_err(|e| {
                 HarnessError::KernelFailed(format!("Failed to allocate dst on device: {e}"))
             })?;
 
             let n = element_count as u32;
             let grid_size = n.div_ceil(BLOCK_SIZE);
-
-            let func_name = format!("roofline_{kernel_name}");
-            let func: CudaFunction = device.get_func("roofline", kernel_name).ok_or_else(|| {
-                HarnessError::KernelFailed(format!(
-                    "Kernel function '{kernel_name}' not found in PTX module"
-                ))
-            })?;
 
             let cfg = LaunchConfig {
                 block_dim: (BLOCK_SIZE, 1, 1),
@@ -169,11 +152,11 @@ mod inner {
 
             // Warmup
             unsafe {
-                func.clone().launch(cfg, (&src, &dst, n)).map_err(|e| {
+                func.launch(cfg, (&src, &dst, n)).map_err(|e| {
                     HarnessError::KernelFailed(format!("Warmup launch failed: {e}"))
                 })?;
             }
-            device
+            stream
                 .synchronize()
                 .map_err(|e| HarnessError::KernelFailed(format!("Warmup sync failed: {e}")))?;
 
@@ -182,11 +165,10 @@ mod inner {
             for _ in 0..iterations {
                 let start = Instant::now();
                 unsafe {
-                    func.clone().launch(cfg, (&src, &dst, n)).map_err(|e| {
-                        HarnessError::KernelFailed(format!("Kernel launch failed: {e}"))
-                    })?;
+                    func.launch(cfg, (&src, &dst, n))
+                        .map_err(|e| HarnessError::KernelFailed(format!("Launch failed: {e}")))?;
                 }
-                device
+                stream
                     .synchronize()
                     .map_err(|e| HarnessError::KernelFailed(format!("Sync failed: {e}")))?;
                 let elapsed_us = start.elapsed().as_secs_f64() * 1e6;
@@ -249,18 +231,17 @@ mod inner {
         }
 
         fn device_state(&self, device_index: u32) -> Result<DeviceState, HarnessError> {
-            let _dev = self
+            let dev = self
                 .devices
                 .get(device_index as usize)
                 .ok_or(HarnessError::DeviceIndexOutOfRange(device_index))?;
 
-            // CUDA driver doesn't directly expose temp/power — NVML would enrich this
             Ok(DeviceState {
                 clock_mhz: 0,
                 temperature_c: 0,
                 power_watts: 0.0,
                 memory_used_bytes: 0,
-                memory_total_bytes: _dev.total_memory_bytes as u64,
+                memory_total_bytes: dev.total_memory_bytes as u64,
                 utilization_pct: 0.0,
             })
         }
