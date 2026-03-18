@@ -4,4 +4,7 @@
 //! analysis. Discovers topology, measures inter-GPU bandwidth, detects stragglers,
 //! and validates each GPU against its expected performance model.
 
+pub mod symmetry;
+pub mod topology;
+
 pub use gpu_harness;
