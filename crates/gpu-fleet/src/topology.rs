@@ -18,12 +18,12 @@ pub fn discover_topology(backend: &dyn GpuBackend) -> Result<TopologyView, Harne
     let n = gpus.len();
 
     let mut p2p = vec![vec![0.0; n]; n];
-    for i in 0..n {
-        for j in 0..n {
+    for (i, row) in p2p.iter_mut().enumerate() {
+        for (j, cell) in row.iter_mut().enumerate() {
             if i != j {
                 match backend.p2p_bandwidth(i as u32, j as u32) {
-                    Ok(result) => p2p[i][j] = result.bandwidth_gbps,
-                    Err(_) => p2p[i][j] = 0.0, // P2P not supported
+                    Ok(result) => *cell = result.bandwidth_gbps,
+                    Err(_) => *cell = 0.0,
                 }
             }
         }

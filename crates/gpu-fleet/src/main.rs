@@ -7,6 +7,8 @@ use gpu_harness::sim::{fleet::SimulatedFleet, profiles, SimulatedBackend};
 use gpu_harness::GpuBackend;
 
 mod cli;
+mod fleet_validate;
+mod straggler;
 mod symmetry;
 mod topology;
 
@@ -119,23 +121,73 @@ fn cmd_symmetry(sim: Option<String>, count: u32, format: &OutputFormat, no_color
 }
 
 fn cmd_validate(
-    _threshold: f64,
-    _sim: Option<String>,
-    _count: u32,
-    _format: &OutputFormat,
-    _no_color: bool,
+    threshold: f64,
+    sim: Option<String>,
+    count: u32,
+    format: &OutputFormat,
+    no_color: bool,
 ) -> i32 {
-    eprintln!("Fleet validate: coming in Phase 6");
-    0
+    let backend = match get_fleet_backend(&sim, count) {
+        Ok(b) => b,
+        Err(e) => {
+            eprintln!("Error: {e}");
+            return 2;
+        }
+    };
+
+    eprintln!("Validating {} GPUs...", count);
+    let result = match fleet_validate::validate_fleet(backend.as_ref(), threshold) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("Fleet validation failed: {e}");
+            return 1;
+        }
+    };
+
+    match format {
+        OutputFormat::Json => fleet_validate::print_fleet_validate_json(&result),
+        OutputFormat::Table => fleet_validate::print_fleet_validate_table(&result, no_color),
+    }
+
+    if result.all_passed {
+        0
+    } else {
+        1
+    }
 }
 
 fn cmd_straggler(
-    _threshold: f64,
-    _sim: Option<String>,
-    _count: u32,
-    _format: &OutputFormat,
-    _no_color: bool,
+    threshold: f64,
+    sim: Option<String>,
+    count: u32,
+    format: &OutputFormat,
+    no_color: bool,
 ) -> i32 {
-    eprintln!("Fleet straggler: coming in Phase 6");
-    0
+    let backend = match get_fleet_backend(&sim, count) {
+        Ok(b) => b,
+        Err(e) => {
+            eprintln!("Error: {e}");
+            return 2;
+        }
+    };
+
+    eprintln!("Measuring {} GPUs for straggler detection...", count);
+    let report = match straggler::detect_stragglers(backend.as_ref(), threshold) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("Straggler detection failed: {e}");
+            return 1;
+        }
+    };
+
+    match format {
+        OutputFormat::Json => straggler::print_straggler_json(&report),
+        OutputFormat::Table => straggler::print_straggler_table(&report, no_color),
+    }
+
+    if report.stragglers.is_empty() {
+        0
+    } else {
+        1
+    }
 }

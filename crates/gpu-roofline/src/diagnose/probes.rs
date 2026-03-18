@@ -225,10 +225,9 @@ fn probe_pci_bottleneck(
                 "Bandwidth {:.0} GB/s near PCIe {expected_gen}.0 ceiling ({:.0} GB/s)",
                 measured, pcie_ceiling_gbps
             ),
-            cause: format!(
-                "GPU may be running over PCIe instead of local HBM. \
+            cause: "GPU may be running over PCIe instead of local HBM. \
                  Check if GPU is in PCIe slot (not SXM) or if NVLink is misconfigured."
-            ),
+                .to_string(),
             fix: "Verify GPU physical connection. For SXM GPUs, check NVLink firmware. \
                   For PCIe GPUs, ensure x16 lane width (not x8 or x4)."
                 .to_string(),

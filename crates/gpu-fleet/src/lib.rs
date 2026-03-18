@@ -4,6 +4,8 @@
 //! analysis. Discovers topology, measures inter-GPU bandwidth, detects stragglers,
 //! and validates each GPU against its expected performance model.
 
+pub mod fleet_validate;
+pub mod straggler;
 pub mod symmetry;
 pub mod topology;
 

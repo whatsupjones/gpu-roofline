@@ -11,4 +11,5 @@ pub mod types;
 
 pub use probes::run_diagnosis;
 pub use report::{print_diagnosis_json, print_diagnosis_table};
+#[allow(unused_imports)]
 pub use types::{DiagnoseConfig, DiagnosisResult, ProbeName};

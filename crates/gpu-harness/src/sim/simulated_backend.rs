@@ -294,6 +294,11 @@ impl GpuBackend for SimulatedBackend {
             ))
         }
     }
+
+    fn set_active_device(&self, index: u32) {
+        self.active_device
+            .store(index, std::sync::atomic::Ordering::Relaxed);
+    }
 }
 
 #[cfg(test)]
