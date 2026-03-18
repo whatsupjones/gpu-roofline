@@ -13,11 +13,64 @@ mod inner {
     };
     use crate::device::{GpuArchitecture, GpuDevice, GpuFeatures, GpuLimits, GpuVendor};
     use crate::error::HarnessError;
-    use cudarc::driver::{CudaContext, CudaSlice, CudaStream, LaunchConfig, PushKernelArg};
+    use cudarc::driver::{
+        CudaContext, CudaEvent, CudaSlice, CudaStream, LaunchConfig, PushKernelArg,
+    };
 
     const CUDA_KERNEL_SOURCE: &str = include_str!("../shaders/cuda/roofline_kernels.cu");
     const TENSOR_KERNEL_SOURCE: &str = include_str!("../shaders/cuda/tensor_kernels.cu");
     const BLOCK_SIZE: u32 = 256;
+
+    /// GPU-side timing via CUDA Events. Falls back to CPU timing if event
+    /// creation fails.
+    struct GpuTimer {
+        start: Option<CudaEvent>,
+        end: Option<CudaEvent>,
+    }
+
+    impl GpuTimer {
+        /// Try to create GPU-side event timers. Returns a CPU-fallback timer
+        /// if CUDA event creation fails.
+        fn new(ctx: &Arc<CudaContext>) -> Self {
+            let flags = Some(cudarc::driver::sys::CUevent_flags::CU_EVENT_DEFAULT);
+            let start = ctx.new_event(flags).ok();
+            let end = ctx.new_event(flags).ok();
+            if start.is_some() && end.is_some() {
+                tracing::trace!("Using GPU-side CUDA Event timing");
+            } else {
+                tracing::trace!("Falling back to CPU-side timing");
+            }
+            Self { start, end }
+        }
+
+        /// Record the start timestamp on the GPU timeline.
+        fn record_start(&self, stream: &CudaStream) {
+            if let Some(ref evt) = self.start {
+                let _ = evt.record(stream);
+            }
+        }
+
+        /// Record the end timestamp on the GPU timeline.
+        fn record_end(&self, stream: &CudaStream) {
+            if let Some(ref evt) = self.end {
+                let _ = evt.record(stream);
+            }
+        }
+
+        /// Get elapsed time in microseconds between start and end events.
+        /// Returns None if events are not available (caller should use CPU timing).
+        fn elapsed_us(&self) -> Option<f64> {
+            match (&self.start, &self.end) {
+                (Some(start), Some(end)) => start.elapsed_ms(end).ok().map(|ms| ms as f64 * 1000.0), // ms → µs
+                _ => None,
+            }
+        }
+
+        /// Whether this timer uses GPU-side events.
+        fn is_gpu_timing(&self) -> bool {
+            self.start.is_some() && self.end.is_some()
+        }
+    }
 
     /// CUDA backend for datacenter GPU compute.
     pub struct CudaBackend {
@@ -187,10 +240,12 @@ mod inner {
                 .synchronize()
                 .map_err(|e| HarnessError::KernelFailed(format!("Warmup sync failed: {e}")))?;
 
-            // Timed iterations
+            // Timed iterations (GPU events with CPU fallback)
+            let timer = GpuTimer::new(&dev_info.ctx);
             let mut timings = Vec::with_capacity(iterations as usize);
             for _ in 0..iterations {
-                let start = Instant::now();
+                let cpu_start = Instant::now();
+                timer.record_start(stream);
                 {
                     let mut builder = stream.launch_builder(&func);
                     builder.arg(&src);
@@ -202,10 +257,13 @@ mod inner {
                         })?;
                     }
                 }
+                timer.record_end(stream);
                 stream
                     .synchronize()
                     .map_err(|e| HarnessError::KernelFailed(format!("Sync failed: {e}")))?;
-                let elapsed_us = start.elapsed().as_secs_f64() * 1e6;
+                let elapsed_us = timer
+                    .elapsed_us()
+                    .unwrap_or_else(|| cpu_start.elapsed().as_secs_f64() * 1e6);
                 timings.push(elapsed_us);
             }
 
@@ -301,10 +359,12 @@ mod inner {
                 .synchronize()
                 .map_err(|e| HarnessError::KernelFailed(format!("Warmup sync failed: {e}")))?;
 
-            // Timed iterations
+            // Timed iterations (GPU events with CPU fallback)
+            let timer = GpuTimer::new(&dev_info.ctx);
             let mut timings = Vec::with_capacity(iterations as usize);
             for _ in 0..iterations {
-                let start = Instant::now();
+                let cpu_start = Instant::now();
+                timer.record_start(stream);
                 {
                     let mut builder = stream.launch_builder(&func);
                     match kernel_type {
@@ -335,10 +395,13 @@ mod inner {
                         })?;
                     }
                 }
+                timer.record_end(stream);
                 stream
                     .synchronize()
                     .map_err(|e| HarnessError::KernelFailed(format!("Sync failed: {e}")))?;
-                let elapsed_us = start.elapsed().as_secs_f64() * 1e6;
+                let elapsed_us = timer
+                    .elapsed_us()
+                    .unwrap_or_else(|| cpu_start.elapsed().as_secs_f64() * 1e6);
                 timings.push(elapsed_us);
             }
 
@@ -430,10 +493,12 @@ mod inner {
                 .synchronize()
                 .map_err(|e| HarnessError::KernelFailed(format!("Warmup sync failed: {e}")))?;
 
-            // Timed iterations
+            // Timed iterations (GPU events with CPU fallback)
+            let timer = GpuTimer::new(&dev_info.ctx);
             let mut timings = Vec::with_capacity(iterations as usize);
             for _ in 0..iterations {
-                let start = Instant::now();
+                let cpu_start = Instant::now();
+                timer.record_start(stream);
                 {
                     let mut builder = stream.launch_builder(&func);
                     builder.arg(&src);
@@ -445,10 +510,13 @@ mod inner {
                         })?;
                     }
                 }
+                timer.record_end(stream);
                 stream
                     .synchronize()
                     .map_err(|e| HarnessError::KernelFailed(format!("Sync failed: {e}")))?;
-                let elapsed_us = start.elapsed().as_secs_f64() * 1e6;
+                let elapsed_us = timer
+                    .elapsed_us()
+                    .unwrap_or_else(|| cpu_start.elapsed().as_secs_f64() * 1e6);
                 timings.push(elapsed_us);
             }
 

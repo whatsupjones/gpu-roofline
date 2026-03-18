@@ -339,8 +339,8 @@ See the full [ROADMAP.md](docs/ROADMAP.md) for what's coming next.
 **v0.2 — vGPU Lifecycle Monitoring** ✅
 Implemented: trigger-point detection, contention measurement, teardown verification, 7 alert rules, TUI dashboard, 4 simulation scenarios. See [vGPU Lifecycle Monitoring](#vgpu-lifecycle-monitoring) above.
 
-**v0.2 — CUDA Events + CUDA Graphs**
-GPU-side hardware timestamps for sub-microsecond accuracy. Batch kernel dispatch via CUDA Graphs for zero-overhead monitoring. Graceful fallback: Graphs → Events → CPU timing.
+**v0.2 — CUDA Events** ✅
+GPU-side hardware timestamps via CUDA Events for sub-microsecond accuracy. GpuTimer with automatic fallback to CPU timing. Validated on H100: ~2% bandwidth improvement.
 
 **v0.3 — "Why Is My GPU Slow?" Diagnostic Engine**
 Automatic root-cause analysis: L2 thrashing, HBM degradation, thermal throttling, PCIe bottleneck, MIG misconfiguration — diagnosed and explained, not just measured.
