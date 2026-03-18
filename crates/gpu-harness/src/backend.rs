@@ -147,6 +147,10 @@ pub trait GpuBackend: Send + Sync {
 
     /// Measure P2P bandwidth between two devices.
     fn p2p_bandwidth(&self, src: u32, dst: u32) -> Result<BandwidthResult, HarnessError>;
+
+    /// Set the active device for kernel execution (fleet mode).
+    /// Default: no-op. SimulatedBackend overrides to select GPU profile.
+    fn set_active_device(&self, _index: u32) {}
 }
 
 #[cfg(test)]

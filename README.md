@@ -179,8 +179,69 @@ gpu-roofline/
 │   │   ├── ceilings/         # Burst + dynamic roofline measurement
 │   │   ├── validate/         # Preflight GPU health checks
 │   │   └── shaders/          # WGSL + CUDA compute kernels
-│   └── gpu-fleet/            # Multi-GPU cluster validation (WIP)
+│   │   └── diagnose/          # "Why Is My GPU Slow?" diagnostic engine
+│   └── gpu-fleet/            # Multi-GPU cluster validation
+│       ├── topology.rs       # PCIe/NVLink tree + P2P bandwidth matrix
+│       ├── symmetry.rs       # Fleet config mismatch detection
+│       ├── fleet_validate.rs # Per-GPU roofline health checks
+│       └── straggler.rs      # Outlier detection + automatic diagnosis
 ```
+
+## "Why Is My GPU Slow?" Diagnostic Engine
+
+Six targeted probes identify root causes of GPU underperformance:
+
+```bash
+# Diagnose a specific GPU
+gpu-roofline diagnose --device 0
+
+# Diagnose with simulation (no hardware needed)
+gpu-roofline diagnose --sim degraded_h100_memory
+
+# JSON output for automation
+gpu-roofline diagnose --sim h100_sxm --json
+```
+
+```
+gpu-roofline diagnose | NVIDIA H100 SXM 80GB
+
+  Finding: HBM bandwidth at 75% of expected
+  Cause:   Partial HBM stack failure (measured 2,512 vs expected 3,350 GB/s)
+  Fix:     RMA GPU or verify ECC settings. Run nvidia-smi -q for error counts.
+
+  6 probes run | 1 finding | Severity: Warning
+```
+
+| Probe | What It Detects |
+|-------|----------------|
+| **L2 Cache Thrashing** | Working set exceeds L2 capacity, causing excessive HBM traffic |
+| **HBM Degradation** | Partial HBM stack failure or ECC-related bandwidth loss |
+| **PCIe Bottleneck** | Host-device transfers saturating PCIe link |
+| **Thermal Throttling** | Clock reduction from cooling failure or paste degradation |
+| **Clock Stuck** | GPU locked at base clock, boost disabled or broken |
+| **Compute Deficit** | Achieved TFLOPS well below expected for the architecture |
+
+---
+
+## gpu-fleet: Multi-GPU Cluster Validation
+
+```bash
+# Discover topology: GPU list + NVLink/PCIe P2P bandwidth matrix
+gpu-fleet topology --sim h100_sxm --count 8
+
+# Validate per-GPU roofline health
+gpu-fleet validate --sim h100_sxm --count 8
+
+# Check fleet symmetry (flag mismatched configs)
+gpu-fleet symmetry --sim h100_sxm --count 8
+
+# Find stragglers: outlier detection + automatic root-cause diagnosis
+gpu-fleet straggler --sim h100_sxm --count 8
+```
+
+Straggler detection measures all GPUs, computes the fleet median, flags outliers below threshold, then runs the diagnostic engine on each straggler to identify **why** it's underperforming.
+
+---
 
 ## Roadmap
 
@@ -188,8 +249,9 @@ See [ROADMAP.md](docs/ROADMAP.md) for details.
 
 - **v0.2** ✅ vGPU Lifecycle Monitoring — trigger-point detection, contention, teardown verification, 7 alert rules
 - **v0.2** ✅ CUDA Events — GPU-side hardware timestamps, automatic CPU fallback
-- **v0.3** "Why Is My GPU Slow?" Diagnostic Engine — automatic root-cause analysis
-- **v0.3** gpu-fleet — multi-GPU cluster validation, NVLink topology, straggler detection
+- **v0.3** ✅ Diagnostic Engine — 6 probes for automatic GPU root-cause analysis
+- **v0.3** ✅ gpu-fleet — multi-GPU cluster validation, NVLink topology, straggler detection
+- **v0.3** ✅ Real MIG Detection — NVML MIG APIs for hardware vGPU enumeration + polling
 
 ## Contributing
 

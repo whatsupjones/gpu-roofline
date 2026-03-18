@@ -9,9 +9,18 @@ description = "Multi-GPU fleet validation, topology discovery, and straggler det
 keywords = ["gpu", "fleet", "validation", "nvidia", "nvlink"]
 categories = ["hardware-support"]
 
+[[bin]]
+name = "gpu-fleet"
+path = "src/main.rs"
+
 [dependencies]
 gpu-harness = { workspace = true }
 gpu-roofline = { path = "../gpu-roofline", version = "0.1.0" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
+clap = { workspace = true }
+comfy-table = { workspace = true }
+colored = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }

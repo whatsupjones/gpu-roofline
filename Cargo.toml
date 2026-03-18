@@ -37,7 +37,7 @@ chrono = { version = "0.4", features = ["serde"] }
 wgpu = "23"
 pollster = "0.4"
 cudarc = { version = "0.19", features = ["cuda-version-from-build-system", "cuda-12040"] }
-nvml-wrapper = "0.10"
+nvml-wrapper = "0.12"
 
 # Stats
 statrs = "0.18"

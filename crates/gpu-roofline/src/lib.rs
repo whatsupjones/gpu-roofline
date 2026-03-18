@@ -19,6 +19,7 @@
 //! ```
 
 pub mod ceilings;
+pub mod diagnose;
 pub mod kernels;
 pub mod model;
 pub mod monitor;

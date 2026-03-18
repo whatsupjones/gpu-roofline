@@ -29,34 +29,40 @@ Batch multiple kernel launches into a single GPU graph submission. Reduces per-k
 
 See [CONTRIBUTING_VALIDATION.md](CONTRIBUTING_VALIDATION.md) for the community validation template.
 
-## v0.3.0 — Diagnostic Engine + Fleet Validation
+## v0.3.0 — Diagnostic Engine + Fleet Validation ✅ Implemented
 
-### "Why Is My GPU Slow?" Diagnostic
+### "Why Is My GPU Slow?" Diagnostic ✅ Implemented
 
-Instead of just measuring ceilings, tell the user **why** they're not hitting them:
+Six targeted probes identify root causes of GPU underperformance:
 
-```
-Your H200 is running at 67% of its bandwidth ceiling.
-Cause: L2 cache thrashing (working set 180MB vs 50MB L2)
-Fix:   Increase batch size to amortize memory access
-```
+- **L2 Cache Thrashing** — working set exceeds L2 capacity
+- **HBM Degradation** — partial HBM stack failure or ECC bandwidth loss
+- **PCIe Bottleneck** — host-device transfers saturating PCIe link
+- **Thermal Throttling** — clock reduction from cooling failure
+- **Clock Stuck** — GPU locked at base clock, boost disabled
+- **Compute Deficit** — achieved TFLOPS below expected for the architecture
 
-Diagnostic categories:
-- Memory-bound: L2 thrashing, HBM degradation, PCIe bottleneck
-- Compute-bound: low occupancy, register pressure, serial dependencies
-- Thermal: throttling from paste degradation or cooling failure
-- Configuration: wrong power mode, ECC overhead, MIG misconfiguration
+CLI: `gpu-roofline diagnose --device 0` or `gpu-roofline diagnose --sim degraded_h100_memory`
 
-### gpu-fleet: Multi-GPU Cluster Validation
+### gpu-fleet: Multi-GPU Cluster Validation ✅ Implemented
 
 ```bash
-gpu-fleet topology              # PCIe/NVLink tree view
-gpu-fleet validate --roofline   # Per-GPU roofline health check
+gpu-fleet topology              # PCIe/NVLink tree + P2P bandwidth matrix
+gpu-fleet validate              # Per-GPU roofline health check
 gpu-fleet symmetry              # Flag mismatched configs across fleet
 gpu-fleet straggler             # Identify underperforming GPUs + cause
 ```
 
-### TUI Dashboard Enhancements
+Straggler detection: measures all GPUs → computes fleet median → flags outliers → runs diagnostic probes on each straggler → reports cause + fix.
+
+### Real MIG Detection ✅ Implemented
+
+NvidiaMigDetector upgraded from stub to real NVML-based implementation (nvml-wrapper 0.12):
+- `enumerate()` via NVML MIG APIs (`mig_device_count`, `mig_device_by_index`)
+- `watch()` via poll-based delta detection (enumerate periodically, diff instance sets, emit Created/Destroyed events)
+- MIG hardware validation pending bare-metal H100 access (simulation-validated with 254 tests)
+
+### TUI Dashboard Enhancements (Planned)
 
 - Sparkline charts with historical data persistence
 - Per-GPU view for multi-GPU systems

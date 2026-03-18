@@ -23,6 +23,8 @@ pub struct SimulatedBackend {
     elapsed_secs: std::sync::atomic::AtomicU64,
     /// Workload intensity for power/thermal model (0.0-1.0).
     workload_intensity: f32,
+    /// Active device index for kernel execution (fleet mode).
+    active_device: std::sync::atomic::AtomicU32,
 }
 
 impl SimulatedBackend {
@@ -32,7 +34,8 @@ impl SimulatedBackend {
             profile,
             fleet: None,
             elapsed_secs: std::sync::atomic::AtomicU64::new(0),
-            workload_intensity: 1.0, // Full load by default
+            workload_intensity: 1.0,
+            active_device: std::sync::atomic::AtomicU32::new(0),
         }
     }
 
@@ -44,7 +47,21 @@ impl SimulatedBackend {
             fleet: Some(fleet),
             elapsed_secs: std::sync::atomic::AtomicU64::new(0),
             workload_intensity: 1.0,
+            active_device: std::sync::atomic::AtomicU32::new(0),
         }
+    }
+
+    /// Set the active device for kernel execution (fleet mode).
+    /// Subsequent `run_kernel()` calls will use this device's profile.
+    pub fn set_active_device(&self, index: u32) {
+        self.active_device
+            .store(index, std::sync::atomic::Ordering::Relaxed);
+    }
+
+    /// Get the current active device index.
+    pub fn active_device_index(&self) -> u32 {
+        self.active_device
+            .load(std::sync::atomic::Ordering::Relaxed)
     }
 
     /// Set workload intensity (0.0 = idle, 1.0 = full load).
@@ -168,13 +185,18 @@ impl GpuBackend for SimulatedBackend {
         kernel: &KernelSpec,
         config: &RunConfig,
     ) -> Result<KernelResult, HarnessError> {
-        let jitter = if let Some(fleet) = &self.fleet {
-            fleet.gpus.first().map(|g| g.jitter).unwrap_or(0.02)
+        let device_idx = self.active_device_index();
+        let (profile, jitter) = if let Some(fleet) = &self.fleet {
+            let gpu = fleet
+                .gpus
+                .get(device_idx as usize)
+                .ok_or(HarnessError::DeviceIndexOutOfRange(device_idx))?;
+            (&gpu.profile, gpu.jitter)
         } else {
-            0.02
+            (&self.profile, 0.02)
         };
 
-        Ok(self.simulate_kernel_timing(&self.profile, kernel, config, jitter))
+        Ok(self.simulate_kernel_timing(profile, kernel, config, jitter))
     }
 
     fn device_state(&self, device_index: u32) -> Result<DeviceState, HarnessError> {
@@ -271,6 +293,11 @@ impl GpuBackend for SimulatedBackend {
                 "P2P requires fleet mode".to_string(),
             ))
         }
+    }
+
+    fn set_active_device(&self, index: u32) {
+        self.active_device
+            .store(index, std::sync::atomic::Ordering::Relaxed);
     }
 }
 
