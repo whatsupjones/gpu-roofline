@@ -1,0 +1,112 @@
+{
+  "device_name": "NVIDIA H100 80GB HBM3",
+  "peak_gflops": 59092.636268811635,
+  "peak_bandwidth_gbps": 2905.074887245711,
+  "ridge_point": 20.341174862048774,
+  "clock_mhz": 0,
+  "temperature_c": 0,
+  "power_watts": 0.0,
+  "placements": [
+    {
+      "name": "copy",
+      "arithmetic_intensity": 0.0,
+      "achieved_gflops": 0.0,
+      "achieved_bandwidth_gbps": 2905.074887245711,
+      "efficiency": 1.0,
+      "bottleneck": {
+        "MemoryBound": {
+          "level": "Hbm"
+        }
+      },
+      "median_us": 184.80450000000002,
+      "stddev_us": 0.7654088529813479,
+      "cv": 0.004144885931022444
+    },
+    {
+      "name": "add",
+      "arithmetic_intensity": 0.083,
+      "achieved_gflops": 125.29450401318871,
+      "achieved_bandwidth_gbps": 2004.7120642110194,
+      "efficiency": 0.5196328480673064,
+      "bottleneck": {
+        "MemoryBound": {
+          "level": "Hbm"
+        }
+      },
+      "median_us": 267.8045,
+      "stddev_us": 0.8191197665294023,
+      "cv": 0.0030597553694008037
+    },
+    {
+      "name": "scale",
+      "arithmetic_intensity": 0.125,
+      "achieved_gflops": 363.09899498167164,
+      "achieved_bandwidth_gbps": 2904.791959853373,
+      "efficiency": 0.9999026092602362,
+      "bottleneck": {
+        "MemoryBound": {
+          "level": "Hbm"
+        }
+      },
+      "median_us": 184.8225,
+      "stddev_us": 0.8342361996267466,
+      "cv": 0.004517759568070381
+    },
+    {
+      "name": "triad",
+      "arithmetic_intensity": 0.167,
+      "achieved_gflops": 313.105898863823,
+      "achieved_bandwidth_gbps": 2003.8777527284674,
+      "efficiency": 0.6453828884654434,
+      "bottleneck": {
+        "MemoryBound": {
+          "level": "Hbm"
+        }
+      },
+      "median_us": 267.916,
+      "stddev_us": 0.8900845166997794,
+      "cv": 0.0033236882711523315
+    },
+    {
+      "name": "fma_light",
+      "arithmetic_intensity": 1.0,
+      "achieved_gflops": 2905.758856035635,
+      "achieved_bandwidth_gbps": 2905.758856035635,
+      "efficiency": 1.0,
+      "bottleneck": {
+        "MemoryBound": {
+          "level": "Hbm"
+        }
+      },
+      "median_us": 184.76100000000002,
+      "stddev_us": 1.5366856887996392,
+      "cv": 0.008314803484575424
+    },
+    {
+      "name": "fma_medium",
+      "arithmetic_intensity": 8.0,
+      "achieved_gflops": 23277.504632502583,
+      "achieved_bandwidth_gbps": 2909.688079062823,
+      "efficiency": 1.0,
+      "bottleneck": {
+        "MemoryBound": {
+          "level": "Hbm"
+        }
+      },
+      "median_us": 184.5115,
+      "stddev_us": 0.8245914065631409,
+      "cv": 0.004472945080781226
+    },
+    {
+      "name": "fma_heavy",
+      "arithmetic_intensity": 64.0,
+      "achieved_gflops": 59092.636268811635,
+      "achieved_bandwidth_gbps": 923.3224417001818,
+      "efficiency": 1.0,
+      "bottleneck": "ComputeBound",
+      "median_us": 581.4555,
+      "stddev_us": 0.6201391147284392,
+      "cv": 0.001066331899911709
+    }
+  ]
+}

@@ -53,7 +53,7 @@ Measured on real datacenter and consumer GPUs. Bandwidth measures achievable com
 | GPU | HBM BW | FP32 | FP16 Tensor | BF16 Tensor | Backend |
 |-----|--------|------|-------------|-------------|---------|
 | **NVIDIA H200 141GB** | **4,028 GB/s** | **59.5 TFLOPS** | **686 TFLOPS** | **686 TFLOPS** | CUDA |
-| **NVIDIA H100 80GB** | **2,893 GB/s** | **59.5 TFLOPS** | *pending* | *pending* | CUDA |
+| **NVIDIA H100 80GB** | **2,905 GB/s** | **59.1 TFLOPS** | **495 TFLOPS** | **495 TFLOPS** | CUDA |
 | Intel UHD Graphics | 7 GB/s | 0.15 TFLOPS | — | — | Vulkan |
 
 *More GPUs coming: RTX 4090, RTX 5090, MI300X. [Contribute your results!](https://github.com/whatsupjones/gpu-roofline/issues)*

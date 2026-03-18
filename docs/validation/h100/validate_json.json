@@ -1,0 +1,37 @@
+{
+  "gpu_name": "NVIDIA H100 80GB HBM3",
+  "checks": [
+    {
+      "name": "Bandwidth",
+      "measured": "2906 GB/s",
+      "expected": "2160-3100 GB/s",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "FP32 Compute",
+      "measured": "58.7 TFLOPS",
+      "expected": "44-65 TFLOPS",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Stability",
+      "measured": "CV 1.2%",
+      "expected": "< 5%",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Roofline Shape",
+      "measured": "6/6",
+      "expected": "All correct",
+      "passed": true,
+      "detail": null
+    }
+  ],
+  "diagnosis": [],
+  "passed": true,
+  "pass_count": 4,
+  "total_count": 4
+}

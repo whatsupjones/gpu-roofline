@@ -1,0 +1,4 @@
+GPU: NVIDIA H100 80GB HBM3
+fma_heavy        59.1 TFLOPS | median    581.3 us | CV 0.1%
+tensor_fp16     494.7 TFLOPS | median    277.8 us | CV 0.3%
+tensor_bf16     494.6 TFLOPS | median    277.9 us | CV 0.3%
