@@ -4,23 +4,23 @@
     {
       "name": "Bandwidth",
       "measured": "1516 GB/s",
-      "expected": "1200-1800 GB/s",
+      "expected": "960-1800 GB/s",
       "passed": true,
       "detail": null
     },
     {
       "name": "FP32 Compute",
-      "measured": "96.7 TFLOPS",
-      "expected": "72-110 TFLOPS",
+      "measured": "96.4 TFLOPS",
+      "expected": "58-110 TFLOPS",
       "passed": true,
       "detail": null
     },
     {
       "name": "Stability",
-      "measured": "CV 0.4%",
+      "measured": "CV 23.9%",
       "expected": "< 5%",
-      "passed": true,
-      "detail": null
+      "passed": false,
+      "detail": "High variance indicates thermal throttling, concurrent load, or unstable driver"
     },
     {
       "name": "Roofline Shape",
@@ -30,8 +30,10 @@
       "detail": null
     }
   ],
-  "diagnosis": [],
-  "passed": true,
-  "pass_count": 4,
+  "diagnosis": [
+    "High measurement variance — possible concurrent GPU load, thermal throttling during measurement, or unstable driver state"
+  ],
+  "passed": false,
+  "pass_count": 3,
   "total_count": 4
 }

@@ -2,8 +2,16 @@
 
 gpu-roofline 0.1.0 | NVIDIA GeForce RTX 5090 | Dynamic Roofline
 
-  Burst:     95367.4 GFLOP/s | 1495 GB/s | 0 MHz | 0°C | 0W
-  Sustained: 96274.8 GFLOP/s | 1507 GB/s | 0 MHz | 0°C | 0W
-  Equilibrium: 10.0s | Net drop: -1.0%
+  Burst:     95819.0 GFLOP/s | 1492 GB/s | 172 MHz | 23°C | 20W
+  Sustained: 95502.6 GFLOP/s | 1497 GB/s | 2415 MHz | 25°C | 67W
+  Equilibrium: 10.0s | Net drop: 0.3%
+
+  Tension Analysis:
+    ↑ thermal      1304.1% after 0.0s
+      excites: Boost clock targets 172 MHz
+      inhibits: Thermal limit forces throttle to 2415 MHz (25°C)
+    ↓ power        1304.4% after 6.0s
+      excites: Workload demands peak compute
+      inhibits: TDP cap at 67W forces clock scaling
 
 Baseline saved to /tmp/rtx5090_validation/dynamic.json
