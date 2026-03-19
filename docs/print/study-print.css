@@ -189,10 +189,32 @@ a {
   font-style: italic;
 }
 
-/* ---- Figure captions ---- */
-figcaption {
+/* ---- Figures ---- */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1em auto;
+  page-break-inside: avoid;
+}
+
+figure {
+  margin: 1.2em 0;
+  page-break-inside: avoid;
+}
+
+figcaption, p > img + em {
   font-size: 9pt;
   font-style: italic;
   text-align: center;
   margin-top: 0.3em;
+  display: block;
+}
+
+@media print {
+  img {
+    max-width: 6.5in;
+    max-height: 4.5in;
+    object-fit: contain;
+  }
 }
