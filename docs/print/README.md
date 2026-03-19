@@ -1,12 +1,16 @@
 # Print-Ready Study Documents
 
-Open any `.html` file in a browser and print to PDF (Ctrl+P → Save as PDF).
+Open in a browser → Ctrl+P → Save as PDF.
 
-## Files
+## Master Document (use this one)
 
-- `study-simulation-manuscript.html` — Full 8-section publication manuscript with table of contents
-- `study-results-summary.html` — Main results tables (Tables 1–4, bootstrap CIs)
-- `study-results-supplement.html` — Supplementary tables (S1–S5, sensitivity, confusion matrices)
+- **`gpu-waste-study-complete.html`** — Complete paper: manuscript (sections 1–8, references) + Appendix A (results tables 1–4) + Appendix B (supplementary tables S1–S5). This is the journal-submission format.
+
+## Individual Sections (for reference)
+
+- `study-simulation-manuscript.html` — Manuscript body only
+- `study-results-summary.html` — Main results tables only
+- `study-results-supplement.html` — Supplementary tables only
 
 ## Regenerate
 

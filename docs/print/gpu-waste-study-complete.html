@@ -1,0 +1,4193 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang xml:lang>
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>A Reproducible Simulation Study of Invisible Waste in Multi-Tenant GPU Infrastructure</title>
+  <style>
+
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css">
+
+@page {
+size: letter;
+margin: 1in 1in 1in 1in;
+}
+body {
+font-family: "Times New Roman", "Noto Serif", Georgia, serif;
+font-size: 11pt;
+line-height: 1.5;
+color: #111;
+max-width: 7.5in;
+margin: 0 auto;
+padding: 0.5in;
+}
+
+h1 {
+font-size: 16pt;
+text-align: center;
+margin-top: 0;
+margin-bottom: 0.3em;
+page-break-after: avoid;
+}
+h2 {
+font-size: 13pt;
+margin-top: 1.5em;
+margin-bottom: 0.5em;
+border-bottom: 1px solid #ccc;
+padding-bottom: 0.2em;
+page-break-after: avoid;
+}
+h3 {
+font-size: 11pt;
+font-weight: bold;
+margin-top: 1.2em;
+margin-bottom: 0.3em;
+page-break-after: avoid;
+}
+
+p {
+margin-top: 0.4em;
+margin-bottom: 0.4em;
+text-align: justify;
+orphans: 3;
+widows: 3;
+}
+
+table {
+border-collapse: collapse;
+width: 100%;
+font-size: 9pt;
+margin: 0.8em 0;
+page-break-inside: avoid;
+}
+thead {
+display: table-header-group;
+}
+th {
+background-color: #f0f0f0;
+font-weight: bold;
+text-align: left;
+padding: 4px 6px;
+border: 1px solid #999;
+}
+td {
+padding: 3px 6px;
+border: 1px solid #ccc;
+vertical-align: top;
+}
+tr:nth-child(even) {
+background-color: #fafafa;
+}
+
+code {
+font-family: "Consolas", "Courier New", monospace;
+font-size: 9pt;
+background-color: #f5f5f5;
+padding: 1px 3px;
+border-radius: 2px;
+}
+pre {
+font-size: 8.5pt;
+background-color: #f5f5f5;
+border: 1px solid #ddd;
+padding: 8px 12px;
+overflow-x: auto;
+page-break-inside: avoid;
+}
+pre code {
+background-color: transparent;
+padding: 0;
+}
+
+blockquote {
+margin: 0.8em 0.5in;
+padding-left: 0.5em;
+border-left: 3px solid #999;
+font-style: italic;
+color: #333;
+}
+
+ul, ol {
+margin-top: 0.3em;
+margin-bottom: 0.3em;
+padding-left: 1.5em;
+}
+li {
+margin-bottom: 0.15em;
+}
+
+hr {
+border: none;
+border-top: 1px solid #ccc;
+margin: 1.5em 0;
+}
+
+strong {
+font-weight: bold;
+}
+em {
+font-style: italic;
+}
+
+a {
+color: #1a0dab;
+text-decoration: none;
+}
+@media print {
+a {
+color: #111;
+text-decoration: none;
+}
+a[href]:after {
+content: none;
+}
+body {
+padding: 0;
+}
+
+h2 {
+page-break-before: auto;
+}
+
+h1, h2, h3, h4 {
+page-break-after: avoid;
+}
+
+table, figure, pre {
+page-break-inside: avoid;
+}
+}
+
+.title-block {
+text-align: center;
+margin-bottom: 1.5em;
+}
+.subtitle {
+font-size: 11pt;
+color: #555;
+font-style: italic;
+}
+
+figcaption {
+font-size: 9pt;
+font-style: italic;
+text-align: center;
+margin-top: 0.3em;
+}
+</style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">A Reproducible Simulation Study of Invisible Waste in
+Multi-Tenant GPU Infrastructure</h1>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#a-reproducible-simulation-study-of-invisible-waste-in-multi-tenant-gpu-infrastructure" id="toc-a-reproducible-simulation-study-of-invisible-waste-in-multi-tenant-gpu-infrastructure"><span class="toc-section-number">1</span> A Reproducible Simulation Study of
+Invisible Waste in Multi-Tenant GPU Infrastructure</a>
+<ul>
+<li><a href="#abstract" id="toc-abstract"><span class="toc-section-number">1.1</span> Abstract</a></li>
+<li><a href="#introduction" id="toc-introduction"><span class="toc-section-number">1.2</span> 1. Introduction</a></li>
+<li><a href="#background-and-related-work" id="toc-background-and-related-work"><span class="toc-section-number">1.3</span> 2. Background and Related
+Work</a></li>
+<li><a href="#waste-taxonomy-and-measurement-model" id="toc-waste-taxonomy-and-measurement-model"><span class="toc-section-number">1.4</span> 3. Waste Taxonomy and Measurement
+Model</a></li>
+<li><a href="#simulation-infrastructure-and-experimental-design" id="toc-simulation-infrastructure-and-experimental-design"><span class="toc-section-number">1.5</span> 4. Simulation Infrastructure and
+Experimental Design</a></li>
+<li><a href="#results" id="toc-results"><span class="toc-section-number">1.6</span> 5. Results</a></li>
+<li><a href="#sensitivity-analysis-and-threats-to-validity" id="toc-sensitivity-analysis-and-threats-to-validity"><span class="toc-section-number">1.7</span> 6. Sensitivity Analysis and
+Threats to Validity</a></li>
+<li><a href="#reproducibility-package" id="toc-reproducibility-package"><span class="toc-section-number">1.8</span> 7. Reproducibility
+Package</a></li>
+<li><a href="#conclusion-and-hardware-validation-roadmap" id="toc-conclusion-and-hardware-validation-roadmap"><span class="toc-section-number">1.9</span> 8. Conclusion and Hardware
+Validation Roadmap</a></li>
+<li><a href="#references" id="toc-references"><span class="toc-section-number">1.10</span> References</a></li>
+</ul></li>
+<li><a href="#appendix-a-simulation-dataset-and-results-tables" id="toc-appendix-a-simulation-dataset-and-results-tables"><span class="toc-section-number">2</span> Appendix A: Simulation Dataset and
+Results Tables</a>
+<ul>
+<li><a href="#simulation-dataset" id="toc-simulation-dataset"><span class="toc-section-number">2.1</span> Simulation Dataset</a></li>
+<li><a href="#table-1.-what-visibility-enables-three-action-buckets" id="toc-table-1.-what-visibility-enables-three-action-buckets"><span class="toc-section-number">2.2</span> Table 1. What Visibility Enables —
+Three Action Buckets</a></li>
+<li><a href="#table-2.-detection-rates-by-tool-across-all-6-waste-categories" id="toc-table-2.-detection-rates-by-tool-across-all-6-waste-categories"><span class="toc-section-number">2.3</span> Table 2. Detection Rates by Tool
+Across All 6 Waste Categories</a></li>
+<li><a href="#table-3.-cross-category-omnibus-statistical-tests" id="toc-table-3.-cross-category-omnibus-statistical-tests"><span class="toc-section-number">2.4</span> Table 3. Cross-Category Omnibus
+Statistical Tests</a></li>
+<li><a href="#table-4.-scenario-based-annual-impact-by-category-and-fleet-scale" id="toc-table-4.-scenario-based-annual-impact-by-category-and-fleet-scale"><span class="toc-section-number">2.5</span> Table 4. Scenario-Based Annual
+Impact by Category and Fleet Scale</a></li>
+<li><a href="#cost-model-bootstrap-confidence-intervals" id="toc-cost-model-bootstrap-confidence-intervals"><span class="toc-section-number">2.6</span> Cost Model Bootstrap Confidence
+Intervals</a></li>
+<li><a href="#interpretation-guardrails" id="toc-interpretation-guardrails"><span class="toc-section-number">2.7</span> Interpretation Guardrails</a></li>
+</ul></li>
+<li><a href="#appendix-b-supplementary-tables" id="toc-appendix-b-supplementary-tables"><span class="toc-section-number">3</span> Appendix B: Supplementary Tables</a>
+<ul>
+<li><a href="#table-s1.-descriptive-statistics-by-category-and-condition" id="toc-table-s1.-descriptive-statistics-by-category-and-condition"><span class="toc-section-number">3.1</span> Table S1. Descriptive Statistics
+by Category and Condition</a></li>
+<li><a href="#table-s2.-full-statistical-test-results" id="toc-table-s2.-full-statistical-test-results"><span class="toc-section-number">3.2</span> Table S2. Full Statistical Test
+Results</a></li>
+<li><a href="#table-s4.-cost-model-parameter-sensitivity" id="toc-table-s4.-cost-model-parameter-sensitivity"><span class="toc-section-number">3.3</span> Table S4. Cost Model Parameter
+Sensitivity</a></li>
+<li><a href="#table-s5.-tool-detection-confusion-matrices" id="toc-table-s5.-tool-detection-confusion-matrices"><span class="toc-section-number">3.4</span> Table S5. Tool Detection Confusion
+Matrices</a></li>
+<li><a href="#straggler-threshold-sweep" id="toc-straggler-threshold-sweep"><span class="toc-section-number">3.5</span> Straggler Threshold Sweep</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 data-number="1" id="a-reproducible-simulation-study-of-invisible-waste-in-multi-tenant-gpu-infrastructure"><span class="header-section-number">1</span> A Reproducible Simulation Study
+of Invisible Waste in Multi-Tenant GPU Infrastructure</h1>
+<p><strong>Authors:</strong> [Author list TBD] <strong>Target
+Venue:</strong> The Journal of Supercomputing (Phase 1: Simulation)
+<strong>Protocol Version:</strong> 1.0 <strong>Data
+Availability:</strong> Trial-level data, analysis scripts, and
+provenance artifacts archived with SHA-256 verification at
+<code>docs/study-results/</code></p>
+<hr />
+<h2 data-number="1.1" id="abstract"><span class="header-section-number">1.1</span> Abstract</h2>
+<p>Multi-tenant GPU infrastructure introduces forms of economic waste
+that are structurally invisible to conventional device-centric
+monitoring tools. We present a reproducible simulation study of six
+waste categories in virtualized GPU environments: (1) ghost allocations
+persisting after teardown, (2) contention squeeze on tenant arrival, (3)
+provisioning overhead during partition spin-up, (4) burst-to-sustained
+performance gaps under thermal throttling, (5) straggler tax in
+distributed training, and (6) oversubscription blind spots from silent
+resource exhaustion. We implement a parameterized simulation framework
+in Rust (<code>gpu-harness</code>) and execute 120,000 deterministic
+trials across the six categories with realistic noise injection matching
+NVML instrumentation characteristics. The simulation is fully
+reproducible: re-execution with seed 42 produces byte-identical output
+(SHA-256 verified).</p>
+<p>Across all categories, simulated effects are statistically
+significant after Holm-Bonferroni correction (all adjusted p &lt;
+1e-300). Effect sizes range from Cohen’s d_z = 0.73 (burst-to-sustained
+gap) to Cohen’s d = 8.55 (contention squeeze). The
+<code>gpu-roofline</code> measurement framework detects 56.5-100% of
+waste events across categories; modeled <code>nvidia-smi</code> and DCGM
+baselines detect 0% (McNemar p &lt; 1e-300 for all pairwise
+comparisons). Scenario-based cost projections estimate $8,171-$33,999
+per GPU per year of invisible waste depending on fleet scale, with
+bootstrap 95% CIs of [$8,149, $8,192] to [$33,809, $34,193].</p>
+<p>This paper contributes a structured taxonomy, a reproducible
+measurement framework, and a simulation benchmark. It does not claim
+that simulated magnitudes are final real-world measurements; hardware
+validation on bare-metal H100 systems is reserved for a follow-on
+study.</p>
+<h2 data-number="1.2" id="introduction"><span class="header-section-number">1.2</span> 1. Introduction</h2>
+<p>The rapid expansion of GPU-accelerated computing has made
+multi-tenant GPU virtualization a critical infrastructure layer.
+Technologies such as NVIDIA Multi-Instance GPU (MIG), GRID vGPU, and
+time-slicing enable cloud providers to partition expensive accelerators
+among multiple tenants. However, this partitioning introduces forms of
+economic waste that existing monitoring tools cannot observe.</p>
+<p>The fundamental limitation is architectural: <code>nvidia-smi</code>,
+NVIDIA DCGM, and similar tools report <em>instantaneous state</em> per
+device or per instance. They do not compute deltas across lifecycle
+transitions, cross-tenant comparisons, temporal degradation curves,
+fleet-level aggregates exceeding physical capacity, or distributed
+synchronization overhead. These are not bugs—they are structural
+constraints of tools designed for single-device health monitoring, not
+multi-tenant economic analysis.</p>
+<p>We identify and formalize six categories of invisible waste, each
+with a distinct mechanism and a distinct reason why current tools miss
+it:</p>
+<ol type="1">
+<li><strong>Ghost allocations:</strong> VRAM not reclaimed after vGPU
+destruction. <code>nvidia-smi</code> reports the instance as gone but
+does not verify that physical memory returned to baseline.</li>
+<li><strong>Contention squeeze:</strong> Existing tenants lose bandwidth
+when a new tenant provisions on a time-sliced GPU. Per-GPU utilization
+may remain at 100% while individual tenants experience degradation
+proportional to co-tenant count.</li>
+<li><strong>Provisioning overhead:</strong> MIG partition creation takes
+100-500ms of wall-clock time during which capacity is neither free nor
+usable. nvidia-smi reports instant state transitions because it queries
+after the command returns.</li>
+<li><strong>Burst-to-sustained gap:</strong> GPUs are priced at peak
+(burst) specifications, but sustained performance under thermal
+throttling is 1-20% lower depending on workload and cooling
+configuration.</li>
+<li><strong>Straggler tax:</strong> In data-parallel distributed
+training, one degraded GPU blocks N-1 others at synchronization
+barriers. Per-device monitoring provides no fleet-wide barrier
+analysis.</li>
+<li><strong>Oversubscription blind spots:</strong> Hypervisors can
+allocate more aggregate vGPU VRAM than physical capacity. Per-instance
+tools show each allocation succeeding individually, but no tool sums
+allocations against physical limits.</li>
+</ol>
+<h3 data-number="1.2.1" id="contributions"><span class="header-section-number">1.2.1</span> Contributions</h3>
+<ol type="1">
+<li>A six-category taxonomy of invisible waste in virtualized GPU
+systems, with formal definitions and mechanisms.</li>
+<li>A reproducible, deterministic simulation harness producing 120,000
+parameterized trials with realistic noise injection.</li>
+<li>Protocol-aligned statistical analyses using design-appropriate
+tests: Mann-Whitney U for independent groups, Wilcoxon signed-rank for
+paired measurements, with Holm-Bonferroni correction across omnibus
+comparisons.</li>
+<li>A provenance-preserving results package with SHA-256 hashes,
+software versions, and byte-identical rerun capability.</li>
+<li>A scenario-based cost model with bootstrap confidence intervals that
+prioritizes which waste categories merit hardware validation first.</li>
+</ol>
+<h3 data-number="1.2.2" id="scope-and-claim-boundary"><span class="header-section-number">1.2.2</span> Scope and Claim Boundary</h3>
+<p>This paper makes simulation-backed claims about the
+<em>detectability</em> and <em>relative magnitude</em> of each waste
+category under explicit modeling assumptions. It does not claim that the
+simulated magnitudes are final real-world fleet measurements. The cost
+model outputs are scenario analyses under explicit parameters
+($2.50/GPU/hr, specific fleet utilization assumptions), not direct
+market measurements. Hardware validation is deferred to a follow-on
+study.</p>
+<h2 data-number="1.3" id="background-and-related-work"><span class="header-section-number">1.3</span> 2. Background and Related
+Work</h2>
+<h3 data-number="1.3.1" id="gpu-virtualization-technologies"><span class="header-section-number">1.3.1</span> 2.1 GPU Virtualization
+Technologies</h3>
+<p>NVIDIA Multi-Instance GPU (MIG), introduced with the A100
+architecture, provides hardware-isolated partitions with dedicated
+compute, memory, and cache resources. NVIDIA GRID/vGPU enables
+time-sliced sharing where tenants alternate access to the full GPU. Both
+approaches are widely deployed in cloud infrastructure [1].</p>
+<h3 data-number="1.3.2" id="gpu-monitoring-and-observability"><span class="header-section-number">1.3.2</span> 2.2 GPU Monitoring and
+Observability</h3>
+<p>The standard GPU monitoring stack consists of <code>nvidia-smi</code>
+(NVML command-line interface) and NVIDIA Data Center GPU Manager (DCGM).
+Both tools provide per-device and per-instance metrics including
+utilization, memory consumption, temperature, and power. Neither tool
+computes lifecycle deltas, cross-tenant comparisons, or fleet-wide
+aggregates—capabilities that would be necessary to observe the waste
+categories identified in this study.</p>
+<h3 data-number="1.3.3" id="performance-measurement"><span class="header-section-number">1.3.3</span> 2.3 Performance
+Measurement</h3>
+<p>The roofline model [2] provides an analytical framework for
+understanding compute and memory bandwidth limits. Our
+<code>gpu-roofline</code> tool extends this with a dynamic roofline that
+captures burst versus sustained performance under thermal constraints,
+and a fleet-level extension for distributed training analysis.</p>
+<h3 data-number="1.3.4" id="gpu-power-and-thermal-modeling"><span class="header-section-number">1.3.4</span> 2.4 GPU Power and Thermal
+Modeling</h3>
+<p>Thermal throttling in modern GPUs follows well-characterized physics.
+Our simulation uses Newton’s law of cooling with empirically-calibrated
+parameters for each GPU profile (H100 SXM5, H200, RTX 5090, RTX 4090,
+MI300X). The power model maps workload intensity and thermal throttle
+factors to operating clock frequency and board power.</p>
+<h3 data-number="1.3.5" id="distributed-training-synchronization"><span class="header-section-number">1.3.5</span> 2.5 Distributed Training
+Synchronization</h3>
+<p>Data-parallel training requires all-reduce synchronization at
+gradient aggregation barriers. The slowest GPU determines effective
+throughput for the entire fleet [3]. Our straggler detection framework
+(<code>gpu-fleet::straggler</code>) measures per-GPU throughput,
+identifies outliers, and diagnoses root causes across five degradation
+types.</p>
+<h2 data-number="1.4" id="waste-taxonomy-and-measurement-model"><span class="header-section-number">1.4</span> 3. Waste Taxonomy and
+Measurement Model</h2>
+<h3 data-number="1.4.1" id="category-definitions"><span class="header-section-number">1.4.1</span> 3.1 Category Definitions</h3>
+<p>Each waste category is defined by: (a) the physical mechanism
+producing waste, (b) why existing tools miss it, and (c) what
+measurement capability is required for detection.</p>
+<p><strong>Category 1: Ghost Allocations.</strong> After vGPU teardown,
+VRAM may not be fully reclaimed by the driver. Detection requires
+capturing pre-teardown <code>nvmlDeviceGetMemoryInfo().used</code>,
+waiting for the instance to disappear, and polling post-teardown memory
+with a stabilization protocol until readings converge within 1 MiB. In
+the simulation, ghost bytes are injected as
+<code>Uniform(0, 1024 MiB)</code> for treatment trials and 0 for
+controls.</p>
+<p><strong>Category 2: Contention Squeeze.</strong> Under time-slicing,
+each tenant receives approximately 1/N of the GPU’s bandwidth, where N
+is the tenant count. Under MIG (hardware partitioning), each tenant
+receives a dedicated share with no contention. The simulation models
+per-tenant bandwidth ratios with Gaussian jitter (sigma = 2% of
+baseline).</p>
+<p><strong>Category 3: Provisioning Overhead.</strong> MIG partition
+creation incurs wall-clock latency that scales with profile size
+(120-450ms base) plus load-state penalties (0-80ms) and
+concurrent-partition penalties (15ms per existing partition). The
+simulation adds log-normal jitter (sigma = 0.3) to model real-world
+latency variation. This category uses a paired design: each trial
+measures both true spin-up latency and nvidia-smi reported latency
+(~0.5ms).</p>
+<p><strong>Category 4: Burst-to-Sustained Gap.</strong> The simulation
+uses a physics-based thermal model with per-GPU profile parameters.
+Burst performance is measured at ambient temperature; sustained
+performance is measured at thermal equilibrium (t = 3*tau, where tau is
+the thermal time constant). This category uses a paired within-subjects
+design: each trial compares burst and sustained measurements on the same
+simulated GPU.</p>
+<p><strong>Category 5: Straggler Tax.</strong> Fleet simulations inject
+degradation into one GPU (out of 8, 32, or 128) across five hardware
+failure modes at three severity levels. Effective fleet throughput
+equals min(all GPU throughputs) * N, and the straggler tax percentage
+quantifies the gap between effective and ideal throughput.</p>
+<p><strong>Category 6: Oversubscription Blind Spots.</strong> The
+simulation allocates vGPU instances at overcommit ratios of 1.0x
+(control), 1.25x, 1.5x, and 2.0x across 2-16 instances. Performance
+degradation is modeled as (1 - 1/ratio) * 100% when ratio &gt; 1.0.</p>
+<h3 data-number="1.4.2" id="noise-model"><span class="header-section-number">1.4.2</span> 3.2 Noise Model</h3>
+<p>All simulations include realistic measurement noise matching
+real-world NVML instrumentation characteristics:</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 23%" />
+<col style="width: 26%" />
+</colgroup>
+<thead>
+<tr>
+<th>Noise Source</th>
+<th>Distribution</th>
+<th>Parameters</th>
+<th>Justification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NVML memory readings</td>
+<td>Gaussian</td>
+<td>sigma = 512 KiB</td>
+<td>NVML quantization and timing jitter</td>
+</tr>
+<tr>
+<td>Spin-up latency</td>
+<td>Log-normal</td>
+<td>sigma = 0.3</td>
+<td>Right-skewed latency distributions</td>
+</tr>
+<tr>
+<td>Bandwidth measurement</td>
+<td>Gaussian</td>
+<td>sigma = 2% of baseline</td>
+<td>Memory subsystem variation</td>
+</tr>
+<tr>
+<td>Background memory spikes</td>
+<td>Poisson × Uniform</td>
+<td>lambda = 0.01, range 1-64 MiB</td>
+<td>Kernel driver allocations</td>
+</tr>
+<tr>
+<td>Thermal readings</td>
+<td>Gaussian</td>
+<td>sigma = 1.0°C</td>
+<td>Sensor precision</td>
+</tr>
+<tr>
+<td>Fleet performance</td>
+<td>Gaussian</td>
+<td>sigma = 2% of peak</td>
+<td>Manufacturing variation</td>
+</tr>
+</tbody>
+</table>
+<h3 data-number="1.4.3" id="detection-model"><span class="header-section-number">1.4.3</span> 3.3 Detection Model</h3>
+<p>For each trial, three detection outcomes are recorded:</p>
+<ul>
+<li><strong>gpu-roofline detected:</strong> The purpose-built detection
+mechanism fires (e.g., ghost bytes &gt; 1 MiB threshold, contention drop
+&gt; 5%, spin-up latency &gt; 10ms, gap &gt; 1%, straggler below 90th
+percentile threshold, or overcommit ratio &gt; 1.0).</li>
+<li><strong>nvidia-smi detected:</strong> Modeled as 0% for all
+categories except oversubscription (which is also 0% since nvidia-smi
+reports per-instance only).</li>
+<li><strong>DCGM detected:</strong> Modeled identically to nvidia-smi
+for these waste categories.</li>
+</ul>
+<p>The tool visibility model reflects the architectural limitations of
+device-centric monitoring, not implementation bugs. A reviewer should
+note that these detection rates are <em>modeled</em> based on tool
+capabilities, not measured against live tool output.</p>
+<h2 data-number="1.5" id="simulation-infrastructure-and-experimental-design"><span class="header-section-number">1.5</span> 4. Simulation Infrastructure
+and Experimental Design</h2>
+<h3 data-number="1.5.1" id="implementation"><span class="header-section-number">1.5.1</span> 4.1 Implementation</h3>
+<p>The simulation is implemented in Rust as part of the
+<code>gpu-harness</code> crate. The binary <code>study_sim</code>
+accepts three parameters: <code>--scale</code> (default 1.0, producing
+120,000 trials), <code>--seed</code> (default 42), and
+<code>--out</code> (output path). The simulation runs in 0.4 seconds on
+commodity hardware and produces byte-identical JSON output for a given
+seed.</p>
+<p>Key implementation modules:</p>
+<table>
+<colgroup>
+<col style="width: 27%" />
+<col style="width: 51%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>Module</th>
+<th>Responsibility</th>
+<th>Size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>study::runner</code></td>
+<td>Orchestrates all 6 categories, emits per-trial JSON</td>
+<td>838 lines</td>
+</tr>
+<tr>
+<td><code>study::scenarios</code></td>
+<td>Parameterized trial generators per category</td>
+<td>872 lines</td>
+</tr>
+<tr>
+<td><code>study::noise</code></td>
+<td>Noise injection matching protocol Section 14.3</td>
+<td>150 lines</td>
+</tr>
+<tr>
+<td><code>study::stats</code></td>
+<td>Mann-Whitney U, bootstrap BCa, Holm-Bonferroni</td>
+<td>511 lines</td>
+</tr>
+<tr>
+<td><code>study::cost_model</code></td>
+<td>Parametric economic projections at 3 fleet scales</td>
+<td>246 lines</td>
+</tr>
+<tr>
+<td><code>sim::gpu_model</code></td>
+<td>GPU profile definitions (H100, H200, RTX 5090, etc.)</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>sim::power</code></td>
+<td>Power and clock frequency model</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>sim::thermal</code></td>
+<td>Newton’s law of cooling with throttle factors</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>sim::fleet</code></td>
+<td>Multi-GPU fleet with degradation injection</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3 data-number="1.5.2" id="trial-structure"><span class="header-section-number">1.5.2</span> 4.2 Trial Structure</h3>
+<p>Each trial record contains:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;trial_id&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;category&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;category_name&quot;</span><span class="fu">:</span> <span class="st">&quot;ghost_allocation&quot;</span><span class="fu">,</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;arm&quot;</span><span class="fu">:</span> <span class="st">&quot;treatment&quot;</span><span class="fu">,</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;condition&quot;</span><span class="fu">:</span> <span class="st">&quot;under_load_2g.20gb&quot;</span><span class="fu">,</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;primary_metric_name&quot;</span><span class="fu">:</span> <span class="st">&quot;ghost_bytes_measured&quot;</span><span class="fu">,</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;primary_metric_value&quot;</span><span class="fu">:</span> <span class="fl">536350426.50</span><span class="fu">,</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;control_metric_name&quot;</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;control_metric_value&quot;</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;independent_variables&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;teardown_method&quot;</span><span class="fu">:</span> <span class="st">&quot;under_load&quot;</span><span class="fu">,</span> <span class="er">...</span> <span class="fu">},</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;dependent_variables&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;ghost_bytes_injected&quot;</span><span class="fu">:</span> <span class="er">...</span><span class="fu">,</span> <span class="er">...</span> <span class="fu">},</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;ground_truth_waste&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;gpu_roofline_detected&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;nvidia_smi_detected&quot;</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;dcgm_detected&quot;</span><span class="fu">:</span> <span class="kw">false</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h3 data-number="1.5.3" id="experimental-design-per-category"><span class="header-section-number">1.5.3</span> 4.3 Experimental Design Per
+Category</h3>
+<table>
+<colgroup>
+<col style="width: 18%" />
+<col style="width: 5%" />
+<col style="width: 15%" />
+<col style="width: 11%" />
+<col style="width: 20%" />
+<col style="width: 28%" />
+</colgroup>
+<thead>
+<tr>
+<th>Category</th>
+<th>N</th>
+<th>Design</th>
+<th>Arms</th>
+<th>Conditions</th>
+<th>Primary Metric</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ghost allocations</td>
+<td>20,000</td>
+<td>Independent groups</td>
+<td>Treatment / Control</td>
+<td>3 teardown × 3 MIG + 3 control</td>
+<td>ghost_bytes_measured</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>20,000</td>
+<td>Independent groups</td>
+<td>Treatment / Control</td>
+<td>3 tenant counts + 1 baseline + 4 MIG</td>
+<td>bandwidth_loss_pct</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>20,000</td>
+<td>Paired (within-trial)</td>
+<td>Paired</td>
+<td>5 profiles × 3 loads × up to 4 concurrent</td>
+<td>spin_up_latency_ms vs nvidia_smi_reported_ms</td>
+</tr>
+<tr>
+<td>Burst-sustained gap</td>
+<td>20,000</td>
+<td>Paired (within-trial)</td>
+<td>Paired</td>
+<td>5 GPU profiles × 3 workloads</td>
+<td>gap_pct vs ideal 0%</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>20,000</td>
+<td>Independent groups</td>
+<td>Treatment / Control</td>
+<td>5 degrade types × 3 severity × 3 fleet sizes + 3 controls</td>
+<td>straggler_tax_pct</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>20,000</td>
+<td>Independent groups</td>
+<td>Treatment / Control</td>
+<td>3 ratios × 4 instances + 4 controls</td>
+<td>performance_degradation_pct</td>
+</tr>
+</tbody>
+</table>
+<h3 data-number="1.5.4" id="statistical-analysis-plan"><span class="header-section-number">1.5.4</span> 4.4 Statistical Analysis
+Plan</h3>
+<p>The primary statistical test is selected based on the experimental
+design of each category:</p>
+<ul>
+<li><strong>Independent groups</strong> (Categories 1, 2, 5, 6):
+Mann-Whitney U test (one-sided, treatment &gt; control). Effect size:
+rank-biserial correlation <em>r</em> and Cohen’s <em>d</em>.</li>
+<li><strong>Paired measurements</strong> (Categories 3, 4): Wilcoxon
+signed-rank test (one-sided, actual &gt; reported/ideal). Effect size:
+matched-pairs rank-biserial <em>r</em> and Cohen’s <em>d_z</em>
+(standardized by SD of within-pair differences).</li>
+</ul>
+<p>All six omnibus p-values are corrected for multiplicity using the
+Holm-Bonferroni step-down procedure (family-wise alpha = 0.05).</p>
+<p>Supplementary per-category analyses include: - <strong>Category
+1:</strong> Per-condition Mann-Whitney U with Holm correction across 9
+comparisons. - <strong>Category 2:</strong> Friedman test across tenant
+counts; pairwise Wilcoxon signed-rank with Holm correction; Wilcoxon
+time-sliced vs MIG at each tenant count. - <strong>Category 3:</strong>
+Paired t-test (actual vs reported latency); Kruskal-Wallis across load
+states; linear regression of latency on concurrent partition count. -
+<strong>Category 4:</strong> Paired t-test (gap vs ideal);
+Kruskal-Wallis across workload types. - <strong>Category 5:</strong>
+Mann-Whitney U treatment vs control; Kruskal-Wallis across fleet sizes;
+linear regression of tax on severity. - <strong>Category 6:</strong>
+Mann-Whitney U treatment vs control; linear regression of degradation on
+overcommit ratio; Kruskal-Wallis across instance counts.</p>
+<p>Bootstrap 95% confidence intervals (10,000 resamples, BCa-adjusted
+for the Rust implementation, percentile for the Python analysis) are
+computed for the median difference in each category.</p>
+<p>Detection performance comparison across tools uses McNemar’s exact
+binomial test for paired proportions on the same waste events.</p>
+<h2 data-number="1.6" id="results"><span class="header-section-number">1.6</span> 5. Results</h2>
+<h3 data-number="1.6.1" id="cross-category-omnibus-results"><span class="header-section-number">1.6.1</span> 5.1 Cross-Category Omnibus
+Results</h3>
+<p>All six waste categories produce statistically significant effects
+after Holm-Bonferroni correction (Table 3). Effect sizes are uniformly
+large, ranging from d_z = 0.73 (burst-to-sustained gap, the most subtle
+category) to d = 8.55 (contention squeeze, the most dramatic).</p>
+<p><strong>Table 3. Cross-Category Omnibus Statistical
+Tests</strong></p>
+<table>
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 8%" />
+<col style="width: 14%" />
+<col style="width: 12%" />
+<col style="width: 7%" />
+<col style="width: 8%" />
+<col style="width: 9%" />
+<col style="width: 3%" />
+<col style="width: 8%" />
+</colgroup>
+<thead>
+<tr>
+<th>Category</th>
+<th>N (a)</th>
+<th>N (b)</th>
+<th>Design</th>
+<th>Primary Test</th>
+<th>Statistic</th>
+<th>Raw p</th>
+<th>Holm p</th>
+<th>d / d_z</th>
+<th>r</th>
+<th>95% CI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ghost allocations</td>
+<td>10,000</td>
+<td>10,000</td>
+<td>independent</td>
+<td>Mann-Whitney U</td>
+<td>99,937,086</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>2.46</td>
+<td>1.00</td>
+<td>[527M, 545M] bytes</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>10,000</td>
+<td>10,000</td>
+<td>independent</td>
+<td>Mann-Whitney U</td>
+<td>100,000,000</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>8.55</td>
+<td>1.00</td>
+<td>[66.61, 66.68]%</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>20,000</td>
+<td>20,000</td>
+<td>paired</td>
+<td>Wilcoxon signed-rank</td>
+<td>200,010,000</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>2.01</td>
+<td>1.00</td>
+<td>[244.3, 248.3] ms</td>
+</tr>
+<tr>
+<td>Burst-sustained gap</td>
+<td>20,000</td>
+<td>20,000</td>
+<td>paired</td>
+<td>Wilcoxon signed-rank</td>
+<td>87,021,028</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>0.73</td>
+<td>1.00</td>
+<td>[1.63, 1.77]%</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>10,000</td>
+<td>10,000</td>
+<td>independent</td>
+<td>Mann-Whitney U</td>
+<td>99,805,998</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>2.46</td>
+<td>1.00</td>
+<td>[14.56, 15.09]%</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>10,000</td>
+<td>10,000</td>
+<td>independent</td>
+<td>Mann-Whitney U</td>
+<td>100,000,000</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>3.97</td>
+<td>1.00</td>
+<td>[33.33, 33.33]%</td>
+</tr>
+</tbody>
+</table>
+<p><em>Note: p-values are extremely small due to large sample sizes
+(N=10,000-20,000 per group). The effect sizes and confidence intervals
+are the more informative measures.</em></p>
+<h3 data-number="1.6.2" id="hypothesis-testing-summary"><span class="header-section-number">1.6.2</span> 5.2 Hypothesis Testing
+Summary</h3>
+<p><strong>H1 (Waste exists across all categories):</strong> Supported.
+All six categories show statistically significant treatment effects with
+large standardized effect sizes (all d/d_z &gt; 0.73). The weakest
+category (burst-to-sustained gap, d_z = 0.73) still qualifies as a
+“medium-to-large” effect by conventional benchmarks.</p>
+<p><strong>H2 (Existing tools miss &gt;80% of waste):</strong>
+Supported. Across all categories, modeled <code>nvidia-smi</code> and
+DCGM detection rates are 0.0%, while <code>gpu-roofline</code> achieves
+56.5-100% detection rates. McNemar’s test confirms the difference is
+significant (p &lt; 1e-300) for all tool comparisons. The weakest
+detection rate for <code>gpu-roofline</code> is 56.5% for the
+burst-to-sustained gap, where small gaps (&lt; 1% threshold) are
+missed.</p>
+<p><strong>H3 (Economic cost &gt; $0):</strong> Supported. Bootstrap 95%
+CI lower bounds for annual waste per GPU are $8,149 (8-GPU fleet),
+$21,215 (100-GPU fleet), and $33,809 (10,000-GPU fleet), all well above
+zero.</p>
+<h3 data-number="1.6.3" id="detection-performance"><span class="header-section-number">1.6.3</span> 5.3 Detection
+Performance</h3>
+<p><strong>Table 2. Detection Rates by Tool Across All 6 Waste
+Categories</strong></p>
+<table>
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 16%" />
+<col style="width: 8%" />
+<col style="width: 19%" />
+<col style="width: 40%" />
+</colgroup>
+<thead>
+<tr>
+<th>Category</th>
+<th>nvidia-smi</th>
+<th>DCGM</th>
+<th>gpu-roofline</th>
+<th>McNemar p (smi vs roofline)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ghost allocations</td>
+<td>0.0%</td>
+<td>0.0%</td>
+<td>99.9%</td>
+<td>&lt;1e-300</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>0.0%</td>
+<td>0.0%</td>
+<td>100.0%</td>
+<td>&lt;1e-300</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>0.0%</td>
+<td>0.0%</td>
+<td>100.0%</td>
+<td>&lt;1e-300</td>
+</tr>
+<tr>
+<td>Burst-sustained gap</td>
+<td>0.0%</td>
+<td>0.0%</td>
+<td>56.5%</td>
+<td>&lt;1e-300</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>0.0%</td>
+<td>0.0%</td>
+<td>94.7%</td>
+<td>&lt;1e-300</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>0.0%</td>
+<td>0.0%</td>
+<td>100.0%</td>
+<td>&lt;1e-300</td>
+</tr>
+<tr>
+<td><strong>Overall</strong></td>
+<td><strong>0.0%</strong></td>
+<td><strong>0.0%</strong></td>
+<td><strong>88.4%</strong></td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3 data-number="1.6.4" id="operational-impact-three-action-buckets"><span class="header-section-number">1.6.4</span> 5.4 Operational Impact: Three
+Action Buckets</h3>
+<p>The six waste categories map to three distinct types of operational
+action that visibility enables. These categories are <strong>not
+additive</strong> — they apply to different fractions of GPU operating
+time and cannot be summed into a single dollar figure.</p>
+<p><strong>Bucket A — Directly Recoverable Capacity</strong></p>
+<table>
+<colgroup>
+<col style="width: 23%" />
+<col style="width: 45%" />
+<col style="width: 30%" />
+</colgroup>
+<thead>
+<tr>
+<th>Category</th>
+<th>Per-Event Magnitude</th>
+<th>Fleet Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ghost allocations</td>
+<td>512 MiB trapped per teardown</td>
+<td>~10 GiB/day freed per GPU at 20 teardowns/day</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>19.1% fleet throughput lost per straggler</td>
+<td>16.7% fleet capacity wasted in 8-GPU training job</td>
+</tr>
+</tbody>
+</table>
+<p>Ghost allocations trap VRAM that could host additional tenant
+instances. Detecting and reclaiming ghost memory after each teardown
+directly frees sellable capacity. Straggler detection identifies
+degraded GPUs that are silently blocking N-1 healthy GPUs at
+synchronization barriers in distributed training. Replacing or
+reassigning a single straggler in an 8-GPU job recovers 16.7% of fleet
+throughput.</p>
+<p><strong>Bucket B — Decision Support (physics-driven)</strong></p>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 39%" />
+<col style="width: 39%" />
+</colgroup>
+<thead>
+<tr>
+<th>Category</th>
+<th>Per-Event Magnitude</th>
+<th>What Operators Gain</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Contention squeeze</td>
+<td>50-75% bandwidth loss at 2-4 tenants (time-sliced)</td>
+<td>Data to choose MIG vs time-slicing; price per-tenant correctly</td>
+</tr>
+<tr>
+<td>Burst-sustained gap</td>
+<td>1.7% median gap (H100); 1-16% range by workload</td>
+<td>Set honest SLAs; avoid overcommitting on advertised specs</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>246 ms per MIG provision</td>
+<td>Economically negligible (&lt;$1/GPU/yr)</td>
+</tr>
+</tbody>
+</table>
+<p>Contention is the inherent cost of time-slicing — it cannot be
+eliminated. But without visibility, operators cannot make informed
+decisions about when to use MIG (hardware isolation, no contention)
+versus time-slicing (more tenants, higher revenue per GPU, but shared
+bandwidth). The burst-sustained gap is thermal physics: GPUs throttle
+under sustained load. Knowing the actual gap for each GPU model and
+workload enables accurate SLA commitments instead of advertising peak
+specs that sustained workloads cannot achieve.</p>
+<p><strong>Bucket C — Risk Prevention</strong></p>
+<table>
+<colgroup>
+<col style="width: 23%" />
+<col style="width: 45%" />
+<col style="width: 30%" />
+</colgroup>
+<thead>
+<tr>
+<th>Category</th>
+<th>Per-Event Magnitude</th>
+<th>Risk Avoided</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Oversubscription</td>
+<td>33.3% performance degradation at 1.5x overcommit</td>
+<td>Detect before tenants experience silent degradation; prevent crash
+risk at 2x+</td>
+</tr>
+</tbody>
+</table>
+<p>Oversubscription occurs when aggregate vGPU VRAM allocations exceed
+physical GPU capacity. Without monitoring, this is invisible — each
+tenant’s allocation appears successful individually. Detection enables
+operators to enforce capacity limits before tenants experience
+unexplained performance loss or out-of-memory failures.</p>
+<p><strong>Cost Model Bootstrap 95% CIs:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Fleet Scale</th>
+<th>Point Estimate ($/GPU/yr)</th>
+<th>95% CI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>8-GPU</td>
+<td>$8,171</td>
+<td>[$8,149, $8,192]</td>
+</tr>
+<tr>
+<td>100-GPU</td>
+<td>$21,304</td>
+<td>[$21,215, $21,389]</td>
+</tr>
+<tr>
+<td>10,000-GPU</td>
+<td>$33,999</td>
+<td>[$33,809, $34,193]</td>
+</tr>
+</tbody>
+</table>
+<p>The narrow confidence intervals reflect the large sample size
+(120,000 trials) and the deterministic structure of the cost model. They
+should not be interpreted as precision about real-world costs—the
+uncertainty in fleet-scale operating parameters (teardown frequency,
+tenant count, utilization hours) likely dominates.</p>
+<h2 data-number="1.7" id="sensitivity-analysis-and-threats-to-validity"><span class="header-section-number">1.7</span> 6. Sensitivity Analysis and
+Threats to Validity</h2>
+<h3 data-number="1.7.1" id="parameter-sensitivity"><span class="header-section-number">1.7.1</span> 6.1 Parameter
+Sensitivity</h3>
+<p>A one-at-a-time sensitivity analysis varies each cost model input
+parameter by ±10% and reports the impact on the 100-GPU fleet total. The
+most sensitive parameters are contention bandwidth loss, straggler tax
+percentage, and oversubscription waste percentage. Full results are
+reported in Table S4 of the supplement.</p>
+<h3 data-number="1.7.2" id="internal-validity"><span class="header-section-number">1.7.2</span> 6.2 Internal Validity</h3>
+<p><strong>Simulation fidelity.</strong> The noise model parameters
+(memory jitter sigma, latency log-sigma, bandwidth relative sigma) are
+based on instrumentation characteristics reported in NVIDIA
+documentation, but have not been empirically calibrated against hardware
+measurements. The thermal model uses Newton’s law of cooling with
+published TDP and thermal specifications but has not been validated
+against measured temperature trajectories.</p>
+<p><strong>Detection model.</strong> The 0% detection rate for
+nvidia-smi and DCGM is based on architectural analysis of tool
+capabilities, not empirical measurement. A more nuanced evaluation
+against live tool output may reveal edge cases where these tools provide
+partial visibility.</p>
+<h3 data-number="1.7.3" id="external-validity"><span class="header-section-number">1.7.3</span> 6.3 External Validity</h3>
+<p><strong>Generalizability.</strong> Results are specific to the
+simulated GPU profiles (H100, H200, RTX 5090, RTX 4090, MI300X) and the
+modeled workload characteristics. Real-world workloads exhibit more
+diversity than the three workload types simulated (compute-bound,
+memory-bound, mixed).</p>
+<p><strong>Fleet parameters.</strong> The cost model assumes specific
+operational parameters (teardowns per day, average tenants, utilization
+hours, etc.) that vary across providers and deployment contexts. The
+sensitivity analysis partially addresses this, but users should
+substitute their own parameters for fleet-specific projections.</p>
+<h3 data-number="1.7.4" id="construct-validity"><span class="header-section-number">1.7.4</span> 6.4 Construct Validity</h3>
+<p><strong>Waste definition.</strong> We define waste as GPU capacity
+that is economically allocated but not productively utilized due to
+virtualization mechanisms. This definition excludes intentional
+overprovisioning, scheduling headroom, and maintenance windows. A
+broader definition might yield different magnitudes.</p>
+<h3 data-number="1.7.5" id="statistical-conclusion-validity"><span class="header-section-number">1.7.5</span> 6.5 Statistical Conclusion
+Validity</h3>
+<p><strong>Effect size inflation.</strong> With 10,000-20,000
+observations per group, even trivially small effects achieve statistical
+significance. We therefore emphasize effect sizes and confidence
+intervals over p-values throughout. Readers should evaluate the
+practical significance of each category’s median effect against their
+operational context.</p>
+<p><strong>Multiple comparisons.</strong> The six omnibus comparisons
+are Holm-Bonferroni corrected. Per-category supplementary analyses use
+category-appropriate corrections. The family-wise error rate is
+controlled at alpha = 0.05 for each analysis level.</p>
+<h2 data-number="1.8" id="reproducibility-package"><span class="header-section-number">1.8</span> 7. Reproducibility Package</h2>
+<h3 data-number="1.8.1" id="artifact-inventory"><span class="header-section-number">1.8.1</span> 7.1 Artifact Inventory</h3>
+<table>
+<colgroup>
+<col style="width: 40%" />
+<col style="width: 24%" />
+<col style="width: 36%" />
+</colgroup>
+<thead>
+<tr>
+<th>Artifact</th>
+<th>Path</th>
+<th>SHA-256</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Raw simulation data (120K trials)</td>
+<td><code>raw/simulation-raw.json</code></td>
+<td><code>e386a3d5...</code></td>
+</tr>
+<tr>
+<td>Summary tables</td>
+<td><code>derived/summary.md</code></td>
+<td><code>47d1d322...</code></td>
+</tr>
+<tr>
+<td>Supplementary tables</td>
+<td><code>derived/supplement.md</code></td>
+<td><code>f62be1cb...</code></td>
+</tr>
+<tr>
+<td>Machine-readable results</td>
+<td><code>derived/analysis-results.json</code></td>
+<td><code>4a254a35...</code></td>
+</tr>
+<tr>
+<td>Provenance record</td>
+<td><code>derived/provenance.json</code></td>
+<td>verified</td>
+</tr>
+<tr>
+<td>Source snapshot</td>
+<td><code>source_snapshot/</code></td>
+<td>per-file hashes</td>
+</tr>
+<tr>
+<td>SHA-256 manifest</td>
+<td><code>SHA256SUMS.txt</code></td>
+<td>self-verifying</td>
+</tr>
+</tbody>
+</table>
+<h3 data-number="1.8.2" id="rerun-commands"><span class="header-section-number">1.8.2</span> 7.2 Rerun Commands</h3>
+<p><strong>Simulation (produces byte-identical JSON):</strong></p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="va">CARGO_TARGET_DIR</span><span class="op">=</span>D:/cargo-target/gpu-tools <span class="dt">\</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="ex">cargo</span> run <span class="at">-p</span> gpu-harness <span class="at">--release</span> <span class="at">--bin</span> study_sim <span class="at">--</span> <span class="dt">\</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--out</span> docs/study-results/simulation-raw.json</span></code></pre></div>
+<p><strong>Analysis (requires Python 3.11+, numpy, pandas,
+scipy):</strong></p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> scripts/analyze_study.py <span class="dt">\</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--input</span> docs/study-results/simulation-raw.json <span class="dt">\</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--output-root</span> D:/study-output <span class="dt">\</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--repo-root</span> . <span class="dt">\</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">--bootstrap-resamples</span> 10000 <span class="dt">\</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">--seed</span> 42</span></code></pre></div>
+<h3 data-number="1.8.3" id="software-versions"><span class="header-section-number">1.8.3</span> 7.3 Software Versions</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Version</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rust</td>
+<td>1.93.0 (cargo)</td>
+</tr>
+<tr>
+<td>Python</td>
+<td>3.11.4</td>
+</tr>
+<tr>
+<td>numpy</td>
+<td>2.4.3</td>
+</tr>
+<tr>
+<td>pandas</td>
+<td>3.0.1</td>
+</tr>
+<tr>
+<td>scipy</td>
+<td>1.17.1</td>
+</tr>
+<tr>
+<td>Platform</td>
+<td>Windows 10 Pro 10.0.19045</td>
+</tr>
+</tbody>
+</table>
+<h2 data-number="1.9" id="conclusion-and-hardware-validation-roadmap"><span class="header-section-number">1.9</span> 8. Conclusion and Hardware
+Validation Roadmap</h2>
+<p>We have presented a reproducible simulation study demonstrating that
+six categories of invisible waste exist in multi-tenant GPU virtualized
+environments, that these categories are measurable with purpose-built
+instrumentation, and that existing monitoring tools provide no
+visibility into them. The economic impact, while model-dependent, is
+substantial: even the most conservative estimate ($8,149/GPU/year for a
+small 8-GPU fleet) suggests that invisible waste is a meaningful
+operational cost that merits active monitoring.</p>
+<h3 data-number="1.9.1" id="priority-ordering-for-hardware-validation"><span class="header-section-number">1.9.1</span> Priority Ordering for
+Hardware Validation</h3>
+<p>The simulation results suggest the following priority order for
+bare-metal validation:</p>
+<ol type="1">
+<li><strong>Contention squeeze</strong> — Largest per-GPU cost
+($9,124/yr), extremely large effect size (d=8.55), 100% detection rate.
+Validate by measuring per-tenant bandwidth before and after tenant
+arrival on time-sliced H100.</li>
+<li><strong>Straggler tax</strong> — Second-largest cost ($5,518/yr),
+strong detection (94.7%). Validate by injecting degradation into one GPU
+in a real distributed training cluster.</li>
+<li><strong>Oversubscription</strong> — Third-largest cost ($3,650/yr),
+100% detection. Validate by overcommitting vGPU VRAM allocations and
+measuring performance degradation.</li>
+<li><strong>Ghost allocations</strong> — Moderate cost ($2,733/yr),
+99.9% detection. Validate by cycling MIG teardowns and measuring NVML
+memory deltas.</li>
+<li><strong>Burst-sustained gap</strong> — Moderate cost ($278/yr),
+lowest detection rate (56.5%). Validate by measuring H100 TFLOPS at cold
+start vs thermal equilibrium.</li>
+<li><strong>Provisioning overhead</strong> — Negligible cost
+(&lt;$1/yr). Low priority for hardware validation, though latency
+measurements are straightforward.</li>
+</ol>
+<h3 data-number="1.9.2" id="hardware-phase-design"><span class="header-section-number">1.9.2</span> Hardware Phase Design</h3>
+<p>The follow-on study will execute 1,200 hardware trials on bare-metal
+H100 SXM5 systems following the same measurement protocol. Table S3
+(simulation-vs-hardware effect size comparison) is reserved for that
+publication. The target venue for the hardware validation paper is IEEE
+Transactions on Parallel and Distributed Systems (TPDS).</p>
+<h3 data-number="1.9.3" id="open-source-availability"><span class="header-section-number">1.9.3</span> Open-Source Availability</h3>
+<p>The <code>gpu-roofline</code> measurement framework, simulation
+harness, and analysis pipeline are available as open-source Rust and
+Python code. The framework produces a single statically-linked binary
+(&lt;10 MB) suitable for deployment alongside existing GPU monitoring
+infrastructure.</p>
+<hr />
+<h2 data-number="1.10" id="references"><span class="header-section-number">1.10</span> References</h2>
+<p>[1] NVIDIA, “Multi-Instance GPU User Guide,” NVIDIA Documentation,
+2024.</p>
+<p>[2] S. Williams, A. Waterman, and D. Patterson, “Roofline: an
+insightful visual performance model for multicore architectures,”
+<em>Communications of the ACM</em>, vol. 52, no. 4, pp. 65-76, 2009.</p>
+<p>[3] A. Harlap et al., “Addressing the straggler problem for iterative
+convergent parallel ML,” <em>SoCC</em>, 2016.</p>
+<hr />
+<p><em>Supplementary tables (S1-S5) are available in
+<code>docs/study-results/supplement.md</code>. Full trial-level data,
+provenance chain, and SHA-256 manifest are archived in the study results
+package.</em></p>
+<hr />
+<h1 data-number="2" id="appendix-a-simulation-dataset-and-results-tables"><span class="header-section-number">2</span> Appendix A: Simulation Dataset
+and Results Tables</h1>
+<h2 data-number="2.1" id="simulation-dataset"><span class="header-section-number">2.1</span> Simulation Dataset</h2>
+<ul>
+<li>Input: <code>D:/study-output-v4/raw/simulation-raw.json</code></li>
+<li>Phase: <code>simulation</code></li>
+<li>Protocol version: <code>1.0</code></li>
+<li>Seed: <code>42</code></li>
+<li>Total trials: <code>120000</code></li>
+<li>Target trials/category: <code>20000</code></li>
+<li>Claim framing: simulation evidence, modeled tool visibility, and
+scenario-based economic impact. Hardware validation remains future
+work.</li>
+</ul>
+<h2 data-number="2.2" id="table-1.-what-visibility-enables-three-action-buckets"><span class="header-section-number">2.2</span> Table 1. What Visibility
+Enables — Three Action Buckets</h2>
+<p>Each waste category maps to a different type of operational action.
+These are NOT additive — they apply to different fractions of GPU
+operating time.</p>
+<p><strong>Bucket A — Directly Recoverable:</strong> Capacity that can
+be freed or hardware that can be replaced once the problem is
+detected.</p>
+<p><strong>Bucket B — Decision Support:</strong> Physics you cannot
+change, but knowing the numbers lets you choose MIG vs time-slicing,
+price per-tenant correctly, and plan capacity.</p>
+<p><strong>Bucket C — Risk Prevention:</strong> Silent degradation you
+can detect and stop before it impacts tenants.</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr>
+<th>Bucket</th>
+<th>Category</th>
+<th>What Visibility Gives You</th>
+<th>Per-Event Magnitude</th>
+<th>Per-GPU Impact (example)</th>
+<th>Fleet Multiplier</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A: Directly Recoverable</td>
+<td>Ghost allocations</td>
+<td>Free trapped VRAM for new tenants</td>
+<td>512 MiB trapped/teardown</td>
+<td>10224 MiB freed/day @ 20 teardowns</td>
+<td>Linear with teardown frequency</td>
+</tr>
+<tr>
+<td>A: Directly Recoverable</td>
+<td>Straggler tax</td>
+<td>Identify and replace degraded GPUs</td>
+<td>19.1% fleet throughput lost per straggler</td>
+<td>16.7% fleet capacity wasted in 8-GPU job</td>
+<td>Multiplies with fleet size (N-1 GPUs idle at barrier)</td>
+</tr>
+<tr>
+<td>B: Decision Support</td>
+<td>Contention squeeze</td>
+<td>Choose MIG vs time-slicing; price per-tenant correctly</td>
+<td>66.7% bandwidth loss at median tenant count</td>
+<td>~50% loss at 2 tenants, ~67% at 3, ~75% at 4 (time-sliced)</td>
+<td>Per-GPU; scales with multi-tenancy ratio</td>
+</tr>
+<tr>
+<td>B: Decision Support</td>
+<td>Burst-sustained gap</td>
+<td>Set honest SLAs; avoid overcommitting on specs</td>
+<td>1.7% below advertised peak (H100 median)</td>
+<td>1-16% depending on workload type and GPU model</td>
+<td>Per-GPU; higher for consumer GPUs with weaker cooling</td>
+</tr>
+<tr>
+<td>B: Decision Support</td>
+<td>Provisioning overhead</td>
+<td>Measure dead time during MIG partition creation</td>
+<td>246 ms per provision event</td>
+<td>Economically negligible (&lt;$1/GPU/yr)</td>
+<td>Linear with provision frequency</td>
+</tr>
+<tr>
+<td>C: Risk Prevention</td>
+<td>Oversubscription</td>
+<td>Detect before tenants experience silent degradation</td>
+<td>33.3% degradation when overcommitted</td>
+<td>33% perf loss at 1.5x overcommit; crash risk at 2x</td>
+<td>Per-GPU; risk compounds with instance count</td>
+</tr>
+</tbody>
+</table>
+<h2 data-number="2.3" id="table-2.-detection-rates-by-tool-across-all-6-waste-categories"><span class="header-section-number">2.3</span> Table 2. Detection Rates by
+Tool Across All 6 Waste Categories</h2>
+<p>The core finding: <code>nvidia-smi</code> and DCGM provide
+<strong>zero visibility</strong> into all six waste categories.
+<code>gpu-roofline</code> detects 56.5–100% of waste events across
+categories.</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr>
+<th>Category</th>
+<th>nvidia-smi Detection Rate</th>
+<th>DCGM Detection Rate</th>
+<th>gpu-roofline Detection Rate</th>
+<th>McNemar p (smi vs roofline)</th>
+<th>McNemar p (dcgm vs roofline)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ghost allocations</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>99.9</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>100.0</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>100.0</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>56.5</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>94.7</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>100.0</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+</tr>
+<tr>
+<td>Overall</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>88.4</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+</tr>
+</tbody>
+</table>
+<h2 data-number="2.4" id="table-3.-cross-category-omnibus-statistical-tests"><span class="header-section-number">2.4</span> Table 3. Cross-Category Omnibus
+Statistical Tests</h2>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+</colgroup>
+<thead>
+<tr>
+<th>Category</th>
+<th>N (a)</th>
+<th>N (b)</th>
+<th>Design</th>
+<th>Primary Test</th>
+<th>Metric</th>
+<th>Median (a)</th>
+<th>Median (b)</th>
+<th>Statistic</th>
+<th>Raw p-value</th>
+<th>Holm p-value</th>
+<th>Cohen’s d / d_z</th>
+<th>Rank-biserial r</th>
+<th>95% CI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ghost allocations</td>
+<td>10000</td>
+<td>10000</td>
+<td>independent</td>
+<td>Mann-Whitney U</td>
+<td>ghost_bytes_measured</td>
+<td>536350426.50</td>
+<td>8316.00</td>
+<td>99937086</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>2.46</td>
+<td>1.00</td>
+<td>[527280091.27, 545228612.40]</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>10000</td>
+<td>10000</td>
+<td>independent</td>
+<td>Mann-Whitney U</td>
+<td>bandwidth_loss_pct</td>
+<td>66.66</td>
+<td>0.00</td>
+<td>100000000</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>8.55</td>
+<td>1.00</td>
+<td>[66.61, 66.68]</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>20000</td>
+<td>20000</td>
+<td>paired</td>
+<td>Wilcoxon signed-rank</td>
+<td>spin_up_latency_ms</td>
+<td>246.59</td>
+<td>0.50</td>
+<td>200010000</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>2.01</td>
+<td>1.00</td>
+<td>[244.32, 248.26]</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>20000</td>
+<td>20000</td>
+<td>paired</td>
+<td>Wilcoxon signed-rank</td>
+<td>gap_pct</td>
+<td>1.69</td>
+<td>0.00</td>
+<td>87021028</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>0.73</td>
+<td>1.00</td>
+<td>[1.63, 1.77]</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>10000</td>
+<td>10000</td>
+<td>independent</td>
+<td>Mann-Whitney U</td>
+<td>straggler_tax_pct</td>
+<td>19.09</td>
+<td>4.28</td>
+<td>99805998</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>2.46</td>
+<td>1.00</td>
+<td>[14.56, 15.09]</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>10000</td>
+<td>10000</td>
+<td>independent</td>
+<td>Mann-Whitney U</td>
+<td>performance_degradation_pct</td>
+<td>33.33</td>
+<td>0.00</td>
+<td>100000000</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>3.97</td>
+<td>1.00</td>
+<td>[33.33, 33.33]</td>
+</tr>
+</tbody>
+</table>
+<h2 data-number="2.5" id="table-4.-scenario-based-annual-impact-by-category-and-fleet-scale"><span class="header-section-number">2.5</span> Table 4. Scenario-Based Annual
+Impact by Category and Fleet Scale</h2>
+<p>These figures are scenario outputs under explicit assumptions
+($2.50/GPU/hr, specific fleet utilization parameters). They are NOT
+directly additive across categories. See the sensitivity analysis in
+<code>derived/supplement.md</code>.</p>
+<table>
+<colgroup>
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+</colgroup>
+<thead>
+<tr>
+<th>Waste Category</th>
+<th>Effect Size (d/d_z)</th>
+<th>Waste per Event</th>
+<th>Events/Day/GPU</th>
+<th>Annual $/GPU</th>
+<th>8-GPU Fleet</th>
+<th>100-GPU Fleet</th>
+<th>10,000-GPU Fleet</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ghost allocations</td>
+<td>2.46</td>
+<td>511.5 MiB</td>
+<td>20.00</td>
+<td>$2,733</td>
+<td>$5,466</td>
+<td>$273,321</td>
+<td>$34,165,064</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>8.55</td>
+<td>66.66%</td>
+<td>0.83</td>
+<td>$9,124</td>
+<td>$38,929</td>
+<td>$912,394</td>
+<td>$114,700,996</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>2.01</td>
+<td>246.09 ms</td>
+<td>20.00</td>
+<td>$1</td>
+<td>$2</td>
+<td>$125</td>
+<td>$31,190</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>0.73</td>
+<td>1.69%</td>
+<td>0.75</td>
+<td>$278</td>
+<td>$1,481</td>
+<td>$27,762</td>
+<td>$3,084,702</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>2.46</td>
+<td>14.81%</td>
+<td>2.00</td>
+<td>$5,518</td>
+<td>$9,755</td>
+<td>$551,828</td>
+<td>$139,336,568</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>3.97</td>
+<td>33.33%</td>
+<td>0.50</td>
+<td>$3,650</td>
+<td>$9,733</td>
+<td>$365,000</td>
+<td>$48,666,667</td>
+</tr>
+<tr>
+<td>Total</td>
+<td></td>
+<td></td>
+<td></td>
+<td>$21,304</td>
+<td>$65,366</td>
+<td>$2,130,430</td>
+<td>$339,985,187</td>
+</tr>
+</tbody>
+</table>
+<h2 data-number="2.6" id="cost-model-bootstrap-confidence-intervals"><span class="header-section-number">2.6</span> Cost Model Bootstrap Confidence
+Intervals</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Scale</th>
+<th>Point estimate / GPU / year</th>
+<th>95% CI low / GPU / year</th>
+<th>95% CI high / GPU / year</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>8-GPU Fleet</td>
+<td>$8,171</td>
+<td>$8,149</td>
+<td>$8,192</td>
+</tr>
+<tr>
+<td>100-GPU Fleet</td>
+<td>$21,304</td>
+<td>$21,215</td>
+<td>$21,389</td>
+</tr>
+<tr>
+<td>10,000-GPU Fleet</td>
+<td>$33,999</td>
+<td>$33,809</td>
+<td>$34,193</td>
+</tr>
+</tbody>
+</table>
+<h2 data-number="2.7" id="interpretation-guardrails"><span class="header-section-number">2.7</span> Interpretation Guardrails</h2>
+<ul>
+<li>Bucket A categories (ghost, straggler) represent directly actionable
+capacity recovery.</li>
+<li>Bucket B categories (contention, burst gap) are physics — they
+cannot be eliminated, but measuring them enables better pricing, SLA,
+and partitioning decisions.</li>
+<li>Bucket C (oversubscription) is risk prevention — detect before
+tenants experience silent degradation.</li>
+<li>Scenario dollar figures in Table 4 assume freed or avoided capacity
+can be monetized at $2.50/GPU/hr.</li>
+<li>Category-specific tests and sensitivity analyses are in
+<code>derived/supplement.md</code>.</li>
+</ul>
+<hr />
+<h1 data-number="3" id="appendix-b-supplementary-tables"><span class="header-section-number">3</span> Appendix B: Supplementary
+Tables</h1>
+<h2 data-number="3.1" id="table-s1.-descriptive-statistics-by-category-and-condition"><span class="header-section-number">3.1</span> Table S1. Descriptive
+Statistics by Category and Condition</h2>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 10%" />
+<col style="width: 10%" />
+<col style="width: 10%" />
+<col style="width: 10%" />
+<col style="width: 10%" />
+<col style="width: 10%" />
+<col style="width: 10%" />
+<col style="width: 10%" />
+<col style="width: 10%" />
+</colgroup>
+<thead>
+<tr>
+<th>Category</th>
+<th>Arm</th>
+<th>Condition</th>
+<th>N</th>
+<th>Mean</th>
+<th>Median</th>
+<th>SD</th>
+<th>IQR</th>
+<th>Min</th>
+<th>Max</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ghost allocations</td>
+<td>control</td>
+<td>control_1g.10gb</td>
+<td>3334</td>
+<td>391029.23</td>
+<td>-2784.00</td>
+<td>4539758.28</td>
+<td>998313.75</td>
+<td>-2671489.00</td>
+<td>66430929.00</td>
+</tr>
+<tr>
+<td>Ghost allocations</td>
+<td>control</td>
+<td>control_2g.20gb</td>
+<td>3333</td>
+<td>336134.65</td>
+<td>13848.00</td>
+<td>3799625.00</td>
+<td>976113.00</td>
+<td>-2502325.00</td>
+<td>65815200.00</td>
+</tr>
+<tr>
+<td>Ghost allocations</td>
+<td>control</td>
+<td>control_3g.40gb</td>
+<td>3333</td>
+<td>353060.30</td>
+<td>15373.00</td>
+<td>4043550.64</td>
+<td>987936.00</td>
+<td>-2703336.00</td>
+<td>67814829.00</td>
+</tr>
+<tr>
+<td>Ghost allocations</td>
+<td>treatment</td>
+<td>clean_1g.10gb</td>
+<td>1112</td>
+<td>530885879.76</td>
+<td>533343192.00</td>
+<td>305007919.88</td>
+<td>510475226.00</td>
+<td>-121201.00</td>
+<td>1075175500.00</td>
+</tr>
+<tr>
+<td>Ghost allocations</td>
+<td>treatment</td>
+<td>clean_2g.20gb</td>
+<td>1111</td>
+<td>542395594.96</td>
+<td>539236581.00</td>
+<td>308710047.80</td>
+<td>537368033.00</td>
+<td>-629284.00</td>
+<td>1073507951.00</td>
+</tr>
+<tr>
+<td>Ghost allocations</td>
+<td>treatment</td>
+<td>clean_3g.40gb</td>
+<td>1111</td>
+<td>532539547.66</td>
+<td>515214024.00</td>
+<td>311768335.47</td>
+<td>520849612.50</td>
+<td>285154.00</td>
+<td>1073762452.00</td>
+</tr>
+<tr>
+<td>Ghost allocations</td>
+<td>treatment</td>
+<td>rapid_churn_1g.10gb</td>
+<td>1111</td>
+<td>529905112.64</td>
+<td>527027181.00</td>
+<td>319272290.09</td>
+<td>577153933.00</td>
+<td>-15948.00</td>
+<td>1121729515.00</td>
+</tr>
+<tr>
+<td>Ghost allocations</td>
+<td>treatment</td>
+<td>rapid_churn_2g.20gb</td>
+<td>1111</td>
+<td>548965538.29</td>
+<td>558126770.00</td>
+<td>309565870.66</td>
+<td>532357483.50</td>
+<td>1923798.00</td>
+<td>1109296215.00</td>
+</tr>
+<tr>
+<td>Ghost allocations</td>
+<td>treatment</td>
+<td>rapid_churn_3g.40gb</td>
+<td>1111</td>
+<td>539175321.79</td>
+<td>534612596.00</td>
+<td>304066198.90</td>
+<td>530414972.50</td>
+<td>904790.00</td>
+<td>1073566349.00</td>
+</tr>
+<tr>
+<td>Ghost allocations</td>
+<td>treatment</td>
+<td>under_load_1g.10gb</td>
+<td>1111</td>
+<td>523338447.04</td>
+<td>527179090.00</td>
+<td>306147400.35</td>
+<td>528214374.50</td>
+<td>4339539.00</td>
+<td>1068458951.00</td>
+</tr>
+<tr>
+<td>Ghost allocations</td>
+<td>treatment</td>
+<td>under_load_2g.20gb</td>
+<td>1111</td>
+<td>549621948.52</td>
+<td>558468193.00</td>
+<td>309014286.04</td>
+<td>540462875.00</td>
+<td>123951.00</td>
+<td>1073611128.00</td>
+</tr>
+<tr>
+<td>Ghost allocations</td>
+<td>treatment</td>
+<td>under_load_3g.40gb</td>
+<td>1111</td>
+<td>538731790.47</td>
+<td>541331915.00</td>
+<td>304556661.48</td>
+<td>526861874.00</td>
+<td>1229079.00</td>
+<td>1099223345.00</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>control</td>
+<td>mig_1_tenants</td>
+<td>1250</td>
+<td>0.77</td>
+<td>0.00</td>
+<td>1.10</td>
+<td>1.32</td>
+<td>0.00</td>
+<td>6.03</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>control</td>
+<td>mig_2_tenants</td>
+<td>1250</td>
+<td>0.58</td>
+<td>0.00</td>
+<td>0.85</td>
+<td>0.93</td>
+<td>0.00</td>
+<td>5.31</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>control</td>
+<td>mig_3_tenants</td>
+<td>1250</td>
+<td>0.50</td>
+<td>0.05</td>
+<td>0.70</td>
+<td>0.85</td>
+<td>0.00</td>
+<td>3.78</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>control</td>
+<td>mig_4_tenants</td>
+<td>1250</td>
+<td>0.41</td>
+<td>0.00</td>
+<td>0.62</td>
+<td>0.66</td>
+<td>0.00</td>
+<td>3.47</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>control</td>
+<td>timesliced_1_tenants</td>
+<td>5000</td>
+<td>0.79</td>
+<td>0.00</td>
+<td>1.16</td>
+<td>1.30</td>
+<td>0.00</td>
+<td>6.94</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>treatment</td>
+<td>timesliced_2_tenants</td>
+<td>3334</td>
+<td>50.00</td>
+<td>50.00</td>
+<td>0.72</td>
+<td>0.96</td>
+<td>47.48</td>
+<td>52.41</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>treatment</td>
+<td>timesliced_3_tenants</td>
+<td>3333</td>
+<td>66.66</td>
+<td>66.66</td>
+<td>0.39</td>
+<td>0.53</td>
+<td>65.31</td>
+<td>67.90</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>treatment</td>
+<td>timesliced_4_tenants</td>
+<td>3333</td>
+<td>75.01</td>
+<td>75.01</td>
+<td>0.25</td>
+<td>0.33</td>
+<td>74.10</td>
+<td>75.95</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>1g.10gb_cold_0</td>
+<td>667</td>
+<td>125.39</td>
+<td>119.71</td>
+<td>39.27</td>
+<td>47.95</td>
+<td>49.33</td>
+<td>387.53</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>1g.10gb_cold_1</td>
+<td>667</td>
+<td>142.10</td>
+<td>136.66</td>
+<td>44.39</td>
+<td>56.10</td>
+<td>54.79</td>
+<td>388.21</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>1g.10gb_cold_3</td>
+<td>667</td>
+<td>173.30</td>
+<td>167.05</td>
+<td>54.81</td>
+<td>65.53</td>
+<td>63.65</td>
+<td>435.23</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>1g.10gb_cold_6</td>
+<td>667</td>
+<td>217.83</td>
+<td>211.36</td>
+<td>65.81</td>
+<td>78.11</td>
+<td>82.58</td>
+<td>590.08</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>1g.10gb_hot_0</td>
+<td>667</td>
+<td>210.84</td>
+<td>201.25</td>
+<td>62.91</td>
+<td>68.68</td>
+<td>86.66</td>
+<td>499.36</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>1g.10gb_hot_1</td>
+<td>667</td>
+<td>225.23</td>
+<td>214.82</td>
+<td>69.63</td>
+<td>85.00</td>
+<td>69.38</td>
+<td>689.03</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>1g.10gb_hot_3</td>
+<td>667</td>
+<td>255.62</td>
+<td>245.11</td>
+<td>80.79</td>
+<td>95.40</td>
+<td>98.83</td>
+<td>696.86</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>1g.10gb_hot_6</td>
+<td>667</td>
+<td>306.46</td>
+<td>290.04</td>
+<td>95.03</td>
+<td>118.62</td>
+<td>123.71</td>
+<td>810.78</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>1g.10gb_warm_0</td>
+<td>667</td>
+<td>154.80</td>
+<td>145.48</td>
+<td>49.44</td>
+<td>63.03</td>
+<td>57.55</td>
+<td>472.70</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>1g.10gb_warm_1</td>
+<td>667</td>
+<td>173.81</td>
+<td>165.09</td>
+<td>53.94</td>
+<td>71.25</td>
+<td>68.76</td>
+<td>445.74</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>1g.10gb_warm_3</td>
+<td>667</td>
+<td>203.99</td>
+<td>197.67</td>
+<td>61.98</td>
+<td>82.85</td>
+<td>66.41</td>
+<td>512.75</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>1g.10gb_warm_6</td>
+<td>667</td>
+<td>253.75</td>
+<td>247.62</td>
+<td>74.95</td>
+<td>100.11</td>
+<td>89.21</td>
+<td>678.88</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>2g.20gb_cold_0</td>
+<td>667</td>
+<td>189.33</td>
+<td>180.12</td>
+<td>57.06</td>
+<td>70.90</td>
+<td>64.98</td>
+<td>401.49</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>2g.20gb_cold_1</td>
+<td>667</td>
+<td>200.57</td>
+<td>191.58</td>
+<td>62.94</td>
+<td>81.95</td>
+<td>80.24</td>
+<td>567.24</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>2g.20gb_hot_0</td>
+<td>667</td>
+<td>264.79</td>
+<td>253.64</td>
+<td>78.29</td>
+<td>98.11</td>
+<td>84.95</td>
+<td>635.84</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>2g.20gb_hot_1</td>
+<td>667</td>
+<td>282.71</td>
+<td>268.51</td>
+<td>85.79</td>
+<td>118.49</td>
+<td>118.66</td>
+<td>675.51</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>2g.20gb_warm_0</td>
+<td>667</td>
+<td>219.84</td>
+<td>207.36</td>
+<td>69.02</td>
+<td>91.20</td>
+<td>89.72</td>
+<td>513.09</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>2g.20gb_warm_1</td>
+<td>667</td>
+<td>236.99</td>
+<td>226.95</td>
+<td>74.09</td>
+<td>89.01</td>
+<td>90.98</td>
+<td>603.25</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>3g.40gb_cold_0</td>
+<td>667</td>
+<td>265.43</td>
+<td>254.64</td>
+<td>79.39</td>
+<td>103.43</td>
+<td>101.10</td>
+<td>544.64</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>3g.40gb_cold_1</td>
+<td>667</td>
+<td>273.55</td>
+<td>258.06</td>
+<td>81.36</td>
+<td>107.54</td>
+<td>112.20</td>
+<td>589.33</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>3g.40gb_hot_0</td>
+<td>666</td>
+<td>345.75</td>
+<td>327.17</td>
+<td>107.42</td>
+<td>126.52</td>
+<td>139.57</td>
+<td>889.95</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>3g.40gb_hot_1</td>
+<td>666</td>
+<td>358.51</td>
+<td>339.94</td>
+<td>109.53</td>
+<td>141.09</td>
+<td>133.93</td>
+<td>921.17</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>3g.40gb_warm_0</td>
+<td>666</td>
+<td>289.94</td>
+<td>281.52</td>
+<td>82.55</td>
+<td>108.22</td>
+<td>120.54</td>
+<td>634.63</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>3g.40gb_warm_1</td>
+<td>666</td>
+<td>314.90</td>
+<td>300.52</td>
+<td>96.23</td>
+<td>122.66</td>
+<td>139.60</td>
+<td>818.24</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>4g.40gb_cold_0</td>
+<td>666</td>
+<td>339.79</td>
+<td>327.04</td>
+<td>104.93</td>
+<td>123.41</td>
+<td>110.23</td>
+<td>905.43</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>4g.40gb_hot_0</td>
+<td>666</td>
+<td>418.28</td>
+<td>393.17</td>
+<td>132.24</td>
+<td>160.66</td>
+<td>160.08</td>
+<td>905.93</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>4g.40gb_warm_0</td>
+<td>666</td>
+<td>357.74</td>
+<td>338.03</td>
+<td>112.48</td>
+<td>149.18</td>
+<td>145.09</td>
+<td>817.77</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>7g.80gb_cold_0</td>
+<td>666</td>
+<td>473.96</td>
+<td>456.11</td>
+<td>147.51</td>
+<td>173.33</td>
+<td>164.70</td>
+<td>1232.44</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>7g.80gb_hot_0</td>
+<td>666</td>
+<td>548.15</td>
+<td>523.58</td>
+<td>159.79</td>
+<td>210.58</td>
+<td>209.86</td>
+<td>1249.23</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>paired</td>
+<td>7g.80gb_warm_0</td>
+<td>666</td>
+<td>501.29</td>
+<td>475.38</td>
+<td>159.80</td>
+<td>193.57</td>
+<td>183.96</td>
+<td>1243.03</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>paired</td>
+<td>h100_sxm_compute_bound</td>
+<td>1334</td>
+<td>15.96</td>
+<td>15.97</td>
+<td>2.32</td>
+<td>3.11</td>
+<td>8.48</td>
+<td>24.99</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>paired</td>
+<td>h100_sxm_memory_bound</td>
+<td>1334</td>
+<td>1.05</td>
+<td>0.00</td>
+<td>1.59</td>
+<td>1.72</td>
+<td>0.00</td>
+<td>7.97</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>paired</td>
+<td>h100_sxm_mixed</td>
+<td>1334</td>
+<td>1.12</td>
+<td>0.00</td>
+<td>1.61</td>
+<td>1.92</td>
+<td>0.00</td>
+<td>10.01</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>paired</td>
+<td>h200_sxm_compute_bound</td>
+<td>1334</td>
+<td>15.98</td>
+<td>15.98</td>
+<td>2.32</td>
+<td>3.12</td>
+<td>8.34</td>
+<td>23.10</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>paired</td>
+<td>h200_sxm_memory_bound</td>
+<td>1334</td>
+<td>1.10</td>
+<td>0.00</td>
+<td>1.59</td>
+<td>1.91</td>
+<td>0.00</td>
+<td>8.67</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>paired</td>
+<td>h200_sxm_mixed</td>
+<td>1333</td>
+<td>1.07</td>
+<td>0.00</td>
+<td>1.59</td>
+<td>1.73</td>
+<td>0.00</td>
+<td>9.28</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>paired</td>
+<td>mi300x_compute_bound</td>
+<td>1333</td>
+<td>20.98</td>
+<td>21.04</td>
+<td>2.23</td>
+<td>2.96</td>
+<td>14.63</td>
+<td>28.11</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>paired</td>
+<td>mi300x_memory_bound</td>
+<td>1333</td>
+<td>1.06</td>
+<td>0.00</td>
+<td>1.60</td>
+<td>1.77</td>
+<td>0.00</td>
+<td>8.39</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>paired</td>
+<td>mi300x_mixed</td>
+<td>1333</td>
+<td>1.04</td>
+<td>0.06</td>
+<td>1.52</td>
+<td>1.74</td>
+<td>0.00</td>
+<td>8.12</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>paired</td>
+<td>rtx_4090_compute_bound</td>
+<td>1333</td>
+<td>4.52</td>
+<td>4.50</td>
+<td>2.54</td>
+<td>3.65</td>
+<td>0.00</td>
+<td>14.12</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>paired</td>
+<td>rtx_4090_memory_bound</td>
+<td>1333</td>
+<td>1.08</td>
+<td>0.00</td>
+<td>1.58</td>
+<td>1.83</td>
+<td>0.00</td>
+<td>9.07</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>paired</td>
+<td>rtx_4090_mixed</td>
+<td>1333</td>
+<td>1.11</td>
+<td>0.00</td>
+<td>1.62</td>
+<td>1.88</td>
+<td>0.00</td>
+<td>8.05</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>paired</td>
+<td>rtx_5090_compute_bound</td>
+<td>1333</td>
+<td>6.54</td>
+<td>6.58</td>
+<td>2.61</td>
+<td>3.53</td>
+<td>0.00</td>
+<td>15.38</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>paired</td>
+<td>rtx_5090_memory_bound</td>
+<td>1333</td>
+<td>1.12</td>
+<td>0.00</td>
+<td>1.66</td>
+<td>1.96</td>
+<td>0.00</td>
+<td>9.68</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>paired</td>
+<td>rtx_5090_mixed</td>
+<td>1333</td>
+<td>1.24</td>
+<td>0.27</td>
+<td>1.72</td>
+<td>2.14</td>
+<td>0.00</td>
+<td>8.83</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>control</td>
+<td>control_fleet128</td>
+<td>3333</td>
+<td>5.18</td>
+<td>5.09</td>
+<td>0.84</td>
+<td>1.09</td>
+<td>2.99</td>
+<td>10.02</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>control</td>
+<td>control_fleet32</td>
+<td>3333</td>
+<td>4.22</td>
+<td>4.12</td>
+<td>1.03</td>
+<td>1.35</td>
+<td>1.34</td>
+<td>8.94</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>control</td>
+<td>control_fleet8</td>
+<td>3334</td>
+<td>3.16</td>
+<td>3.05</td>
+<td>1.26</td>
+<td>1.72</td>
+<td>0.26</td>
+<td>8.88</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>clock_stuck_sev0_fleet128</td>
+<td>222</td>
+<td>18.10</td>
+<td>18.05</td>
+<td>1.63</td>
+<td>2.11</td>
+<td>13.83</td>
+<td>22.49</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>clock_stuck_sev0_fleet32</td>
+<td>222</td>
+<td>18.19</td>
+<td>18.05</td>
+<td>1.81</td>
+<td>2.40</td>
+<td>12.39</td>
+<td>23.54</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>clock_stuck_sev0_fleet8</td>
+<td>222</td>
+<td>18.11</td>
+<td>18.22</td>
+<td>1.82</td>
+<td>2.77</td>
+<td>12.59</td>
+<td>22.44</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>clock_stuck_sev1_fleet128</td>
+<td>222</td>
+<td>34.27</td>
+<td>34.21</td>
+<td>1.27</td>
+<td>1.86</td>
+<td>30.44</td>
+<td>37.33</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>clock_stuck_sev1_fleet32</td>
+<td>222</td>
+<td>34.44</td>
+<td>34.47</td>
+<td>1.35</td>
+<td>1.73</td>
+<td>30.96</td>
+<td>37.39</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>clock_stuck_sev1_fleet8</td>
+<td>222</td>
+<td>34.39</td>
+<td>34.36</td>
+<td>1.47</td>
+<td>1.84</td>
+<td>29.87</td>
+<td>39.88</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>clock_stuck_sev2_fleet128</td>
+<td>222</td>
+<td>40.21</td>
+<td>40.13</td>
+<td>1.19</td>
+<td>1.62</td>
+<td>37.44</td>
+<td>43.36</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>clock_stuck_sev2_fleet32</td>
+<td>222</td>
+<td>40.16</td>
+<td>40.15</td>
+<td>1.29</td>
+<td>1.84</td>
+<td>36.75</td>
+<td>43.28</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>clock_stuck_sev2_fleet8</td>
+<td>222</td>
+<td>40.00</td>
+<td>40.13</td>
+<td>1.39</td>
+<td>1.99</td>
+<td>35.65</td>
+<td>42.84</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>memory_subsystem_sev0_fleet128</td>
+<td>222</td>
+<td>15.09</td>
+<td>14.93</td>
+<td>1.60</td>
+<td>2.17</td>
+<td>10.91</td>
+<td>19.15</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>memory_subsystem_sev0_fleet32</td>
+<td>222</td>
+<td>15.05</td>
+<td>14.96</td>
+<td>1.90</td>
+<td>2.29</td>
+<td>8.11</td>
+<td>20.98</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>memory_subsystem_sev0_fleet8</td>
+<td>222</td>
+<td>14.93</td>
+<td>14.98</td>
+<td>1.85</td>
+<td>2.26</td>
+<td>9.97</td>
+<td>19.78</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>memory_subsystem_sev1_fleet128</td>
+<td>222</td>
+<td>29.98</td>
+<td>30.06</td>
+<td>1.29</td>
+<td>2.02</td>
+<td>26.62</td>
+<td>32.96</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>memory_subsystem_sev1_fleet32</td>
+<td>222</td>
+<td>29.97</td>
+<td>29.86</td>
+<td>1.30</td>
+<td>1.64</td>
+<td>25.55</td>
+<td>34.44</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>memory_subsystem_sev1_fleet8</td>
+<td>222</td>
+<td>30.12</td>
+<td>30.23</td>
+<td>1.58</td>
+<td>2.18</td>
+<td>25.79</td>
+<td>33.76</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>memory_subsystem_sev2_fleet128</td>
+<td>222</td>
+<td>49.91</td>
+<td>49.88</td>
+<td>1.00</td>
+<td>1.37</td>
+<td>47.15</td>
+<td>53.41</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>memory_subsystem_sev2_fleet32</td>
+<td>222</td>
+<td>50.09</td>
+<td>50.04</td>
+<td>1.08</td>
+<td>1.51</td>
+<td>47.49</td>
+<td>53.26</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>memory_subsystem_sev2_fleet8</td>
+<td>222</td>
+<td>50.10</td>
+<td>50.11</td>
+<td>1.04</td>
+<td>1.29</td>
+<td>47.61</td>
+<td>53.02</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>nvlink_sev0_fleet128</td>
+<td>222</td>
+<td>8.34</td>
+<td>8.21</td>
+<td>1.75</td>
+<td>2.64</td>
+<td>4.57</td>
+<td>13.23</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>nvlink_sev0_fleet32</td>
+<td>222</td>
+<td>8.40</td>
+<td>8.40</td>
+<td>1.80</td>
+<td>2.38</td>
+<td>3.60</td>
+<td>12.63</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>nvlink_sev0_fleet8</td>
+<td>223</td>
+<td>8.28</td>
+<td>8.14</td>
+<td>2.00</td>
+<td>2.72</td>
+<td>3.44</td>
+<td>14.73</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>nvlink_sev1_fleet128</td>
+<td>222</td>
+<td>16.81</td>
+<td>16.73</td>
+<td>1.83</td>
+<td>2.77</td>
+<td>12.99</td>
+<td>21.64</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>nvlink_sev1_fleet32</td>
+<td>222</td>
+<td>16.60</td>
+<td>16.59</td>
+<td>1.58</td>
+<td>2.01</td>
+<td>10.76</td>
+<td>21.38</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>nvlink_sev1_fleet8</td>
+<td>222</td>
+<td>16.78</td>
+<td>16.77</td>
+<td>1.83</td>
+<td>2.32</td>
+<td>11.72</td>
+<td>22.24</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>nvlink_sev2_fleet128</td>
+<td>222</td>
+<td>33.29</td>
+<td>33.36</td>
+<td>1.35</td>
+<td>1.77</td>
+<td>30.05</td>
+<td>36.86</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>nvlink_sev2_fleet32</td>
+<td>222</td>
+<td>33.33</td>
+<td>33.28</td>
+<td>1.44</td>
+<td>1.82</td>
+<td>28.81</td>
+<td>38.34</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>nvlink_sev2_fleet8</td>
+<td>222</td>
+<td>33.35</td>
+<td>33.24</td>
+<td>1.61</td>
+<td>2.26</td>
+<td>29.10</td>
+<td>38.02</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>pcie_fallback_sev0_fleet128</td>
+<td>222</td>
+<td>15.08</td>
+<td>15.20</td>
+<td>1.55</td>
+<td>2.12</td>
+<td>10.69</td>
+<td>18.76</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>pcie_fallback_sev0_fleet32</td>
+<td>222</td>
+<td>14.98</td>
+<td>14.95</td>
+<td>1.63</td>
+<td>1.95</td>
+<td>11.05</td>
+<td>20.44</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>pcie_fallback_sev0_fleet8</td>
+<td>222</td>
+<td>15.22</td>
+<td>15.08</td>
+<td>1.92</td>
+<td>2.75</td>
+<td>11.09</td>
+<td>19.88</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>pcie_fallback_sev1_fleet128</td>
+<td>222</td>
+<td>22.50</td>
+<td>22.51</td>
+<td>1.65</td>
+<td>2.46</td>
+<td>17.92</td>
+<td>27.91</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>pcie_fallback_sev1_fleet32</td>
+<td>222</td>
+<td>22.52</td>
+<td>22.54</td>
+<td>1.43</td>
+<td>1.91</td>
+<td>18.33</td>
+<td>25.91</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>pcie_fallback_sev1_fleet8</td>
+<td>222</td>
+<td>22.12</td>
+<td>22.04</td>
+<td>1.80</td>
+<td>2.38</td>
+<td>17.19</td>
+<td>26.97</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>pcie_fallback_sev2_fleet128</td>
+<td>222</td>
+<td>26.35</td>
+<td>26.38</td>
+<td>1.46</td>
+<td>2.19</td>
+<td>22.70</td>
+<td>30.45</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>pcie_fallback_sev2_fleet32</td>
+<td>222</td>
+<td>26.41</td>
+<td>26.46</td>
+<td>1.47</td>
+<td>1.85</td>
+<td>22.04</td>
+<td>30.28</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>pcie_fallback_sev2_fleet8</td>
+<td>222</td>
+<td>26.13</td>
+<td>26.05</td>
+<td>1.62</td>
+<td>2.16</td>
+<td>21.04</td>
+<td>31.12</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>thermal_paste_sev0_fleet128</td>
+<td>223</td>
+<td>16.07</td>
+<td>16.02</td>
+<td>1.53</td>
+<td>2.06</td>
+<td>9.72</td>
+<td>20.43</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>thermal_paste_sev0_fleet32</td>
+<td>223</td>
+<td>15.93</td>
+<td>15.86</td>
+<td>1.70</td>
+<td>2.47</td>
+<td>12.11</td>
+<td>20.94</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>thermal_paste_sev0_fleet8</td>
+<td>223</td>
+<td>15.87</td>
+<td>15.97</td>
+<td>1.98</td>
+<td>2.41</td>
+<td>9.36</td>
+<td>21.59</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>thermal_paste_sev1_fleet128</td>
+<td>223</td>
+<td>16.25</td>
+<td>16.27</td>
+<td>1.75</td>
+<td>2.50</td>
+<td>10.74</td>
+<td>20.48</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>thermal_paste_sev1_fleet32</td>
+<td>223</td>
+<td>16.07</td>
+<td>16.14</td>
+<td>1.74</td>
+<td>2.27</td>
+<td>11.13</td>
+<td>21.10</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>thermal_paste_sev1_fleet8</td>
+<td>223</td>
+<td>16.09</td>
+<td>15.96</td>
+<td>1.89</td>
+<td>2.61</td>
+<td>11.60</td>
+<td>21.50</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>thermal_paste_sev2_fleet128</td>
+<td>223</td>
+<td>16.35</td>
+<td>16.39</td>
+<td>1.50</td>
+<td>1.93</td>
+<td>13.01</td>
+<td>19.98</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>thermal_paste_sev2_fleet32</td>
+<td>223</td>
+<td>16.15</td>
+<td>16.19</td>
+<td>1.85</td>
+<td>2.10</td>
+<td>11.25</td>
+<td>22.82</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>treatment</td>
+<td>thermal_paste_sev2_fleet8</td>
+<td>223</td>
+<td>15.93</td>
+<td>15.85</td>
+<td>1.88</td>
+<td>2.72</td>
+<td>11.39</td>
+<td>20.74</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>control</td>
+<td>ratio1.00_instances16</td>
+<td>2500</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.00</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>control</td>
+<td>ratio1.00_instances2</td>
+<td>2500</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.00</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>control</td>
+<td>ratio1.00_instances4</td>
+<td>2500</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.00</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>control</td>
+<td>ratio1.00_instances8</td>
+<td>2500</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.00</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>treatment</td>
+<td>ratio1.25_instances16</td>
+<td>834</td>
+<td>20.00</td>
+<td>20.00</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>20.00</td>
+<td>20.00</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>treatment</td>
+<td>ratio1.25_instances2</td>
+<td>834</td>
+<td>20.00</td>
+<td>20.00</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>20.00</td>
+<td>20.00</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>treatment</td>
+<td>ratio1.25_instances4</td>
+<td>834</td>
+<td>20.00</td>
+<td>20.00</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>20.00</td>
+<td>20.00</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>treatment</td>
+<td>ratio1.25_instances8</td>
+<td>834</td>
+<td>20.00</td>
+<td>20.00</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>20.00</td>
+<td>20.00</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>treatment</td>
+<td>ratio1.50_instances16</td>
+<td>833</td>
+<td>33.33</td>
+<td>33.33</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>33.33</td>
+<td>33.33</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>treatment</td>
+<td>ratio1.50_instances2</td>
+<td>833</td>
+<td>33.33</td>
+<td>33.33</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>33.33</td>
+<td>33.33</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>treatment</td>
+<td>ratio1.50_instances4</td>
+<td>833</td>
+<td>33.33</td>
+<td>33.33</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>33.33</td>
+<td>33.33</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>treatment</td>
+<td>ratio1.50_instances8</td>
+<td>833</td>
+<td>33.33</td>
+<td>33.33</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>33.33</td>
+<td>33.33</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>treatment</td>
+<td>ratio2.00_instances16</td>
+<td>833</td>
+<td>50.00</td>
+<td>50.00</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>50.00</td>
+<td>50.00</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>treatment</td>
+<td>ratio2.00_instances2</td>
+<td>833</td>
+<td>50.00</td>
+<td>50.00</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>50.00</td>
+<td>50.00</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>treatment</td>
+<td>ratio2.00_instances4</td>
+<td>833</td>
+<td>50.00</td>
+<td>50.00</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>50.00</td>
+<td>50.00</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>treatment</td>
+<td>ratio2.00_instances8</td>
+<td>833</td>
+<td>50.00</td>
+<td>50.00</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>50.00</td>
+<td>50.00</td>
+</tr>
+</tbody>
+</table>
+<h2 data-number="3.2" id="table-s2.-full-statistical-test-results"><span class="header-section-number">3.2</span> Table S2. Full Statistical Test
+Results</h2>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 10%" />
+<col style="width: 10%" />
+<col style="width: 10%" />
+<col style="width: 10%" />
+<col style="width: 10%" />
+<col style="width: 10%" />
+<col style="width: 10%" />
+<col style="width: 10%" />
+<col style="width: 10%" />
+</colgroup>
+<thead>
+<tr>
+<th>Category</th>
+<th>Comparison</th>
+<th>Primary test</th>
+<th>Statistic</th>
+<th>Raw p</th>
+<th>Adjusted p</th>
+<th>Effect size</th>
+<th>CI low</th>
+<th>CI high</th>
+<th>Point estimate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ghost allocations</td>
+<td>clean_1g.10gb vs control_1g.10gb</td>
+<td>Mann-Whitney U</td>
+<td>3704107.0000</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>0.9982</td>
+<td>497630986.9750</td>
+<td>554716924.2000</td>
+<td>533345976.0000</td>
+</tr>
+<tr>
+<td>Ghost allocations</td>
+<td>clean_2g.20gb vs control_2g.20gb</td>
+<td>Mann-Whitney U</td>
+<td>3698888.0000</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>0.9978</td>
+<td>507578719.0000</td>
+<td>572631453.8500</td>
+<td>539222733.0000</td>
+</tr>
+<tr>
+<td>Ghost allocations</td>
+<td>clean_3g.40gb vs control_3g.40gb</td>
+<td>Mann-Whitney U</td>
+<td>3700276.0000</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>0.9985</td>
+<td>491244831.0000</td>
+<td>544774090.8500</td>
+<td>515198651.0000</td>
+</tr>
+<tr>
+<td>Ghost allocations</td>
+<td>under_load_1g.10gb vs control_1g.10gb</td>
+<td>Mann-Whitney U</td>
+<td>3702622.0000</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>0.9992</td>
+<td>483869920.1875</td>
+<td>556682942.1750</td>
+<td>527181874.0000</td>
+</tr>
+<tr>
+<td>Ghost allocations</td>
+<td>under_load_2g.20gb vs control_2g.20gb</td>
+<td>Mann-Whitney U</td>
+<td>3700461.0000</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>0.9986</td>
+<td>527071056.0000</td>
+<td>586821973.9250</td>
+<td>558454345.0000</td>
+</tr>
+<tr>
+<td>Ghost allocations</td>
+<td>under_load_3g.40gb vs control_3g.40gb</td>
+<td>Mann-Whitney U</td>
+<td>3701434.0000</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>0.9992</td>
+<td>514957276.4750</td>
+<td>571773579.0000</td>
+<td>541316542.0000</td>
+</tr>
+<tr>
+<td>Ghost allocations</td>
+<td>rapid_churn_1g.10gb vs control_1g.10gb</td>
+<td>Mann-Whitney U</td>
+<td>3701130.0000</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>0.9984</td>
+<td>490211697.2750</td>
+<td>560893210.1750</td>
+<td>527029965.0000</td>
+</tr>
+<tr>
+<td>Ghost allocations</td>
+<td>rapid_churn_2g.20gb vs control_2g.20gb</td>
+<td>Mann-Whitney U</td>
+<td>3701864.0000</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>0.9994</td>
+<td>526293502.0750</td>
+<td>593549244.8750</td>
+<td>558112922.0000</td>
+</tr>
+<tr>
+<td>Ghost allocations</td>
+<td>rapid_churn_3g.40gb vs control_3g.40gb</td>
+<td>Mann-Whitney U</td>
+<td>3701583.0000</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>0.9993</td>
+<td>504566566.3250</td>
+<td>561644080.8000</td>
+<td>534597223.0000</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>1-4 time-sliced tenants</td>
+<td>Friedman chi-square</td>
+<td>9999.0000</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>1 vs 2 tenants</td>
+<td>Wilcoxon signed-rank</td>
+<td>5556111.0000</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>1.0000</td>
+<td></td>
+<td></td>
+<td>49.4627</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>2 vs 3 tenants</td>
+<td>Wilcoxon signed-rank</td>
+<td>5556111.0000</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>1.0000</td>
+<td></td>
+<td></td>
+<td>16.6527</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>3 vs 4 tenants</td>
+<td>Wilcoxon signed-rank</td>
+<td>5556111.0000</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>1.0000</td>
+<td></td>
+<td></td>
+<td>8.3531</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>timesliced vs MIG at 1 tenants</td>
+<td>Wilcoxon signed-rank</td>
+<td>226317.0000</td>
+<td>0.1811</td>
+<td>0.1811</td>
+<td>0.0344</td>
+<td></td>
+<td></td>
+<td>0.0000</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>timesliced vs MIG at 2 tenants</td>
+<td>Wilcoxon signed-rank</td>
+<td>781875.0000</td>
+<td>2.87e-206</td>
+<td>2.87e-206</td>
+<td>1.0000</td>
+<td></td>
+<td></td>
+<td>49.5506</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>timesliced vs MIG at 3 tenants</td>
+<td>Wilcoxon signed-rank</td>
+<td>781875.0000</td>
+<td>2.87e-206</td>
+<td>2.87e-206</td>
+<td>1.0000</td>
+<td></td>
+<td></td>
+<td>66.3198</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>timesliced vs MIG at 4 tenants</td>
+<td>Wilcoxon signed-rank</td>
+<td>781875.0000</td>
+<td>2.87e-206</td>
+<td>2.87e-206</td>
+<td>1.0000</td>
+<td></td>
+<td></td>
+<td>74.7994</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>Spin-up latency vs nvidia-smi reported latency</td>
+<td>Paired t-test</td>
+<td>284.8732</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>2.0144</td>
+<td></td>
+<td></td>
+<td>246.0989</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>Latency across load states</td>
+<td>Kruskal-Wallis</td>
+<td>1642.9355</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>Latency vs concurrent partitions</td>
+<td>Linear regression</td>
+<td>-12.0283</td>
+<td>2.12e-115</td>
+<td>2.12e-115</td>
+<td>-0.1604</td>
+<td></td>
+<td></td>
+<td>291.8689</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>Observed gap vs ideal 0% gap</td>
+<td>Paired t-test</td>
+<td>103.0821</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>0.7289</td>
+<td></td>
+<td></td>
+<td>1.6902</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>Gap across workload types</td>
+<td>Kruskal-Wallis</td>
+<td>11997.9894</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>Treatment vs control</td>
+<td>Mann-Whitney U</td>
+<td>99805998.0000</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>0.9961</td>
+<td></td>
+<td></td>
+<td>14.8060</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>Treatment across fleet sizes</td>
+<td>Kruskal-Wallis</td>
+<td>0.3605</td>
+<td>0.8351</td>
+<td>0.8351</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>Tax vs severity</td>
+<td>Linear regression</td>
+<td>9.3291</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>0.6778</td>
+<td></td>
+<td></td>
+<td>14.5365</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>Treatment vs control</td>
+<td>Mann-Whitney U</td>
+<td>100000000.0000</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>1.0000</td>
+<td></td>
+<td></td>
+<td>33.3333</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>Degradation vs overcommit ratio</td>
+<td>Linear regression</td>
+<td>39.0496</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>0.9921</td>
+<td></td>
+<td></td>
+<td>-27.3846</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>Degradation across instance counts</td>
+<td>Kruskal-Wallis</td>
+<td>0.0000</td>
+<td>1.0000</td>
+<td>1.0000</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2 data-number="3.3" id="table-s4.-cost-model-parameter-sensitivity"><span class="header-section-number">3.3</span> Table S4. Cost Model Parameter
+Sensitivity</h2>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>P10</th>
+<th>P90</th>
+<th>100-GPU Total @ P10</th>
+<th>100-GPU Total @ P90</th>
+<th>Range</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ghost_rate</td>
+<td>0.8995</td>
+<td>1.0993</td>
+<td>$2,103,098</td>
+<td>$2,157,762</td>
+<td>$54,664</td>
+</tr>
+<tr>
+<td>avg_ghost_frac</td>
+<td>0.0056</td>
+<td>0.0069</td>
+<td>$2,103,098</td>
+<td>$2,157,762</td>
+<td>$54,664</td>
+</tr>
+<tr>
+<td>contention_drop_pct</td>
+<td>59.9930</td>
+<td>73.3248</td>
+<td>$2,039,190</td>
+<td>$2,221,669</td>
+<td>$182,479</td>
+</tr>
+<tr>
+<td>avg_spin_up_secs</td>
+<td>0.2215</td>
+<td>0.2707</td>
+<td>$2,130,417</td>
+<td>$2,130,442</td>
+<td>$25</td>
+</tr>
+<tr>
+<td>burst_sustained_gap_pct</td>
+<td>1.5212</td>
+<td>1.8593</td>
+<td>$2,127,654</td>
+<td>$2,133,206</td>
+<td>$5,552</td>
+</tr>
+<tr>
+<td>straggler_tax_pct</td>
+<td>17.1802</td>
+<td>20.9980</td>
+<td>$2,075,247</td>
+<td>$2,185,613</td>
+<td>$110,366</td>
+</tr>
+<tr>
+<td>oversub_waste_pct</td>
+<td>30.0000</td>
+<td>36.6667</td>
+<td>$2,093,930</td>
+<td>$2,166,930</td>
+<td>$73,000</td>
+</tr>
+</tbody>
+</table>
+<h2 data-number="3.4" id="table-s5.-tool-detection-confusion-matrices"><span class="header-section-number">3.4</span> Table S5. Tool Detection
+Confusion Matrices</h2>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 10%" />
+<col style="width: 10%" />
+<col style="width: 10%" />
+<col style="width: 10%" />
+<col style="width: 10%" />
+<col style="width: 10%" />
+<col style="width: 10%" />
+<col style="width: 10%" />
+<col style="width: 10%" />
+</colgroup>
+<thead>
+<tr>
+<th>Category</th>
+<th>Tool</th>
+<th>TP</th>
+<th>FP</th>
+<th>TN</th>
+<th>FN</th>
+<th>Sensitivity %</th>
+<th>Specificity %</th>
+<th>Precision %</th>
+<th>F1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ghost allocations</td>
+<td>gpu-roofline</td>
+<td>9994</td>
+<td>838</td>
+<td>9162</td>
+<td>6</td>
+<td>99.94</td>
+<td>91.62</td>
+<td>92.26</td>
+<td>0.96</td>
+</tr>
+<tr>
+<td>Ghost allocations</td>
+<td>nvidia-smi</td>
+<td>0</td>
+<td>0</td>
+<td>10000</td>
+<td>10000</td>
+<td>0.00</td>
+<td>100.00</td>
+<td>0.00</td>
+<td>0.00</td>
+</tr>
+<tr>
+<td>Ghost allocations</td>
+<td>DCGM</td>
+<td>0</td>
+<td>0</td>
+<td>10000</td>
+<td>10000</td>
+<td>0.00</td>
+<td>100.00</td>
+<td>0.00</td>
+<td>0.00</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>gpu-roofline</td>
+<td>10000</td>
+<td>0</td>
+<td>10000</td>
+<td>0</td>
+<td>100.00</td>
+<td>100.00</td>
+<td>100.00</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>nvidia-smi</td>
+<td>0</td>
+<td>0</td>
+<td>10000</td>
+<td>10000</td>
+<td>0.00</td>
+<td>100.00</td>
+<td>0.00</td>
+<td>0.00</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>DCGM</td>
+<td>0</td>
+<td>0</td>
+<td>10000</td>
+<td>10000</td>
+<td>0.00</td>
+<td>100.00</td>
+<td>0.00</td>
+<td>0.00</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>gpu-roofline</td>
+<td>20000</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>100.00</td>
+<td>0.00</td>
+<td>100.00</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>nvidia-smi</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>20000</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.00</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>DCGM</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>20000</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.00</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>gpu-roofline</td>
+<td>11294</td>
+<td>0</td>
+<td>0</td>
+<td>8706</td>
+<td>56.47</td>
+<td>0.00</td>
+<td>100.00</td>
+<td>0.72</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>nvidia-smi</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>20000</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.00</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>DCGM</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>20000</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.00</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>gpu-roofline</td>
+<td>9465</td>
+<td>1</td>
+<td>9999</td>
+<td>535</td>
+<td>94.65</td>
+<td>99.99</td>
+<td>99.99</td>
+<td>0.97</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>nvidia-smi</td>
+<td>0</td>
+<td>0</td>
+<td>10000</td>
+<td>10000</td>
+<td>0.00</td>
+<td>100.00</td>
+<td>0.00</td>
+<td>0.00</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>DCGM</td>
+<td>0</td>
+<td>0</td>
+<td>10000</td>
+<td>10000</td>
+<td>0.00</td>
+<td>100.00</td>
+<td>0.00</td>
+<td>0.00</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>gpu-roofline</td>
+<td>10000</td>
+<td>0</td>
+<td>10000</td>
+<td>0</td>
+<td>100.00</td>
+<td>100.00</td>
+<td>100.00</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>nvidia-smi</td>
+<td>0</td>
+<td>0</td>
+<td>10000</td>
+<td>10000</td>
+<td>0.00</td>
+<td>100.00</td>
+<td>0.00</td>
+<td>0.00</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>DCGM</td>
+<td>0</td>
+<td>0</td>
+<td>10000</td>
+<td>10000</td>
+<td>0.00</td>
+<td>100.00</td>
+<td>0.00</td>
+<td>0.00</td>
+</tr>
+<tr>
+<td>Overall</td>
+<td>gpu-roofline</td>
+<td>70753</td>
+<td>839</td>
+<td>39161</td>
+<td>9247</td>
+<td>88.44</td>
+<td>97.90</td>
+<td>98.83</td>
+<td>0.93</td>
+</tr>
+<tr>
+<td>Overall</td>
+<td>nvidia-smi</td>
+<td>0</td>
+<td>0</td>
+<td>40000</td>
+<td>80000</td>
+<td>0.00</td>
+<td>100.00</td>
+<td>0.00</td>
+<td>0.00</td>
+</tr>
+<tr>
+<td>Overall</td>
+<td>DCGM</td>
+<td>0</td>
+<td>0</td>
+<td>40000</td>
+<td>80000</td>
+<td>0.00</td>
+<td>100.00</td>
+<td>0.00</td>
+<td>0.00</td>
+</tr>
+</tbody>
+</table>
+<h2 data-number="3.5" id="straggler-threshold-sweep"><span class="header-section-number">3.5</span> Straggler Threshold Sweep</h2>
+<table>
+<thead>
+<tr>
+<th>Threshold</th>
+<th>Sensitivity %</th>
+<th>Specificity %</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3.03</td>
+<td>100.00</td>
+<td>20.00</td>
+</tr>
+<tr>
+<td>3.91</td>
+<td>99.96</td>
+<td>39.96</td>
+</tr>
+<tr>
+<td>4.59</td>
+<td>99.88</td>
+<td>59.88</td>
+</tr>
+<tr>
+<td>5.29</td>
+<td>99.73</td>
+<td>79.73</td>
+</tr>
+<tr>
+<td>6.97</td>
+<td>98.38</td>
+<td>98.38</td>
+</tr>
+<tr>
+<td>14.99</td>
+<td>80.00</td>
+<td>100.00</td>
+</tr>
+<tr>
+<td>17.26</td>
+<td>60.00</td>
+<td>100.00</td>
+</tr>
+<tr>
+<td>24.38</td>
+<td>40.00</td>
+<td>100.00</td>
+</tr>
+<tr>
+<td>33.84</td>
+<td>20.00</td>
+<td>100.00</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Table S3 remains reserved for hardware-phase calibration
+results.</li>
+</ul>
+</body>
+</html>
