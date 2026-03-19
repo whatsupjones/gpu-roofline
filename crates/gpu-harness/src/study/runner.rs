@@ -162,7 +162,11 @@ fn run_ghost_category(
 
     let treatment_cells: Vec<(TeardownMethod, MigProfile)> = TeardownMethod::all()
         .iter()
-        .flat_map(|method| MigProfile::all().iter().map(move |profile| (*method, *profile)))
+        .flat_map(|method| {
+            MigProfile::all()
+                .iter()
+                .map(move |profile| (*method, *profile))
+        })
         .collect();
     let treatment_counts = distribute_evenly(treatment_target, treatment_cells.len());
     let control_counts = distribute_evenly(control_target, MigProfile::all().len());
@@ -176,8 +180,7 @@ fn run_ghost_category(
 
         for _ in 0..*count {
             let params = ghost_trial_params(*method, *profile, false, rng);
-            let result =
-                run_ghost_trial(&params, noise, config.ghost_detection_threshold, rng);
+            let result = run_ghost_trial(&params, noise, config.ghost_detection_threshold, rng);
 
             trials.push(TrialRecord {
                 trial_id: next_id(next_trial_id),
@@ -214,8 +217,7 @@ fn run_ghost_category(
 
         for _ in 0..*count {
             let params = ghost_trial_params(TeardownMethod::Clean, *profile, true, rng);
-            let result =
-                run_ghost_trial(&params, noise, config.ghost_detection_threshold, rng);
+            let result = run_ghost_trial(&params, noise, config.ghost_detection_threshold, rng);
 
             trials.push(TrialRecord {
                 trial_id: next_id(next_trial_id),
@@ -291,8 +293,7 @@ fn run_contention_category(
                 partitioning_mode: "TimeSliced".to_string(),
                 is_hardware_partitioned: false,
             };
-            let result =
-                run_contention_trial(&params, noise, config.contention_threshold, rng);
+            let result = run_contention_trial(&params, noise, config.contention_threshold, rng);
             let bandwidth_loss_pct = ((1.0 - result.mean_bandwidth_ratio) * 100.0).max(0.0);
 
             trials.push(TrialRecord {
@@ -337,8 +338,7 @@ fn run_contention_category(
                 partitioning_mode: "TimeSliced".to_string(),
                 is_hardware_partitioned: false,
             };
-            let result =
-                run_contention_trial(&params, noise, config.contention_threshold, rng);
+            let result = run_contention_trial(&params, noise, config.contention_threshold, rng);
             let bandwidth_loss_pct = ((1.0 - result.mean_bandwidth_ratio) * 100.0).max(0.0);
 
             trials.push(TrialRecord {
@@ -380,8 +380,7 @@ fn run_contention_category(
                 partitioning_mode: "HardwarePartitioned".to_string(),
                 is_hardware_partitioned: true,
             };
-            let result =
-                run_contention_trial(&params, noise, config.contention_threshold, rng);
+            let result = run_contention_trial(&params, noise, config.contention_threshold, rng);
             let bandwidth_loss_pct = ((1.0 - result.mean_bandwidth_ratio) * 100.0).max(0.0);
 
             trials.push(TrialRecord {
@@ -615,8 +614,7 @@ fn run_straggler_category(
                 severity: 0,
                 is_control: true,
             };
-            let result =
-                run_straggler_trial(&params, noise, config.straggler_threshold, rng);
+            let result = run_straggler_trial(&params, noise, config.straggler_threshold, rng);
 
             trials.push(TrialRecord {
                 trial_id: next_id(next_trial_id),
@@ -667,8 +665,7 @@ fn run_straggler_category(
                 severity: *severity,
                 is_control: false,
             };
-            let result =
-                run_straggler_trial(&params, noise, config.straggler_threshold, rng);
+            let result = run_straggler_trial(&params, noise, config.straggler_threshold, rng);
 
             trials.push(TrialRecord {
                 trial_id: next_id(next_trial_id),

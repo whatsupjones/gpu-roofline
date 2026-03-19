@@ -57,10 +57,7 @@ fn main() {
     eprintln!("Simulation complete");
     eprintln!("  output: {}", output.display());
     eprintln!("  total trials: {}", results.total_trials);
-    eprintln!(
-        "  target/category: {}",
-        results.target_trials_per_category
-    );
+    eprintln!("  target/category: {}", results.target_trials_per_category);
     eprintln!("  elapsed: {:.1}s", elapsed.as_secs_f64());
     for category in &results.categories {
         eprintln!(

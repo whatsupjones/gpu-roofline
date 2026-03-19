@@ -143,14 +143,17 @@ pub fn effect_sizes(treatment: &[f64], control: &[f64]) -> EffectSize {
     let mean_c = mean_of(control);
     let sd_t = sd_of(treatment, mean_t);
     let sd_c = sd_of(control, mean_c);
-    let pooled_sd = ((((n1 - 1.0) * sd_t * sd_t + (n2 - 1.0) * sd_c * sd_c)
-        / (n1 + n2 - 2.0))
-        .max(0.0))
-    .sqrt();
+    let pooled_sd =
+        ((((n1 - 1.0) * sd_t * sd_t + (n2 - 1.0) * sd_c * sd_c) / (n1 + n2 - 2.0)).max(0.0)).sqrt();
     let cohens_d = if pooled_sd > 0.0 {
         (mean_t - mean_c) / pooled_sd
     } else {
-        0.0
+        let diff = mean_t - mean_c;
+        if diff == 0.0 {
+            0.0
+        } else {
+            diff.signum() * f64::INFINITY
+        }
     };
 
     // Rank-biserial r from U statistic
@@ -219,13 +222,20 @@ pub fn bootstrap_ci(
         jackknife_medians.push(median_of(&jack));
     }
     let jack_mean = mean_of(&jackknife_medians);
-    let num: f64 = jackknife_medians.iter().map(|&m| (jack_mean - m).powi(3)).sum();
+    let num: f64 = jackknife_medians
+        .iter()
+        .map(|&m| (jack_mean - m).powi(3))
+        .sum();
     let den: f64 = jackknife_medians
         .iter()
         .map(|&m| (jack_mean - m).powi(2))
         .sum::<f64>()
         .powf(1.5);
-    let a = if den.abs() > 1e-10 { num / (6.0 * den) } else { 0.0 };
+    let a = if den.abs() > 1e-10 {
+        num / (6.0 * den)
+    } else {
+        0.0
+    };
 
     // BCa percentiles
     let z_alpha = inverse_normal_cdf(0.025);
@@ -306,7 +316,8 @@ pub fn detection_metrics(ground_truth: &[bool], predicted: &[bool]) -> Detection
 /// Holm-Bonferroni correction on p-values.
 pub fn holm_bonferroni(p_values: &[f64], alpha: f64) -> Vec<(f64, f64, bool)> {
     let m = p_values.len();
-    let mut indexed: Vec<(usize, f64)> = p_values.iter().enumerate().map(|(i, &p)| (i, p)).collect();
+    let mut indexed: Vec<(usize, f64)> =
+        p_values.iter().enumerate().map(|(i, &p)| (i, p)).collect();
     indexed.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
 
     let mut results = vec![(0.0, 0.0, false); m];
@@ -382,7 +393,9 @@ fn normal_cdf(z: f64) -> f64 {
     let t = 1.0 / (1.0 + 0.2316419 * z.abs());
     let d = 0.3989422804014327; // 1/sqrt(2*pi)
     let p = d * (-z * z / 2.0).exp();
-    let c = t * (0.319381530 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+    let c = t
+        * (0.319381530
+            + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
 
     if z >= 0.0 {
         1.0 - p * c
@@ -418,7 +431,11 @@ fn inverse_normal_cdf(p: f64) -> f64 {
 
     let z = t - (c0 + c1 * t + c2 * t * t) / (1.0 + d1 * t + d2 * t * t + d3 * t * t * t);
 
-    if p < 0.5 { -z } else { z }
+    if p < 0.5 {
+        -z
+    } else {
+        z
+    }
 }
 
 #[cfg(test)]
@@ -431,7 +448,11 @@ mod tests {
         let treatment: Vec<f64> = (0..100).map(|i| 10.0 + i as f64 * 0.1).collect();
         let control: Vec<f64> = (0..100).map(|i| 5.0 + i as f64 * 0.1).collect();
         let result = mann_whitney_u(&treatment, &control, 0.05);
-        assert!(result.significant, "treatment clearly > control, p={}", result.p_value);
+        assert!(
+            result.significant,
+            "treatment clearly > control, p={}",
+            result.p_value
+        );
     }
 
     #[test]
@@ -439,7 +460,10 @@ mod tests {
         let treatment: Vec<f64> = (0..100).map(|i| 5.0 + i as f64 * 0.1).collect();
         let control: Vec<f64> = (0..100).map(|i| 5.0 + i as f64 * 0.1).collect();
         let result = mann_whitney_u(&treatment, &control, 0.05);
-        assert!(!result.significant, "same samples should not be significant");
+        assert!(
+            !result.significant,
+            "same samples should not be significant"
+        );
     }
 
     #[test]
@@ -447,7 +471,11 @@ mod tests {
         let treatment: Vec<f64> = (0..100).map(|_| 10.0).collect();
         let control: Vec<f64> = (0..100).map(|_| 5.0).collect();
         let es = effect_sizes(&treatment, &control);
-        assert!(es.cohens_d > 1.0, "large effect expected, got d={}", es.cohens_d);
+        assert!(
+            es.cohens_d > 1.0,
+            "large effect expected, got d={}",
+            es.cohens_d
+        );
     }
 
     #[test]

@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::sim::fleet::Degradation;
 use crate::sim::gpu_model::SimGpuProfile;
-use crate::sim::profiles;
 use crate::sim::power::PowerModel;
+use crate::sim::profiles;
 
 use super::noise::NoiseModel;
 use rand::Rng;
@@ -79,7 +79,11 @@ pub enum TeardownMethod {
 
 impl TeardownMethod {
     pub fn all() -> &'static [TeardownMethod] {
-        &[TeardownMethod::Clean, TeardownMethod::UnderLoad, TeardownMethod::RapidChurn]
+        &[
+            TeardownMethod::Clean,
+            TeardownMethod::UnderLoad,
+            TeardownMethod::RapidChurn,
+        ]
     }
 
     pub fn name(&self) -> &'static str {
@@ -101,7 +105,11 @@ pub enum MigProfile {
 
 impl MigProfile {
     pub fn all() -> &'static [MigProfile] {
-        &[MigProfile::Mig1g10gb, MigProfile::Mig2g20gb, MigProfile::Mig3g40gb]
+        &[
+            MigProfile::Mig1g10gb,
+            MigProfile::Mig2g20gb,
+            MigProfile::Mig3g40gb,
+        ]
     }
 
     pub fn name(&self) -> &'static str {
@@ -250,8 +258,12 @@ pub fn run_contention_trial(
     } else {
         // Time-sliced: each tenant gets 1/N of bandwidth
         let fair_share = 1.0 / n as f64;
-        let bw: Vec<f64> = (0..n).map(|_| noise.jitter_bandwidth(fair_share, rng)).collect();
-        let comp: Vec<f64> = (0..n).map(|_| noise.jitter_bandwidth(fair_share, rng)).collect();
+        let bw: Vec<f64> = (0..n)
+            .map(|_| noise.jitter_bandwidth(fair_share, rng))
+            .collect();
+        let comp: Vec<f64> = (0..n)
+            .map(|_| noise.jitter_bandwidth(fair_share, rng))
+            .collect();
         (bw, comp)
     };
 
@@ -443,7 +455,11 @@ pub enum WorkloadType {
 
 impl WorkloadType {
     pub fn all() -> &'static [WorkloadType] {
-        &[WorkloadType::ComputeBound, WorkloadType::MemoryBound, WorkloadType::Mixed]
+        &[
+            WorkloadType::ComputeBound,
+            WorkloadType::MemoryBound,
+            WorkloadType::Mixed,
+        ]
     }
 
     pub fn name(&self) -> &'static str {
@@ -518,11 +534,15 @@ pub fn run_burst_sustained_trial(
 
     // === Sustained phase (thermal equilibrium) ===
     let equilibrium_time = profile.thermal.time_to_equilibrium(burst_power);
-    let sustained_temp_raw = profile.thermal.temperature_at(burst_power, equilibrium_time);
+    let sustained_temp_raw = profile
+        .thermal
+        .temperature_at(burst_power, equilibrium_time);
     let sustained_temp = noise.jitter_thermal(sustained_temp_raw, rng);
     let sustained_throttle = profile.thermal.throttle_factor(sustained_temp);
-    let (_sustained_power, sustained_clock) = profile.power.compute_state(intensity, sustained_throttle);
-    let sustained_gflops_raw = PowerModel::peak_flops_at_clock(profile.cuda_cores, sustained_clock) / 1e9;
+    let (_sustained_power, sustained_clock) =
+        profile.power.compute_state(intensity, sustained_throttle);
+    let sustained_gflops_raw =
+        PowerModel::peak_flops_at_clock(profile.cuda_cores, sustained_clock) / 1e9;
     let sustained_gflops = noise.jitter_fleet(sustained_gflops_raw, rng);
     let sustained_bw = noise.jitter_bandwidth(
         profile.bandwidth.hbm_bandwidth_gbps * profile.bandwidth.sustained_ratio,
@@ -594,7 +614,9 @@ impl StragglerDegradationType {
                     1 => 10.0,
                     _ => 20.0,
                 };
-                Degradation::ThermalPasteDried { extra_degrees_c: extra }
+                Degradation::ThermalPasteDried {
+                    extra_degrees_c: extra,
+                }
             }
             StragglerDegradationType::NvLink => {
                 let (active, expected) = match severity {
@@ -602,7 +624,10 @@ impl StragglerDegradationType {
                     1 => (12, 18),
                     _ => (6, 18),
                 };
-                Degradation::NvlinkDegraded { active_links: active, expected_links: expected }
+                Degradation::NvlinkDegraded {
+                    active_links: active,
+                    expected_links: expected,
+                }
             }
             StragglerDegradationType::PcieFallback => {
                 let actual = match severity {
@@ -610,7 +635,10 @@ impl StragglerDegradationType {
                     1 => 3,
                     _ => 2,
                 };
-                Degradation::PcieFallback { actual_gen: actual, expected_gen: 5 }
+                Degradation::PcieFallback {
+                    actual_gen: actual,
+                    expected_gen: 5,
+                }
             }
             StragglerDegradationType::MemorySubsystem => {
                 let ratio = match severity {
@@ -618,7 +646,9 @@ impl StragglerDegradationType {
                     1 => 0.70,
                     _ => 0.50,
                 };
-                Degradation::MemorySubsystem { bandwidth_ratio: ratio }
+                Degradation::MemorySubsystem {
+                    bandwidth_ratio: ratio,
+                }
             }
             StragglerDegradationType::ClockStuck => {
                 let max_mhz = match severity {
@@ -664,10 +694,8 @@ pub fn run_straggler_trial(
     let n = params.fleet_size;
 
     // Compute peak GFLOPS for healthy GPU
-    let healthy_gflops = PowerModel::peak_flops_at_clock(
-        profile.cuda_cores,
-        profile.power.boost_clock_mhz,
-    ) / 1e9;
+    let healthy_gflops =
+        PowerModel::peak_flops_at_clock(profile.cuda_cores, profile.power.boost_clock_mhz) / 1e9;
 
     // Generate per-GPU measurements with fleet jitter
     let mut gpu_gflops: Vec<f64> = (0..n)
@@ -693,19 +721,16 @@ pub fn run_straggler_trial(
                 degraded_profile.thermal.throttle_onset_c -= extra_degrees_c;
                 degraded_profile.thermal.throttle_max_c -= extra_degrees_c;
                 // Compute sustained performance (throttled)
-                let eq_time = degraded_profile.thermal.time_to_equilibrium(
-                    degraded_profile.power.tdp_watts,
-                );
-                let temp = degraded_profile.thermal.temperature_at(
-                    degraded_profile.power.tdp_watts,
-                    eq_time,
-                );
+                let eq_time = degraded_profile
+                    .thermal
+                    .time_to_equilibrium(degraded_profile.power.tdp_watts);
+                let temp = degraded_profile
+                    .thermal
+                    .temperature_at(degraded_profile.power.tdp_watts, eq_time);
                 let throttle = degraded_profile.thermal.throttle_factor(temp);
                 let (_, clock) = degraded_profile.power.compute_state(1.0, throttle);
-                let degraded_gflops = PowerModel::peak_flops_at_clock(
-                    degraded_profile.cuda_cores,
-                    clock,
-                ) / 1e9;
+                let degraded_gflops =
+                    PowerModel::peak_flops_at_clock(degraded_profile.cuda_cores, clock) / 1e9;
                 gpu_gflops[0] = noise.jitter_fleet(degraded_gflops, rng);
             }
             Degradation::MemorySubsystem { bandwidth_ratio } => {
@@ -714,20 +739,24 @@ pub fn run_straggler_trial(
                 gpu_gflops[0] = noise.jitter_fleet(degraded_gflops, rng);
             }
             Degradation::ClockStuck { max_mhz } => {
-                let degraded_gflops = PowerModel::peak_flops_at_clock(
-                    profile.cuda_cores,
-                    *max_mhz,
-                ) / 1e9;
+                let degraded_gflops =
+                    PowerModel::peak_flops_at_clock(profile.cuda_cores, *max_mhz) / 1e9;
                 gpu_gflops[0] = noise.jitter_fleet(degraded_gflops, rng);
             }
-            Degradation::NvlinkDegraded { active_links, expected_links } => {
+            Degradation::NvlinkDegraded {
+                active_links,
+                expected_links,
+            } => {
                 let ratio = *active_links as f64 / *expected_links as f64;
                 // NVLink degradation mainly affects distributed training sync
                 // Reduce effective throughput by communication overhead
                 let degraded = healthy_gflops * (0.5 + 0.5 * ratio);
                 gpu_gflops[0] = noise.jitter_fleet(degraded, rng);
             }
-            Degradation::PcieFallback { actual_gen, expected_gen } => {
+            Degradation::PcieFallback {
+                actual_gen,
+                expected_gen,
+            } => {
                 let gen_diff = (*expected_gen as i32 - *actual_gen as i32).max(0);
                 let ratio = 0.5_f64.powi(gen_diff);
                 // PCIe fallback reduces data transfer performance
@@ -752,7 +781,9 @@ pub fn run_straggler_trial(
     };
 
     // Detection: straggler if any GPU < threshold * median
-    let straggler_detected = gpu_gflops.iter().any(|&g| g < detection_threshold * median_gflops);
+    let straggler_detected = gpu_gflops
+        .iter()
+        .any(|&g| g < detection_threshold * median_gflops);
 
     StragglerTrialResult {
         fleet_median_gflops: median_gflops,
@@ -810,8 +841,8 @@ pub fn run_oversub_trial(
     };
 
     // Add noise to failure rate
-    let noisy_failure_rate = (failure_rate + noise.jitter_bandwidth(0.0, rng).abs() * 0.01)
-        .clamp(0.0, 1.0);
+    let noisy_failure_rate =
+        (failure_rate + noise.jitter_bandwidth(0.0, rng).abs() * 0.01).clamp(0.0, 1.0);
 
     // Performance degradation when overcommitted
     let perf_degradation = if actual_ratio > 1.0 {

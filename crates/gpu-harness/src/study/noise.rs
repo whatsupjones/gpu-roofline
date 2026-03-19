@@ -34,12 +34,12 @@ pub struct NoiseModel {
 impl Default for NoiseModel {
     fn default() -> Self {
         Self {
-            memory_sigma_bytes: 512.0 * 1024.0,       // 512 KiB
+            memory_sigma_bytes: 512.0 * 1024.0, // 512 KiB
             latency_log_sigma: 0.3,
             bandwidth_relative_sigma: 0.02,
             spike_lambda: 0.01,
-            spike_min_bytes: 1024 * 1024,              // 1 MiB
-            spike_max_bytes: 64 * 1024 * 1024,         // 64 MiB
+            spike_min_bytes: 1024 * 1024,      // 1 MiB
+            spike_max_bytes: 64 * 1024 * 1024, // 64 MiB
             thermal_sigma_c: 1.0,
             fleet_relative_sigma: 0.02,
         }
@@ -141,6 +141,9 @@ mod tests {
         }
         let mean = sum / n as f64;
         // Mean should be close to baseline
-        assert!((mean - baseline).abs() < 10.0, "mean {mean} far from baseline {baseline}");
+        assert!(
+            (mean - baseline).abs() < 10.0,
+            "mean {mean} far from baseline {baseline}"
+        );
     }
 }
