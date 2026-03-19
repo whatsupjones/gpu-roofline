@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gpu-roofline-config
+  namespace: gpu-monitoring
+  labels:
+    app: gpu-roofline
+data:
+  # Webhook URLs (comma-separated, passed via CLI --webhook-url flags)
+  # Uncomment and set your webhook endpoints:
+  # WEBHOOK_URLS: "https://hooks.slack.com/services/xxx,https://events.pagerduty.com/xxx"
+
+  # Alert threshold (fraction of baseline, 0.0-1.0)
+  ALERT_THRESHOLD: "0.8"
+
+  # Monitoring interval (seconds)
+  MONITOR_INTERVAL: "60"

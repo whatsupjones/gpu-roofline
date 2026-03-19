@@ -1,0 +1,21 @@
+# Prometheus Operator ServiceMonitor for auto-discovery.
+# Requires the Prometheus Operator to be installed in your cluster.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: gpu-roofline
+  namespace: gpu-monitoring
+  labels:
+    app: gpu-roofline
+    release: prometheus  # Match your Prometheus Operator release label
+spec:
+  selector:
+    matchLabels:
+      app: gpu-roofline
+  endpoints:
+    - port: metrics
+      interval: 15s
+      path: /metrics
+  namespaceSelector:
+    matchNames:
+      - gpu-monitoring

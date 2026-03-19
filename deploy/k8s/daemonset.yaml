@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: gpu-roofline-monitor
+  namespace: gpu-monitoring
+  labels:
+    app: gpu-roofline
+    component: monitor
+spec:
+  selector:
+    matchLabels:
+      app: gpu-roofline
+  template:
+    metadata:
+      labels:
+        app: gpu-roofline
+        component: monitor
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9835"
+        prometheus.io/path: "/metrics"
+    spec:
+      nodeSelector:
+        nvidia.com/gpu.present: "true"
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: gpu-roofline
+          image: ghcr.io/whatsupjones/gpu-roofline:latest
+          args:
+            - monitor
+            - --daemon
+            - --interval
+            - "60"
+            - --metrics-port
+            - "9835"
+          envFrom:
+            - configMapRef:
+                name: gpu-roofline-config
+          env:
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: "all"
+            - name: NVIDIA_DRIVER_CAPABILITIES
+              value: "all"
+          ports:
+            - name: metrics
+              containerPort: 9835
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: metrics
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: metrics
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          startupProbe:
+            httpGet:
+              path: /health
+              port: metrics
+            failureThreshold: 10
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi

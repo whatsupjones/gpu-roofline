@@ -1,0 +1,191 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "9.0.0"
+    },
+    {
+      "type": "datasource",
+      "id": "prometheus",
+      "name": "Prometheus",
+      "version": "1.0.0"
+    }
+  ],
+  "uid": "gpu-roofline",
+  "title": "GPU Roofline Monitor",
+  "description": "GPU performance monitoring with vGPU lifecycle tracking",
+  "tags": ["gpu", "nvidia", "roofline", "vgpu"],
+  "timezone": "browser",
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "panels": [
+    {
+      "title": "GPU Utilization",
+      "type": "gauge",
+      "gridPos": { "h": 6, "w": 4, "x": 0, "y": 0 },
+      "targets": [{ "expr": "gpu_utilization_percent", "legendFormat": "{{instance}}" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 80 },
+              { "color": "red", "value": 95 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Temperature",
+      "type": "gauge",
+      "gridPos": { "h": 6, "w": 4, "x": 4, "y": 0 },
+      "targets": [{ "expr": "gpu_temperature_celsius", "legendFormat": "{{instance}}" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 75 },
+              { "color": "red", "value": 85 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Alerts",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 4, "x": 8, "y": 0 },
+      "targets": [
+        { "expr": "gpu_alerts_total{level=\"critical\"}", "legendFormat": "Critical" },
+        { "expr": "gpu_alerts_total{level=\"warning\"}", "legendFormat": "Warning" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Power Draw",
+      "type": "gauge",
+      "gridPos": { "h": 6, "w": 4, "x": 12, "y": 0 },
+      "targets": [{ "expr": "gpu_power_watts", "legendFormat": "{{instance}}" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "min": 0,
+          "max": 700,
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 400 },
+              { "color": "red", "value": 600 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Memory Bandwidth",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "targets": [{ "expr": "gpu_bandwidth_gbps", "legendFormat": "Bandwidth (GB/s)" }],
+      "fieldConfig": {
+        "defaults": { "unit": "GBs", "custom": { "lineWidth": 2, "fillOpacity": 10 } }
+      }
+    },
+    {
+      "title": "Compute Throughput",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "targets": [{ "expr": "gpu_gflops", "legendFormat": "GFLOP/s" }],
+      "fieldConfig": {
+        "defaults": { "unit": "FLOPS", "custom": { "lineWidth": 2, "fillOpacity": 10 } }
+      }
+    },
+    {
+      "title": "Power & Clock",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "targets": [
+        { "expr": "gpu_power_watts", "legendFormat": "Power (W)" },
+        { "expr": "gpu_clock_mhz", "legendFormat": "Clock (MHz)" }
+      ],
+      "fieldConfig": {
+        "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 5 } }
+      }
+    },
+    {
+      "title": "Memory Usage",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "targets": [
+        { "expr": "gpu_memory_used_bytes", "legendFormat": "Used" },
+        { "expr": "gpu_memory_total_bytes", "legendFormat": "Total" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "bytes", "custom": { "lineWidth": 2, "fillOpacity": 15 } }
+      }
+    },
+    {
+      "title": "vGPU Lifecycle",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 },
+      "collapsed": true,
+      "panels": [
+        {
+          "title": "Active vGPU Instances",
+          "type": "stat",
+          "gridPos": { "h": 6, "w": 6, "x": 0, "y": 23 },
+          "targets": [{ "expr": "gpu_vgpu_active_count", "legendFormat": "Active" }]
+        },
+        {
+          "title": "vGPU VRAM Allocation",
+          "type": "timeseries",
+          "gridPos": { "h": 6, "w": 9, "x": 6, "y": 23 },
+          "targets": [
+            { "expr": "gpu_vgpu_vram_allocated_bytes", "legendFormat": "Allocated" },
+            { "expr": "gpu_vgpu_vram_available_bytes", "legendFormat": "Available" }
+          ],
+          "fieldConfig": {
+            "defaults": { "unit": "bytes", "custom": { "lineWidth": 2, "fillOpacity": 15 } }
+          }
+        },
+        {
+          "title": "vGPU Events",
+          "type": "timeseries",
+          "gridPos": { "h": 6, "w": 9, "x": 15, "y": 23 },
+          "targets": [
+            { "expr": "rate(gpu_vgpu_events_total{type=\"created\"}[5m])", "legendFormat": "Created/s" },
+            { "expr": "rate(gpu_vgpu_events_total{type=\"destroyed\"}[5m])", "legendFormat": "Destroyed/s" }
+          ]
+        }
+      ]
+    }
+  ]
+}
