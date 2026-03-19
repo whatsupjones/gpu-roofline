@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>A Reproducible Simulation Study of Invisible Waste in Multi-Tenant GPU Infrastructure</title>
+  <title>Investigation of Invisible Waste in Multi-Tenant GPU Infrastructure</title>
   <style>
 
 code{white-space: pre-wrap;}
@@ -278,13 +278,13 @@ object-fit: contain;
 </head>
 <body>
 <header id="title-block-header">
-<h1 class="title">A Reproducible Simulation Study of Invisible Waste in
-Multi-Tenant GPU Infrastructure</h1>
+<h1 class="title">Investigation of Invisible Waste in Multi-Tenant GPU
+Infrastructure</h1>
 </header>
 <nav id="TOC" role="doc-toc">
 <ul>
-<li><a href="#a-reproducible-simulation-study-of-invisible-waste-in-multi-tenant-gpu-infrastructure" id="toc-a-reproducible-simulation-study-of-invisible-waste-in-multi-tenant-gpu-infrastructure"><span class="toc-section-number">1</span> A Reproducible Simulation Study of
-Invisible Waste in Multi-Tenant GPU Infrastructure</a>
+<li><a href="#investigation-of-invisible-waste-in-multi-tenant-gpu-infrastructure" id="toc-investigation-of-invisible-waste-in-multi-tenant-gpu-infrastructure"><span class="toc-section-number">1</span> Investigation of Invisible Waste in
+Multi-Tenant GPU Infrastructure</a>
 <ul>
 <li><a href="#abstract" id="toc-abstract"><span class="toc-section-number">1.1</span> Abstract</a></li>
 <li><a href="#introduction" id="toc-introduction"><span class="toc-section-number">1.2</span> 1. Introduction</a></li>
@@ -329,8 +329,8 @@ Matrices</a></li>
 </ul></li>
 </ul>
 </nav>
-<h1 data-number="1" id="a-reproducible-simulation-study-of-invisible-waste-in-multi-tenant-gpu-infrastructure"><span class="header-section-number">1</span> A Reproducible Simulation Study
-of Invisible Waste in Multi-Tenant GPU Infrastructure</h1>
+<h1 data-number="1" id="investigation-of-invisible-waste-in-multi-tenant-gpu-infrastructure"><span class="header-section-number">1</span> Investigation of Invisible Waste
+in Multi-Tenant GPU Infrastructure</h1>
 <p><strong>Author:</strong> Christopher D. Jones <strong>Date:</strong>
 March 2026</p>
 <hr />
@@ -344,13 +344,17 @@ architectural mismatch creates categories of waste that are structurally
 invisible to operators.</p>
 <p><strong>Methods.</strong> We formalize six categories of invisible
 waste in virtualized GPU environments, each with a distinct physical
-mechanism and a distinct reason current tools miss it. We implement a
-parameterized simulation in Rust, execute 120,000 deterministic trials
-(20,000 per category) with realistic NVML-matched noise injection, and
-analyze the results using design-appropriate statistical tests:
-Mann-Whitney U for independent-group categories and Wilcoxon signed-rank
-for paired within-trial categories, with Holm-Bonferroni correction
-across all six omnibus comparisons.</p>
+mechanism and a distinct reason current tools miss it. The investigation
+uses a synthetic model: a parameterized simulation framework in Rust
+executing 120,000 deterministic trials (20,000 per category) with
+realistic NVML-matched noise injection. The thermal and performance
+models underlying the simulation are calibrated against
+hardware-validated roofline measurements on H100 SXM (2,905 GB/s
+measured HBM3 bandwidth, 59.1 TFLOPS FP32, validated at 87–100% of
+theoretical spec) and H200 systems. Statistical analysis uses
+design-appropriate tests: Mann-Whitney U for independent-group
+categories and Wilcoxon signed-rank for paired within-trial categories,
+with Holm-Bonferroni correction across all six omnibus comparisons.</p>
 <p><strong>Results.</strong> All six waste categories produce
 statistically significant effects with large standardized effect sizes
 (Cohen’s d/d_z ranging from 0.73 to 8.55). The central finding is a
@@ -365,11 +369,12 @@ allocations freeing 512 MiB per teardown; straggler detection recovering
 enabling accurate SLAs), and (C) risk prevention (oversubscription
 detection before silent tenant degradation).</p>
 <p><strong>Conclusions.</strong> GPU fleet operators currently have zero
-visibility into six measurable waste categories. This study provides the
-taxonomy, the detection framework, and a reproducible simulation
-benchmark. Hardware validation on bare-metal H100 systems is the logical
-next step; the open protocol and simulation predictions are published to
-enable community participation.</p>
+visibility into six measurable waste categories. This investigation
+provides the taxonomy, the detection framework, and a reproducible
+benchmark built on hardware-validated performance models. Full-scale
+hardware validation across all six categories on bare-metal H100 systems
+is the logical next step; the open protocol and predictions are
+published to enable community participation.</p>
 <p><strong>Keywords:</strong> GPU virtualization, multi-tenant
 infrastructure, invisible waste, roofline model, MIG, observability,
 simulation study</p>
@@ -692,15 +697,78 @@ NVML instrumentation characteristics:</p>
 </table>
 <h2 data-number="1.5" id="simulation-infrastructure-and-experimental-design"><span class="header-section-number">1.5</span> 4. Simulation Infrastructure
 and Experimental Design</h2>
-<h3 data-number="1.5.1" id="implementation"><span class="header-section-number">1.5.1</span> 4.1 Implementation</h3>
-<p>The simulation is implemented in Rust as part of the
-<code>gpu-harness</code> crate (~2,600 lines across 6 modules). The
-binary accepts three parameters: scale factor (default 1.0, producing
-120,000 trials), random seed (default 42), and output path. Execution
-time is 0.4 seconds on commodity hardware. The output is deterministic:
-re-execution with the same seed produces byte-identical JSON (SHA-256:
+<h3 data-number="1.5.1" id="methodology"><span class="header-section-number">1.5.1</span> 4.1 Methodology</h3>
+<p>This investigation uses a synthetic model to systematically evaluate
+all six waste categories under controlled conditions. The simulation
+framework is implemented in Rust as part of the <code>gpu-harness</code>
+crate (~2,600 lines across 6 modules). The binary accepts three
+parameters: scale factor (default 1.0, producing 120,000 trials), random
+seed (default 42), and output path. Execution time is 0.4 seconds on
+commodity hardware. The output is deterministic: re-execution with the
+same seed produces byte-identical JSON (SHA-256:
 <code>e386a3d599a238901abff636d421dbcb095cca31616e425d05e5653744fd3912</code>).</p>
-<h3 data-number="1.5.2" id="experimental-design-summary"><span class="header-section-number">1.5.2</span> 4.2 Experimental Design
+<h3 data-number="1.5.2" id="hardware-validated-foundation"><span class="header-section-number">1.5.2</span> 4.2 Hardware-Validated
+Foundation</h3>
+<p>The simulation models are not theoretical — they are calibrated
+against measured hardware performance. The dynamic roofline model, which
+underpins the burst-to-sustained gap analysis (Category 4) and the
+straggler detection framework (Category 5), has been validated on
+bare-metal systems:</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 7%" />
+<col style="width: 25%" />
+<col style="width: 23%" />
+<col style="width: 26%" />
+<col style="width: 15%" />
+</colgroup>
+<thead>
+<tr>
+<th>GPU</th>
+<th>Measured HBM BW</th>
+<th>Measured FP32</th>
+<th>% of Theoretical</th>
+<th>Platform</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>H100 SXM 80GB</td>
+<td>2,905 GB/s</td>
+<td>59.1 TFLOPS</td>
+<td>87–100%</td>
+<td>RunPod bare-metal</td>
+</tr>
+<tr>
+<td>H200 SXM 141GB</td>
+<td>4,028 GB/s</td>
+<td>59.5 TFLOPS</td>
+<td>87–100%</td>
+<td>RunPod bare-metal</td>
+</tr>
+<tr>
+<td>RTX 5090 32GB</td>
+<td>1,503 GB/s</td>
+<td>95.8 TFLOPS</td>
+<td>87–100%</td>
+<td>Cloud instance</td>
+</tr>
+</tbody>
+</table>
+<p>The thermal model (Newton’s law of cooling with per-GPU thermal
+coefficients) and power model (workload intensity to clock frequency
+mapping) use these validated profiles as their baseline parameters. The
+GPU profiles used in the simulation — clock speeds, TDP, thermal
+throttle onset temperatures, and bandwidth specifications — match the
+hardware-measured values, not vendor datasheet maximums. Full validation
+reports with measurement methodology, coefficient of variation, and NVML
+telemetry are archived in the repository
+(<code>docs/validation/</code>).</p>
+<p>This hardware calibration is critical: it means the simulation’s
+performance predictions for burst clocks, sustained throughput, and
+thermal trajectories are grounded in measured physics rather than
+theoretical specifications.</p>
+<h3 data-number="1.5.3" id="experimental-design-summary"><span class="header-section-number">1.5.3</span> 4.3 Experimental Design
 Summary</h3>
 <table>
 <colgroup>
@@ -761,7 +829,7 @@ Categories 3 and 4 produce paired observations (each trial measures both
 the actual value and the tool-reported or ideal baseline), requiring a
 paired test. All six omnibus p-values are Holm-Bonferroni corrected for
 multiplicity (family-wise alpha = 0.05).</p>
-<h3 data-number="1.5.3" id="detection-model"><span class="header-section-number">1.5.3</span> 4.3 Detection Model</h3>
+<h3 data-number="1.5.4" id="detection-model"><span class="header-section-number">1.5.4</span> 4.4 Detection Model</h3>
 <p>For each trial, three binary detection outcomes are recorded: whether
 <code>gpu-roofline</code>, <code>nvidia-smi</code>, or DCGM would detect
 the waste event. The <code>nvidia-smi</code> and DCGM detection rates
