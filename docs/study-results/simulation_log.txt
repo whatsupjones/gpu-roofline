@@ -1,0 +1,7 @@
+warning: C:\Users\Chris\Projects\gpu-tools\crates\gpu-fleet\Cargo.toml: `default-features` is ignored for gpu-harness, since `default-features` was not specified for `workspace.dependencies.gpu-harness`, this could become a hard error in the future
+    Finished `release` profile [optimized] target(s) in 6.85s
+     Running `D:/cargo-target/gpu-tools\release\examples\study_sim.exe --scale 1.0`
+=== GPU Waste Study — Simulation Phase ===
+Scale factor: 1 (~120000 trials)
+Random seed:  42
+Running...
