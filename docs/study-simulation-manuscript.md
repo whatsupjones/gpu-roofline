@@ -222,21 +222,36 @@ All six waste categories produce statistically significant effects after Holm-Bo
 | Oversubscription | 0.0% | 0.0% | 100.0% | <1e-300 |
 | **Overall** | **0.0%** | **0.0%** | **88.4%** | — |
 
-### 5.4 Economic Impact
+### 5.4 Operational Impact: Three Action Buckets
 
-**Table 1. Annual Cost of Invisible GPU Waste by Category and Fleet Scale**
+The six waste categories map to three distinct types of operational action that visibility enables. These categories are **not additive** — they apply to different fractions of GPU operating time and cannot be summed into a single dollar figure.
 
-| Waste Category | d / d_z | Waste/Event | Annual $/GPU (100-GPU) | 8-GPU Fleet | 100-GPU Fleet | 10,000-GPU Fleet |
-|---------------|---------|-------------|----------------------|-------------|---------------|-----------------|
-| Ghost allocations | 2.46 | 511.5 MiB | $2,733 | $5,466 | $273,321 | $34,165,064 |
-| Contention squeeze | 8.55 | 66.66% | $9,124 | $38,929 | $912,394 | $114,700,996 |
-| Provisioning overhead | 2.01 | 246.09 ms | $1 | $2 | $125 | $31,190 |
-| Burst-sustained gap | 0.73 | 1.69% | $278 | $1,481 | $27,762 | $3,084,702 |
-| Straggler tax | 2.46 | 14.81% | $5,518 | $9,755 | $551,828 | $139,336,568 |
-| Oversubscription | 3.97 | 33.33% | $3,650 | $9,733 | $365,000 | $48,666,667 |
-| **Total** | — | — | **$21,304** | **$65,366** | **$2,130,430** | **$339,985,187** |
+**Bucket A — Directly Recoverable Capacity**
 
-The cost model reveals a clear priority ordering: contention squeeze and straggler tax dominate fleet-level waste, contributing 69% of the total at the 100-GPU scale. Provisioning overhead is economically negligible (<$1/GPU/year). Ghost allocations and oversubscription occupy the middle tier. This ordering directly informs which categories should be prioritized for hardware validation.
+| Category | Per-Event Magnitude | Fleet Impact |
+|----------|-------------------|-------------|
+| Ghost allocations | 512 MiB trapped per teardown | ~10 GiB/day freed per GPU at 20 teardowns/day |
+| Straggler tax | 19.1% fleet throughput lost per straggler | 16.7% fleet capacity wasted in 8-GPU training job |
+
+Ghost allocations trap VRAM that could host additional tenant instances. Detecting and reclaiming ghost memory after each teardown directly frees sellable capacity. Straggler detection identifies degraded GPUs that are silently blocking N-1 healthy GPUs at synchronization barriers in distributed training. Replacing or reassigning a single straggler in an 8-GPU job recovers 16.7% of fleet throughput.
+
+**Bucket B — Decision Support (physics-driven)**
+
+| Category | Per-Event Magnitude | What Operators Gain |
+|----------|-------------------|-------------------|
+| Contention squeeze | 50-75% bandwidth loss at 2-4 tenants (time-sliced) | Data to choose MIG vs time-slicing; price per-tenant correctly |
+| Burst-sustained gap | 1.7% median gap (H100); 1-16% range by workload | Set honest SLAs; avoid overcommitting on advertised specs |
+| Provisioning overhead | 246 ms per MIG provision | Economically negligible (<$1/GPU/yr) |
+
+Contention is the inherent cost of time-slicing — it cannot be eliminated. But without visibility, operators cannot make informed decisions about when to use MIG (hardware isolation, no contention) versus time-slicing (more tenants, higher revenue per GPU, but shared bandwidth). The burst-sustained gap is thermal physics: GPUs throttle under sustained load. Knowing the actual gap for each GPU model and workload enables accurate SLA commitments instead of advertising peak specs that sustained workloads cannot achieve.
+
+**Bucket C — Risk Prevention**
+
+| Category | Per-Event Magnitude | Risk Avoided |
+|----------|-------------------|-------------|
+| Oversubscription | 33.3% performance degradation at 1.5x overcommit | Detect before tenants experience silent degradation; prevent crash risk at 2x+ |
+
+Oversubscription occurs when aggregate vGPU VRAM allocations exceed physical GPU capacity. Without monitoring, this is invisible — each tenant's allocation appears successful individually. Detection enables operators to enforce capacity limits before tenants experience unexplained performance loss or out-of-memory failures.
 
 **Cost Model Bootstrap 95% CIs:**
 
