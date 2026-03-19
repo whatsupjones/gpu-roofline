@@ -2,7 +2,7 @@
   "protocol_version": "1.0",
   "phase": "simulation",
   "seed": 42,
-  "generated_at_utc": "2026-03-19T17:57:49+00:00",
+  "generated_at_utc": "2026-03-19T19:45:13+00:00",
   "omnibus_results": [
     {
       "Category": "Ghost allocations",

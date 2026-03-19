@@ -1,11 +1,11 @@
 # Provenance
 
-- Generated at: `2026-03-19T17:57:50+00:00`
+- Generated at: `2026-03-19T19:45:14+00:00`
 - Protocol version: `1.0`
 - Phase: `simulation`
-- Archive root: `D:/study-output-v2`
+- Archive root: `D:/study-output-v4`
 - Original input path: `docs/study-results/simulation-raw.json`
-- Archived raw copy: `D:/study-output-v2/raw/simulation-raw.json`
+- Archived raw copy: `D:/study-output-v4/raw/simulation-raw.json`
 - Input SHA256: `e386a3d599a238901abff636d421dbcb095cca31616e425d05e5653744fd3912`
 - Input bytes: `83712562`
 - Raw generator: `gpu-harness::study::runner`
@@ -17,7 +17,7 @@
 
 ## Commands
 
-- Analysis: `D:\gpu-study-venv\Scripts\python.exe D:/study-archives/gpu-waste-simulation-20260319T1130Z/source_snapshot/analysis/analyze_study.py --input docs/study-results/simulation-raw.json --output-root D:/study-output-v2 --repo-root . --bootstrap-resamples 10000 --cost-bootstrap-resamples 2000 --seed 42`
+- Analysis: `D:\gpu-study-venv\Scripts\python.exe D:/study-archives/gpu-waste-simulation-20260319T1130Z/source_snapshot/analysis/analyze_study.py --input docs/study-results/simulation-raw.json --output-root D:/study-output-v4 --repo-root . --bootstrap-resamples 10000 --cost-bootstrap-resamples 2000 --seed 42`
 - Recommended simulation rerun: `CARGO_TARGET_DIR=D:/cargo-target/gpu-tools TMPDIR=D:/tmp cargo run -p gpu-harness --release --bin study_sim -- --out docs/study-results/simulation-raw.json`
 
 ## Software
@@ -30,9 +30,9 @@
 
 ## Source Snapshot
 
-- `analysis/analyze_study.py` sha256 `d49c1a74ce5fda7a79b823700d23f035c8cd808eab6103fb97b0e6db56ace9e6` (59631 bytes)
+- `analysis/analyze_study.py` sha256 `c984860c5f31eb3bc2871d3c97b2c2a4a5c2c43226ca22d602c196ad6cc6fdb8` (66550 bytes)
 - `repo/docs/study-protocol-gpu-waste.md` sha256 `c96c7f5b74618932d578b7a661c3eac93991136f9b079a9e980000cfb20834bc` (69264 bytes)
-- `repo/docs/study-simulation-manuscript.md` sha256 `e85d79260b4dbdf5a92aa39a437ccc2ed351236e69a8f7050462a241ff2fb644` (2888 bytes)
+- `repo/docs/study-simulation-manuscript.md` sha256 `04b8017572f11c8e993cb987780de4dcd9b8b491b66ccc5b2cdfad1be80ead61` (28398 bytes)
 - `repo/docs/study-submission-plan.md` sha256 `f99035429d01739ce383b702bbe171902880aae79f1ba13a367d90775755ee95` (1260 bytes)
 - `repo/crates/gpu-harness/src/bin/study_sim.rs` sha256 `00e0918908c671a208ba7e9bd192c8b0980d735f1acd6c9dcfa94b5ff3a17516` (2197 bytes)
 - `repo/crates/gpu-harness/src/study/mod.rs` sha256 `d42eff055b1e1e0799a02de3f1c186fb92a96f426d29727ba7fa9e07712b2c85` (558 bytes)
@@ -44,9 +44,9 @@
 
 ## Derived Outputs
 
-- `derived/summary.md` sha256 `47d1d32213f7acebe041459dc0887bd6db5aa037fa8df11b93fd206f8aa42242` (3982 bytes)
+- `derived/summary.md` sha256 `8df837642c6a419b6115e15e6847380d5e1dc3e54485ae3962a7107adedd9b69` (6751 bytes)
 - `derived/supplement.md` sha256 `f62be1cbed750af43ede98ab09e09da91c6e08e61e6b27ae72c0c4a25df724b9` (22153 bytes)
-- `derived/analysis-results.json` sha256 `4a254a352b2e7966bff0bb062ead0f428336346bde8741bc9db5edb301dc389b` (21118 bytes)
+- `derived/analysis-results.json` sha256 `5a88d4d6a199d966c30cd5975492ee5ab13a8227f2c4b3d0bd172057856d6576` (21118 bytes)
 
 ## Best-Practice Retention
 
