@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>Investigation of Invisible Waste in Multi-Tenant GPU Infrastructure</title>
+  <title>The GPU Efficiency Gap: A Systematic Method for Detecting Invisible Waste</title>
   <style>
 
 code{white-space: pre-wrap;}
@@ -278,13 +278,13 @@ object-fit: contain;
 </head>
 <body>
 <header id="title-block-header">
-<h1 class="title">Investigation of Invisible Waste in Multi-Tenant GPU
-Infrastructure</h1>
+<h1 class="title">The GPU Efficiency Gap: A Systematic Method for
+Detecting Invisible Waste</h1>
 </header>
 <nav id="TOC" role="doc-toc">
 <ul>
-<li><a href="#investigation-of-invisible-waste-in-multi-tenant-gpu-infrastructure" id="toc-investigation-of-invisible-waste-in-multi-tenant-gpu-infrastructure"><span class="toc-section-number">1</span> Investigation of Invisible Waste in
-Multi-Tenant GPU Infrastructure</a>
+<li><a href="#the-gpu-efficiency-gap-a-systematic-method-for-detecting-invisible-waste" id="toc-the-gpu-efficiency-gap-a-systematic-method-for-detecting-invisible-waste"><span class="toc-section-number">1</span> The GPU Efficiency Gap: A Systematic
+Method for Detecting Invisible Waste</a>
 <ul>
 <li><a href="#abstract" id="toc-abstract"><span class="toc-section-number">1.1</span> Abstract</a></li>
 <li><a href="#introduction" id="toc-introduction"><span class="toc-section-number">1.2</span> 1. Introduction</a></li>
@@ -329,32 +329,33 @@ Matrices</a></li>
 </ul></li>
 </ul>
 </nav>
-<h1 data-number="1" id="investigation-of-invisible-waste-in-multi-tenant-gpu-infrastructure"><span class="header-section-number">1</span> Investigation of Invisible Waste
-in Multi-Tenant GPU Infrastructure</h1>
+<h1 data-number="1" id="the-gpu-efficiency-gap-a-systematic-method-for-detecting-invisible-waste"><span class="header-section-number">1</span> The GPU Efficiency Gap: A
+Systematic Method for Detecting Invisible Waste</h1>
 <p><strong>Author:</strong> Christopher D. Jones <strong>Date:</strong>
 March 2026</p>
 <hr />
 <h2 data-number="1.1" id="abstract"><span class="header-section-number">1.1</span> Abstract</h2>
-<p><strong>Background.</strong> Multi-tenant GPU virtualization (MIG,
-GRID, time-slicing) is now standard in cloud infrastructure, yet the
-monitoring tools used to manage these environments —
-<code>nvidia-smi</code> and NVIDIA DCGM — were designed for
-single-device health, not multi-tenant economic analysis. This
-architectural mismatch creates categories of waste that are structurally
-invisible to operators.</p>
+<p><strong>Background.</strong> GPU infrastructure — from single-device
+sustained workloads to multi-tenant virtualization to fleet-scale
+distributed training — produces forms of efficiency loss that the
+standard monitoring tools (<code>nvidia-smi</code>, NVIDIA DCGM) cannot
+observe. These tools were designed for device-level health monitoring,
+not for measuring lifecycle transitions, cross-tenant interference,
+thermal degradation trajectories, or fleet-wide synchronization waste.
+The result is a systematic efficiency gap: operators manage GPU
+infrastructure without visibility into measurable losses that span the
+full operations stack.</p>
 <p><strong>Methods.</strong> We formalize six categories of invisible
-waste in virtualized GPU environments, each with a distinct physical
-mechanism and a distinct reason current tools miss it. The investigation
-uses a synthetic model: a parameterized simulation framework in Rust
-executing 120,000 deterministic trials (20,000 per category) with
-realistic NVML-matched noise injection. The thermal and performance
-models underlying the simulation are calibrated against
-hardware-validated roofline measurements on H100 SXM (2,905 GB/s
-measured HBM3 bandwidth, 59.1 TFLOPS FP32, validated at 87–100% of
-theoretical spec) and H200 systems. Statistical analysis uses
-design-appropriate tests: Mann-Whitney U for independent-group
-categories and Wilcoxon signed-rank for paired within-trial categories,
-with Holm-Bonferroni correction across all six omnibus comparisons.</p>
+GPU waste, covering single-device thermal physics, virtualization
+partitioning, and fleet-level coordination. The investigation uses a
+synthetic model calibrated against hardware-validated roofline
+measurements on H100 SXM (2,905 GB/s HBM3, 59.1 TFLOPS FP32, validated
+at 87–100% of spec) and H200 systems. The simulation executes 120,000
+deterministic trials (20,000 per category) with realistic NVML-matched
+noise injection. Statistical analysis uses design-appropriate tests:
+Mann-Whitney U for independent-group categories and Wilcoxon signed-rank
+for paired within-trial categories, with Holm-Bonferroni correction
+across all six omnibus comparisons.</p>
 <p><strong>Results.</strong> All six waste categories produce
 statistically significant effects with large standardized effect sizes
 (Cohen’s d/d_z ranging from 0.73 to 8.55). The central finding is a
@@ -362,72 +363,82 @@ complete observability gap: <code>nvidia-smi</code> and DCGM detect 0%
 of waste events across all categories, while the purpose-built
 <code>gpu-roofline</code> framework detects 56.5–100% (McNemar p &lt;
 1e-300 for all comparisons). The waste categories map to three distinct
-operational actions: (A) directly recoverable capacity (ghost
+operational responses: (A) directly recoverable capacity (ghost
 allocations freeing 512 MiB per teardown; straggler detection recovering
 19% of fleet throughput), (B) decision support for infrastructure design
-(contention data enabling MIG vs. time-slicing decisions; thermal data
-enabling accurate SLAs), and (C) risk prevention (oversubscription
-detection before silent tenant degradation).</p>
-<p><strong>Conclusions.</strong> GPU fleet operators currently have zero
-visibility into six measurable waste categories. This investigation
-provides the taxonomy, the detection framework, and a reproducible
-benchmark built on hardware-validated performance models. Full-scale
-hardware validation across all six categories on bare-metal H100 systems
-is the logical next step; the open protocol and predictions are
-published to enable community participation.</p>
-<p><strong>Keywords:</strong> GPU virtualization, multi-tenant
-infrastructure, invisible waste, roofline model, MIG, observability,
-simulation study</p>
+(contention data for MIG vs. time-slicing decisions; thermal data for
+accurate SLAs), and (C) risk prevention (oversubscription detection
+before silent tenant degradation).</p>
+<p><strong>Conclusions.</strong> GPU operators currently have zero
+visibility into six measurable efficiency losses spanning single-device,
+virtualization, and fleet operations. This study provides the taxonomy,
+the detection method, and a reproducible benchmark built on
+hardware-validated performance models. The open protocol and predictions
+are published to enable community hardware validation.</p>
+<p><strong>Keywords:</strong> GPU efficiency, invisible waste, roofline
+model, observability gap, MIG, virtualization, fleet operations,
+distributed training</p>
 <hr />
 <h2 data-number="1.2" id="introduction"><span class="header-section-number">1.2</span> 1. Introduction</h2>
 <p>A single NVIDIA H100 GPU costs $2.50 per hour to rent in the cloud —
 approximately $22,000 per year. At scale, GPU fleets represent millions
-of dollars of annual infrastructure investment. Multi-tenant
-virtualization technologies (MIG, GRID, time-slicing) allow providers to
-maximize revenue from each physical GPU by serving multiple tenants
-simultaneously. But this sharing creates waste that no existing
-monitoring tool can observe.</p>
-<p>The waste is not hypothetical. Consider three scenarios that GPU
-fleet operators encounter routinely:</p>
+of dollars of annual infrastructure investment. Yet the tools used to
+monitor this infrastructure — <code>nvidia-smi</code> and NVIDIA DCGM —
+were designed for a fundamentally different purpose: single-device
+health checks. They answer “Is this GPU functional?” and “How hot is
+it?” They do not answer “Where is my fleet losing efficiency?”</p>
+<p>This gap matters because GPU efficiency loss is not confined to any
+single layer of the operations stack. It occurs at the device level
+(thermal throttling silently reducing sustained performance below
+advertised specs), at the virtualization level (trapped memory after
+partition teardown, bandwidth contention between tenants), and at the
+fleet level (one degraded GPU blocking an entire distributed training
+cluster at synchronization barriers). These losses are invisible not
+because they are small, but because the monitoring architecture lacks
+the measurement primitives to observe them.</p>
+<p>Consider three scenarios that GPU operators encounter routinely:</p>
 <ul>
-<li><p>A MIG partition is destroyed, but 512 MiB of VRAM is not
-reclaimed. The memory is trapped — unavailable for new tenants — and
-<code>nvidia-smi</code> reports the partition as cleanly removed. Over
-20 teardowns per day, this silently accumulates into gigabytes of lost
-capacity.</p></li>
-<li><p>A distributed training job across 8 H100s takes 40% longer than
-expected. One GPU has degraded NVLink bandwidth, and because
-data-parallel training synchronizes at barriers, the other 7 GPUs sit
-idle waiting for the straggler. No per-device monitoring tool flags this
-— each GPU individually reports normal utilization.</p></li>
-<li><p>A cloud provider advertises H100 instances at peak
-specifications. But under sustained workloads, thermal throttling
-reduces actual performance by 1–16% depending on workload type. Tenants
-receive less than they are paying for, and neither the provider nor the
-tenant has any visibility into the gap.</p></li>
+<li><p><strong>Device-level:</strong> A cloud provider advertises H100
+instances at peak specifications. But under sustained workloads, thermal
+throttling reduces actual performance by 1–16% depending on workload
+type. Neither the provider nor the tenant can see the gap — no tool
+tracks the thermal trajectory from burst to equilibrium.</p></li>
+<li><p><strong>Virtualization-level:</strong> A MIG partition is
+destroyed, but 512 MiB of VRAM is not reclaimed. The memory is trapped
+and <code>nvidia-smi</code> reports the partition as cleanly removed.
+Over 20 teardowns per day, gigabytes of capacity silently
+disappear.</p></li>
+<li><p><strong>Fleet-level:</strong> A distributed training job across 8
+H100s takes 40% longer than expected. One GPU has degraded NVLink
+bandwidth. Because data-parallel training synchronizes at barriers, the
+other 7 GPUs sit idle waiting for the straggler. Each GPU individually
+reports normal utilization — no per-device tool flags the fleet-wide
+impact.</p></li>
 </ul>
 <p>These are not edge cases. They are structural consequences of how GPU
-virtualization works, and they are invisible because the standard
-monitoring tools — <code>nvidia-smi</code> and NVIDIA DCGM — were
-designed to report instantaneous per-device state, not lifecycle
-transitions, cross-tenant interference, fleet-level aggregates, or
-temporal degradation curves.</p>
-<p>This paper formalizes six categories of invisible waste, demonstrates
-through simulation that all six are detectable with purpose-built
-instrumentation, and quantifies both the observability gap and the
-operational impact of closing it.</p>
+infrastructure operates, and they are invisible because existing
+monitoring tools report instantaneous per-device state rather than
+tracking transitions across time, across tenants, and across
+devices.</p>
+<p>This paper presents a systematic method for identifying these
+efficiency losses. We formalize six categories of invisible GPU waste
+spanning the full operations stack — from single-device thermal physics
+through virtualization partitioning to fleet-level coordination — and
+demonstrate that all six are detectable with purpose-built
+instrumentation where existing tools see nothing.</p>
 <h3 data-number="1.2.1" id="summary-of-key-findings"><span class="header-section-number">1.2.1</span> 1.1 Summary of Key
 Findings</h3>
 <p>Before presenting the methodology and detailed results, we summarize
 the three central findings of this study:</p>
 <p><strong>Finding 1: The observability gap is total.</strong> Across
-120,000 simulation trials spanning six waste categories, modeled
+120,000 trials spanning six waste categories — from single-device
+thermal degradation to fleet-wide synchronization loss — modeled
 <code>nvidia-smi</code> and DCGM detection rates are 0.0%. Not low —
-zero. The <code>gpu-roofline</code> measurement framework, designed
-specifically for multi-tenant lifecycle analysis, detects 56.5–100% of
-waste events depending on the category. This is not a comparison of tool
-quality; it is a demonstration that current tools lack the architectural
-capability to observe these phenomena.</p>
+zero. The <code>gpu-roofline</code> measurement framework detects
+56.5–100% of waste events depending on the category. This is not a
+comparison of tool quality; it is a demonstration that current tools
+lack the architectural capability to observe GPU efficiency loss beyond
+instantaneous device state.</p>
 <p><strong>Finding 2: The waste is real and measurable.</strong> All six
 categories produce statistically significant effects with large
 standardized effect sizes after Holm-Bonferroni correction (d/d_z = 0.73
@@ -446,8 +457,9 @@ categories as a single dollar figure is misleading; the value of
 visibility is category-specific.</p>
 <h3 data-number="1.2.2" id="contributions"><span class="header-section-number">1.2.2</span> 1.2 Contributions</h3>
 <ol type="1">
-<li>A six-category taxonomy of invisible waste in virtualized GPU
-systems, with formal mechanisms and detection requirements.</li>
+<li>A six-category taxonomy of invisible waste across the GPU operations
+stack (device, virtualization, fleet), with formal mechanisms and
+detection requirements.</li>
 <li>A reproducible simulation harness producing 120,000 deterministic
 trials with byte-identical rerun capability (SHA-256 verified).</li>
 <li>Design-appropriate statistical analyses: Mann-Whitney U for
@@ -1119,18 +1131,21 @@ fleet)</td>
 <h3 data-number="1.7.1" id="the-visibility-gap-is-the-primary-finding"><span class="header-section-number">1.7.1</span> 6.1 The Visibility Gap Is the
 Primary Finding</h3>
 <p>While the effect sizes and operational impact are important, the most
-significant result is the <em>total observability gap</em>. GPU fleet
+significant result is the <em>total observability gap</em>. GPU
 operators are currently managing multi-million-dollar infrastructure
-with monitoring tools that have zero visibility into six measurable
-waste categories. This is analogous to operating a power grid without
-metering individual consumers — the aggregate numbers work, but waste at
-the tenant level is invisible.</p>
+with monitoring tools that have zero visibility into efficiency losses
+at every layer of the stack — device-level thermal degradation,
+virtualization-level resource trapping, and fleet-level synchronization
+waste. This is analogous to operating a power grid with meters that show
+voltage but not consumption: the equipment appears healthy while
+efficiency losses accumulate unmeasured.</p>
 <p>The gap is not a software deficiency that can be patched. It is an
 architectural limitation: <code>nvidia-smi</code> and DCGM report
-per-device instantaneous state. Detecting lifecycle transitions,
-cross-tenant interference, and fleet-level aggregates requires a
-fundamentally different measurement approach — one that tracks state
-across time, across tenants, and across devices.</p>
+per-device instantaneous state. Detecting thermal trajectories,
+lifecycle transitions, cross-tenant interference, and fleet-level
+coordination loss requires a fundamentally different measurement
+approach — one that tracks state across time, across tenants, and across
+devices.</p>
 <h3 data-number="1.7.2" id="implications-for-infrastructure-operators"><span class="header-section-number">1.7.2</span> 6.2 Implications for
 Infrastructure Operators</h3>
 <p>The three-bucket model provides a framework for prioritizing
@@ -1237,23 +1252,26 @@ outcomes</td>
 <span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">--output-root</span> study-output <span class="at">--repo-root</span> . <span class="dt">\</span></span>
 <span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">--bootstrap-resamples</span> 10000 <span class="at">--seed</span> 42</span></code></pre></div>
 <h2 data-number="1.9" id="conclusion"><span class="header-section-number">1.9</span> 8. Conclusion</h2>
-<p>We have demonstrated that multi-tenant GPU virtualization produces
-six categories of measurable waste that are completely invisible to the
-standard monitoring tools used by GPU fleet operators. The observability
-gap is total: <code>nvidia-smi</code> and DCGM detect 0% of waste events
-across all categories, while purpose-built instrumentation detects
+<p>GPU efficiency loss is not confined to any single layer of the
+operations stack, and neither is the observability gap. This study
+demonstrates that six categories of measurable waste — spanning
+device-level thermal physics, virtualization lifecycle management, and
+fleet-level distributed training coordination — are completely invisible
+to the standard monitoring tools used by GPU operators. The gap is
+total: <code>nvidia-smi</code> and DCGM detect 0% of waste events across
+all six categories, while purpose-built instrumentation detects
 56.5–100%.</p>
-<p>The waste categories are not all alike. Ghost allocations and
-straggler GPUs represent directly recoverable capacity — detect, act,
-recover. Contention and thermal throttling are physics that cannot be
-eliminated but can be measured, enabling better infrastructure
+<p>The efficiency gap requires three different responses. Ghost
+allocations and straggler GPUs represent directly recoverable capacity —
+detect, act, recover. Contention and thermal throttling are physics that
+cannot be eliminated but can be measured, enabling better infrastructure
 decisions. Oversubscription is a preventable risk.</p>
-<p>This simulation study provides the taxonomy, the detection framework,
-and a reproducible benchmark. The natural next step is hardware
-validation on bare-metal H100 systems to confirm the simulation
-predictions. We publish the full protocol, analysis pipeline, and
-simulation predictions as an open invitation: we welcome hardware
-contributions from GPU cloud operators, system integrators, and
+<p>This study provides the taxonomy, the detection method, and a
+reproducible benchmark built on hardware-validated performance models.
+The natural next step is full-scale hardware validation across all six
+categories on bare-metal H100 systems. We publish the complete protocol,
+analysis pipeline, and predictions as an open invitation: we welcome
+hardware contributions from GPU cloud operators, system integrators, and
 NVIDIA.</p>
 <hr />
 <h2 data-number="1.10" id="references"><span class="header-section-number">1.10</span> References</h2>
