@@ -23,7 +23,9 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 rand = { workspace = true }
+statrs = { workspace = true }
 bytemuck = { version = "1", features = ["derive"] }
+uuid = { version = "0.8", features = ["v4"] }
 
 # GPU backends
 wgpu = { workspace = true, optional = true }

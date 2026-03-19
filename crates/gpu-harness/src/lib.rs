@@ -10,6 +10,7 @@ pub mod device;
 pub mod error;
 pub mod nvml_telemetry;
 pub mod sim;
+pub mod study;
 pub mod wgpu_backend;
 
 #[cfg(feature = "vgpu")]
