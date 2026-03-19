@@ -37,32 +37,104 @@ pub fn render_metrics(snap: &MetricsSnapshot) -> String {
     let mut out = String::with_capacity(2048);
 
     // GPU gauges
-    push_gauge(&mut out, "gpu_bandwidth_gbps", "Current memory bandwidth in GB/s", snap.bandwidth_gbps);
-    push_gauge(&mut out, "gpu_gflops", "Current compute throughput in GFLOP/s", snap.gflops);
-    push_gauge(&mut out, "gpu_temperature_celsius", "GPU temperature in degrees Celsius", snap.temperature_c as f64);
-    push_gauge(&mut out, "gpu_clock_mhz", "GPU clock speed in MHz", snap.clock_mhz as f64);
-    push_gauge(&mut out, "gpu_power_watts", "GPU power draw in watts", snap.power_watts as f64);
-    push_gauge(&mut out, "gpu_utilization_percent", "GPU utilization percentage", snap.utilization_pct as f64);
-    push_gauge(&mut out, "gpu_memory_used_bytes", "GPU memory used in bytes", snap.memory_used_bytes as f64);
-    push_gauge(&mut out, "gpu_memory_total_bytes", "GPU total memory in bytes", snap.memory_total_bytes as f64);
-    push_gauge(&mut out, "gpu_cv", "Measurement coefficient of variation", snap.cv);
+    push_gauge(
+        &mut out,
+        "gpu_bandwidth_gbps",
+        "Current memory bandwidth in GB/s",
+        snap.bandwidth_gbps,
+    );
+    push_gauge(
+        &mut out,
+        "gpu_gflops",
+        "Current compute throughput in GFLOP/s",
+        snap.gflops,
+    );
+    push_gauge(
+        &mut out,
+        "gpu_temperature_celsius",
+        "GPU temperature in degrees Celsius",
+        snap.temperature_c as f64,
+    );
+    push_gauge(
+        &mut out,
+        "gpu_clock_mhz",
+        "GPU clock speed in MHz",
+        snap.clock_mhz as f64,
+    );
+    push_gauge(
+        &mut out,
+        "gpu_power_watts",
+        "GPU power draw in watts",
+        snap.power_watts as f64,
+    );
+    push_gauge(
+        &mut out,
+        "gpu_utilization_percent",
+        "GPU utilization percentage",
+        snap.utilization_pct as f64,
+    );
+    push_gauge(
+        &mut out,
+        "gpu_memory_used_bytes",
+        "GPU memory used in bytes",
+        snap.memory_used_bytes as f64,
+    );
+    push_gauge(
+        &mut out,
+        "gpu_memory_total_bytes",
+        "GPU total memory in bytes",
+        snap.memory_total_bytes as f64,
+    );
+    push_gauge(
+        &mut out,
+        "gpu_cv",
+        "Measurement coefficient of variation",
+        snap.cv,
+    );
 
     // Alert counters
     out.push_str("# HELP gpu_alerts_total Cumulative count of alerts fired\n");
     out.push_str("# TYPE gpu_alerts_total counter\n");
-    out.push_str(&format!("gpu_alerts_total{{level=\"warning\"}} {}\n", snap.alerts_warning_total));
-    out.push_str(&format!("gpu_alerts_total{{level=\"critical\"}} {}\n", snap.alerts_critical_total));
+    out.push_str(&format!(
+        "gpu_alerts_total{{level=\"warning\"}} {}\n",
+        snap.alerts_warning_total
+    ));
+    out.push_str(&format!(
+        "gpu_alerts_total{{level=\"critical\"}} {}\n",
+        snap.alerts_critical_total
+    ));
 
     // vGPU gauges
-    push_gauge(&mut out, "gpu_vgpu_active_count", "Number of active vGPU instances", snap.vgpu_active_count as f64);
-    push_gauge(&mut out, "gpu_vgpu_vram_allocated_bytes", "Total vGPU VRAM allocated in bytes", snap.vgpu_vram_allocated_bytes as f64);
-    push_gauge(&mut out, "gpu_vgpu_vram_available_bytes", "Total vGPU VRAM available in bytes", snap.vgpu_vram_available_bytes as f64);
+    push_gauge(
+        &mut out,
+        "gpu_vgpu_active_count",
+        "Number of active vGPU instances",
+        snap.vgpu_active_count as f64,
+    );
+    push_gauge(
+        &mut out,
+        "gpu_vgpu_vram_allocated_bytes",
+        "Total vGPU VRAM allocated in bytes",
+        snap.vgpu_vram_allocated_bytes as f64,
+    );
+    push_gauge(
+        &mut out,
+        "gpu_vgpu_vram_available_bytes",
+        "Total vGPU VRAM available in bytes",
+        snap.vgpu_vram_available_bytes as f64,
+    );
 
     // vGPU event counters
     out.push_str("# HELP gpu_vgpu_events_total Cumulative count of vGPU lifecycle events\n");
     out.push_str("# TYPE gpu_vgpu_events_total counter\n");
-    out.push_str(&format!("gpu_vgpu_events_total{{type=\"created\"}} {}\n", snap.vgpu_events_created));
-    out.push_str(&format!("gpu_vgpu_events_total{{type=\"destroyed\"}} {}\n", snap.vgpu_events_destroyed));
+    out.push_str(&format!(
+        "gpu_vgpu_events_total{{type=\"created\"}} {}\n",
+        snap.vgpu_events_created
+    ));
+    out.push_str(&format!(
+        "gpu_vgpu_events_total{{type=\"destroyed\"}} {}\n",
+        snap.vgpu_events_destroyed
+    ));
 
     out
 }
@@ -96,16 +168,14 @@ pub fn start_metrics_server(
                     } else {
                         "# error: metrics lock poisoned\n".to_string()
                     };
-                    tiny_http::Response::from_string(body)
-                        .with_header(
-                            "Content-Type: text/plain; version=0.0.4; charset=utf-8"
-                                .parse::<tiny_http::Header>()
-                                .unwrap(),
-                        )
+                    tiny_http::Response::from_string(body).with_header(
+                        "Content-Type: text/plain; version=0.0.4; charset=utf-8"
+                            .parse::<tiny_http::Header>()
+                            .unwrap(),
+                    )
                 }
                 "/health" => tiny_http::Response::from_string("OK"),
-                _ => tiny_http::Response::from_string("Not Found")
-                    .with_status_code(404),
+                _ => tiny_http::Response::from_string("Not Found").with_status_code(404),
             };
             let _ = request.respond(response);
         }

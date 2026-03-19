@@ -47,10 +47,8 @@ impl EnterpriseHandle {
         let registry = Arc::new(Mutex::new(prometheus::MetricsSnapshot::default()));
 
         // Start Prometheus HTTP server
-        let server_handle = prometheus::start_metrics_server(
-            config.metrics_port,
-            Arc::clone(&registry),
-        )?;
+        let server_handle =
+            prometheus::start_metrics_server(config.metrics_port, Arc::clone(&registry))?;
 
         // Start webhook dispatcher if URLs configured
         let (webhook_tx, webhook_handle) = if !config.webhook_urls.is_empty() {
@@ -92,12 +90,7 @@ impl EnterpriseHandle {
 
     /// Update vGPU metrics.
     #[cfg(feature = "vgpu")]
-    pub fn update_vgpu_metrics(
-        &self,
-        active_count: u32,
-        vram_allocated: u64,
-        vram_available: u64,
-    ) {
+    pub fn update_vgpu_metrics(&self, active_count: u32, vram_allocated: u64, vram_available: u64) {
         if let Ok(mut snap) = self.registry.lock() {
             snap.vgpu_active_count = active_count;
             snap.vgpu_vram_allocated_bytes = vram_allocated;

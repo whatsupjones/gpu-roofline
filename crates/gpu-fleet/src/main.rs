@@ -84,7 +84,10 @@ fn get_fleet_backend(sim: &Option<String>, count: u32) -> Result<Box<dyn GpuBack
                     return Ok(Box::new(backend));
                 }
             }
-            Err("No GPU backend available. Use --sim <profile> --count <n> for simulation.".to_string())
+            Err(
+                "No GPU backend available. Use --sim <profile> --count <n> for simulation."
+                    .to_string(),
+            )
         }
     }
 }
