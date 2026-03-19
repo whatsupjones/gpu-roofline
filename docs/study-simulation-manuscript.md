@@ -209,7 +209,9 @@ The primary hypothesis — that all six categories of invisible waste produce me
 
 *All Holm-Bonferroni adjusted p < 1e-300. N = 10,000–20,000 per group. Effect sizes (d, d_z) and bootstrap 95% CIs (10,000 resamples) are the primary measures; p-values are uninformative at this sample size.*
 
-Effect sizes are uniformly large. The weakest category — burst-to-sustained gap (d_z = 0.73) — still qualifies as a medium-to-large effect. The strongest — contention squeeze (d = 8.55) — reflects the dramatic and deterministic bandwidth partitioning under time-slicing.
+Effect sizes are uniformly large (Figure 2). The weakest category — burst-to-sustained gap (d_z = 0.73) — still qualifies as a medium-to-large effect. The strongest — contention squeeze (d = 8.55) — reflects the dramatic and deterministic bandwidth partitioning under time-slicing.
+
+![Figure 2. Standardized effect sizes across categories, colored by operational action bucket.](figures/fig2_effect_sizes.png)
 
 ### 5.2 Current Tools Provide Zero Visibility
 
@@ -227,25 +229,33 @@ The second hypothesis — that existing tools miss the vast majority of waste ev
 | Oversubscription | 0.0% | 0.0% | 100.0% | <1e-300 |
 | **Overall** | **0.0%** | **0.0%** | **88.4%** | — |
 
+![Figure 1. Detection rates by monitoring tool across all six waste categories.](figures/fig1_detection_rates.png)
+
 The 0% detection rate for `nvidia-smi` and DCGM is a modeling result, not an empirical measurement (see Section 4.3). However, it follows directly from the tools' documented capabilities: they do not compute memory deltas across teardowns, track per-tenant bandwidth, time provisioning transitions, measure thermal trajectories, correlate fleet-wide barriers, or sum allocations against physical limits. These are not features that could be enabled with configuration changes — they require fundamentally different measurement architectures.
 
 The `gpu-roofline` detection rate varies by category. The weakest performance is on the burst-to-sustained gap (56.5%), where small thermal gaps below the 1% detection threshold are missed. The strongest is on contention, provisioning, and oversubscription (100%), where the signal-to-noise ratio is high.
 
 ### 5.3 What Operators Gain: Three Action Buckets
 
-The six waste categories do not all represent the same type of problem, and they do not all have the same solution. We categorize them into three action buckets based on what visibility enables:
+The six waste categories do not all represent the same type of problem, and they do not all have the same solution. We categorize them into three action buckets based on what visibility enables (Figure 3):
+
+![Figure 3. Three operational action buckets with detection rates and per-event impact.](figures/fig3_three_buckets.png)
 
 #### Bucket A: Directly Recoverable Capacity
 
 **Ghost allocations** trap VRAM that could host additional tenant instances. The simulation shows a median of 512 MiB trapped per teardown event. At 20 teardowns per day, this is approximately 10 GiB of VRAM per GPU per day that can be reclaimed once the ghost is detected. Detection rate: 99.9%.
 
-**Straggler tax** wastes fleet-wide GPU-hours at synchronization barriers. A single degraded GPU in an 8-GPU training job wastes 16.7% of fleet throughput — the other 7 GPUs idle at the barrier. Identifying the straggler (detection rate: 94.7%) and replacing or reassigning it immediately recovers this capacity.
+**Straggler tax** wastes fleet-wide GPU-hours at synchronization barriers. A single degraded GPU in an 8-GPU training job wastes 16.7% of fleet throughput — the other 7 GPUs idle at the barrier. This scales multiplicatively with fleet size: at 128 GPUs, one straggler wastes 24 GPU-equivalents at every sync barrier (Figure 4). Identifying the straggler (detection rate: 94.7%) and replacing or reassigning it immediately recovers this capacity.
+
+![Figure 4. Straggler tax scales multiplicatively with fleet size.](figures/fig4_straggler_scaling.png)
 
 These categories represent genuine capacity recovery: detect the problem, take action, free the resource.
 
 #### Bucket B: Decision Support
 
-**Contention squeeze** is the inherent cost of time-slicing. With 2 tenants, each gets ~50% bandwidth; with 4, each gets ~25%. This cannot be eliminated — it is the physics of shared access. But *measuring* it enables operators to make informed decisions: use MIG (hardware isolation, guaranteed bandwidth) for latency-sensitive workloads, and time-slicing (higher density, shared bandwidth) for throughput-tolerant batch jobs. Without per-tenant bandwidth visibility, this decision is made blind.
+**Contention squeeze** is the inherent cost of time-slicing. With 2 tenants, each gets ~50% bandwidth; with 4, each gets ~25% (Figure 5). This cannot be eliminated — it is the physics of shared access. But *measuring* it enables operators to make informed decisions: use MIG (hardware isolation, guaranteed bandwidth) for latency-sensitive workloads, and time-slicing (higher density, shared bandwidth) for throughput-tolerant batch jobs. Without per-tenant bandwidth visibility, this decision is made blind.
+
+![Figure 5. Per-tenant bandwidth under time-slicing vs. MIG — the degradation nvidia-smi cannot see.](figures/fig5_contention_tenants.png)
 
 **Burst-to-sustained gap** is thermal physics. H100 SXM GPUs show a median 1.7% gap; compute-bound workloads on some profiles show up to 16%. This cannot be fixed — but it can be priced correctly. Cloud providers advertising peak specs for sustained workloads are overcommitting. Measuring the actual sustained ceiling enables honest SLAs and prevents customer complaints.
 
