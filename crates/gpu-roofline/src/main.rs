@@ -545,7 +545,7 @@ fn cmd_monitor(
 
     // Start enterprise services if configured
     #[cfg(feature = "enterprise")]
-    let enterprise_handle = enterprise_config.map(|mut cfg| {
+    let enterprise_handle = enterprise_config.and_then(|mut cfg| {
         cfg.device_name = device_name.clone();
         match monitor::enterprise::EnterpriseHandle::start(&cfg) {
             Ok(h) => Some(h),
@@ -554,7 +554,7 @@ fn cmd_monitor(
                 None
             }
         }
-    }).flatten();
+    });
 
     // Open log file if requested
     let mut log_file = log_path.as_ref().and_then(|path| {

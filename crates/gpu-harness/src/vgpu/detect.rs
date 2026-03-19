@@ -8,7 +8,9 @@ use std::sync::mpsc;
 
 use crate::error::HarnessError;
 
-use super::state::{VgpuEvent, VgpuEventType, VgpuInstance, VgpuPhase, VgpuTechnology};
+use super::state::{VgpuEvent, VgpuInstance, VgpuTechnology};
+#[cfg(feature = "nvml")]
+use super::state::{VgpuEventType, VgpuPhase};
 
 /// Trait for detecting vGPU lifecycle events at the trigger point.
 pub trait VgpuDetector: Send + Sync {
