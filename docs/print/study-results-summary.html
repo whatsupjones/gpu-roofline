@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang xml:lang>
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>summary</title>
+  <style>
+
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+</style>
+  <style type="text/css">
+
+@page {
+size: letter;
+margin: 1in 1in 1in 1in;
+}
+body {
+font-family: "Times New Roman", "Noto Serif", Georgia, serif;
+font-size: 11pt;
+line-height: 1.5;
+color: #111;
+max-width: 7.5in;
+margin: 0 auto;
+padding: 0.5in;
+}
+
+h1 {
+font-size: 16pt;
+text-align: center;
+margin-top: 0;
+margin-bottom: 0.3em;
+page-break-after: avoid;
+}
+h2 {
+font-size: 13pt;
+margin-top: 1.5em;
+margin-bottom: 0.5em;
+border-bottom: 1px solid #ccc;
+padding-bottom: 0.2em;
+page-break-after: avoid;
+}
+h3 {
+font-size: 11pt;
+font-weight: bold;
+margin-top: 1.2em;
+margin-bottom: 0.3em;
+page-break-after: avoid;
+}
+
+p {
+margin-top: 0.4em;
+margin-bottom: 0.4em;
+text-align: justify;
+orphans: 3;
+widows: 3;
+}
+
+table {
+border-collapse: collapse;
+width: 100%;
+font-size: 9pt;
+margin: 0.8em 0;
+page-break-inside: avoid;
+}
+thead {
+display: table-header-group;
+}
+th {
+background-color: #f0f0f0;
+font-weight: bold;
+text-align: left;
+padding: 4px 6px;
+border: 1px solid #999;
+}
+td {
+padding: 3px 6px;
+border: 1px solid #ccc;
+vertical-align: top;
+}
+tr:nth-child(even) {
+background-color: #fafafa;
+}
+
+code {
+font-family: "Consolas", "Courier New", monospace;
+font-size: 9pt;
+background-color: #f5f5f5;
+padding: 1px 3px;
+border-radius: 2px;
+}
+pre {
+font-size: 8.5pt;
+background-color: #f5f5f5;
+border: 1px solid #ddd;
+padding: 8px 12px;
+overflow-x: auto;
+page-break-inside: avoid;
+}
+pre code {
+background-color: transparent;
+padding: 0;
+}
+
+blockquote {
+margin: 0.8em 0.5in;
+padding-left: 0.5em;
+border-left: 3px solid #999;
+font-style: italic;
+color: #333;
+}
+
+ul, ol {
+margin-top: 0.3em;
+margin-bottom: 0.3em;
+padding-left: 1.5em;
+}
+li {
+margin-bottom: 0.15em;
+}
+
+hr {
+border: none;
+border-top: 1px solid #ccc;
+margin: 1.5em 0;
+}
+
+strong {
+font-weight: bold;
+}
+em {
+font-style: italic;
+}
+
+a {
+color: #1a0dab;
+text-decoration: none;
+}
+@media print {
+a {
+color: #111;
+text-decoration: none;
+}
+a[href]:after {
+content: none;
+}
+body {
+padding: 0;
+}
+
+h2 {
+page-break-before: auto;
+}
+
+h1, h2, h3, h4 {
+page-break-after: avoid;
+}
+
+table, figure, pre {
+page-break-inside: avoid;
+}
+}
+
+.title-block {
+text-align: center;
+margin-bottom: 1.5em;
+}
+.subtitle {
+font-size: 11pt;
+color: #555;
+font-style: italic;
+}
+
+figcaption {
+font-size: 9pt;
+font-style: italic;
+text-align: center;
+margin-top: 0.3em;
+}
+</style>
+</head>
+<body>
+<h1 id="the-hidden-cost-of-gpu-virtualization">The Hidden Cost of GPU
+Virtualization</h1>
+<h2 id="simulation-dataset">Simulation Dataset</h2>
+<ul>
+<li>Input: <code>D:/study-output-v4/raw/simulation-raw.json</code></li>
+<li>Phase: <code>simulation</code></li>
+<li>Protocol version: <code>1.0</code></li>
+<li>Seed: <code>42</code></li>
+<li>Total trials: <code>120000</code></li>
+<li>Target trials/category: <code>20000</code></li>
+<li>Claim framing: simulation evidence, modeled tool visibility, and
+scenario-based economic impact. Hardware validation remains future
+work.</li>
+</ul>
+<h2 id="table-1.-what-visibility-enables-three-action-buckets">Table 1.
+What Visibility Enables — Three Action Buckets</h2>
+<p>Each waste category maps to a different type of operational action.
+These are NOT additive — they apply to different fractions of GPU
+operating time.</p>
+<p><strong>Bucket A — Directly Recoverable:</strong> Capacity that can
+be freed or hardware that can be replaced once the problem is
+detected.</p>
+<p><strong>Bucket B — Decision Support:</strong> Physics you cannot
+change, but knowing the numbers lets you choose MIG vs time-slicing,
+price per-tenant correctly, and plan capacity.</p>
+<p><strong>Bucket C — Risk Prevention:</strong> Silent degradation you
+can detect and stop before it impacts tenants.</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr>
+<th>Bucket</th>
+<th>Category</th>
+<th>What Visibility Gives You</th>
+<th>Per-Event Magnitude</th>
+<th>Per-GPU Impact (example)</th>
+<th>Fleet Multiplier</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A: Directly Recoverable</td>
+<td>Ghost allocations</td>
+<td>Free trapped VRAM for new tenants</td>
+<td>512 MiB trapped/teardown</td>
+<td>10224 MiB freed/day @ 20 teardowns</td>
+<td>Linear with teardown frequency</td>
+</tr>
+<tr>
+<td>A: Directly Recoverable</td>
+<td>Straggler tax</td>
+<td>Identify and replace degraded GPUs</td>
+<td>19.1% fleet throughput lost per straggler</td>
+<td>16.7% fleet capacity wasted in 8-GPU job</td>
+<td>Multiplies with fleet size (N-1 GPUs idle at barrier)</td>
+</tr>
+<tr>
+<td>B: Decision Support</td>
+<td>Contention squeeze</td>
+<td>Choose MIG vs time-slicing; price per-tenant correctly</td>
+<td>66.7% bandwidth loss at median tenant count</td>
+<td>~50% loss at 2 tenants, ~67% at 3, ~75% at 4 (time-sliced)</td>
+<td>Per-GPU; scales with multi-tenancy ratio</td>
+</tr>
+<tr>
+<td>B: Decision Support</td>
+<td>Burst-sustained gap</td>
+<td>Set honest SLAs; avoid overcommitting on specs</td>
+<td>1.7% below advertised peak (H100 median)</td>
+<td>1-16% depending on workload type and GPU model</td>
+<td>Per-GPU; higher for consumer GPUs with weaker cooling</td>
+</tr>
+<tr>
+<td>B: Decision Support</td>
+<td>Provisioning overhead</td>
+<td>Measure dead time during MIG partition creation</td>
+<td>246 ms per provision event</td>
+<td>Economically negligible (&lt;$1/GPU/yr)</td>
+<td>Linear with provision frequency</td>
+</tr>
+<tr>
+<td>C: Risk Prevention</td>
+<td>Oversubscription</td>
+<td>Detect before tenants experience silent degradation</td>
+<td>33.3% degradation when overcommitted</td>
+<td>33% perf loss at 1.5x overcommit; crash risk at 2x</td>
+<td>Per-GPU; risk compounds with instance count</td>
+</tr>
+</tbody>
+</table>
+<h2 id="table-2.-detection-rates-by-tool-across-all-6-waste-categories">Table
+2. Detection Rates by Tool Across All 6 Waste Categories</h2>
+<p>The core finding: <code>nvidia-smi</code> and DCGM provide
+<strong>zero visibility</strong> into all six waste categories.
+<code>gpu-roofline</code> detects 56.5–100% of waste events across
+categories.</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr>
+<th>Category</th>
+<th>nvidia-smi Detection Rate</th>
+<th>DCGM Detection Rate</th>
+<th>gpu-roofline Detection Rate</th>
+<th>McNemar p (smi vs roofline)</th>
+<th>McNemar p (dcgm vs roofline)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ghost allocations</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>99.9</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>100.0</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>100.0</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>56.5</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>94.7</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>100.0</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+</tr>
+<tr>
+<td>Overall</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>88.4</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+</tr>
+</tbody>
+</table>
+<h2 id="table-3.-cross-category-omnibus-statistical-tests">Table 3.
+Cross-Category Omnibus Statistical Tests</h2>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+</colgroup>
+<thead>
+<tr>
+<th>Category</th>
+<th>N (a)</th>
+<th>N (b)</th>
+<th>Design</th>
+<th>Primary Test</th>
+<th>Metric</th>
+<th>Median (a)</th>
+<th>Median (b)</th>
+<th>Statistic</th>
+<th>Raw p-value</th>
+<th>Holm p-value</th>
+<th>Cohen’s d / d_z</th>
+<th>Rank-biserial r</th>
+<th>95% CI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ghost allocations</td>
+<td>10000</td>
+<td>10000</td>
+<td>independent</td>
+<td>Mann-Whitney U</td>
+<td>ghost_bytes_measured</td>
+<td>536350426.50</td>
+<td>8316.00</td>
+<td>99937086</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>2.46</td>
+<td>1.00</td>
+<td>[527280091.27, 545228612.40]</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>10000</td>
+<td>10000</td>
+<td>independent</td>
+<td>Mann-Whitney U</td>
+<td>bandwidth_loss_pct</td>
+<td>66.66</td>
+<td>0.00</td>
+<td>100000000</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>8.55</td>
+<td>1.00</td>
+<td>[66.61, 66.68]</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>20000</td>
+<td>20000</td>
+<td>paired</td>
+<td>Wilcoxon signed-rank</td>
+<td>spin_up_latency_ms</td>
+<td>246.59</td>
+<td>0.50</td>
+<td>200010000</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>2.01</td>
+<td>1.00</td>
+<td>[244.32, 248.26]</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>20000</td>
+<td>20000</td>
+<td>paired</td>
+<td>Wilcoxon signed-rank</td>
+<td>gap_pct</td>
+<td>1.69</td>
+<td>0.00</td>
+<td>87021028</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>0.73</td>
+<td>1.00</td>
+<td>[1.63, 1.77]</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>10000</td>
+<td>10000</td>
+<td>independent</td>
+<td>Mann-Whitney U</td>
+<td>straggler_tax_pct</td>
+<td>19.09</td>
+<td>4.28</td>
+<td>99805998</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>2.46</td>
+<td>1.00</td>
+<td>[14.56, 15.09]</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>10000</td>
+<td>10000</td>
+<td>independent</td>
+<td>Mann-Whitney U</td>
+<td>performance_degradation_pct</td>
+<td>33.33</td>
+<td>0.00</td>
+<td>100000000</td>
+<td>&lt;1e-300</td>
+<td>&lt;1e-300</td>
+<td>3.97</td>
+<td>1.00</td>
+<td>[33.33, 33.33]</td>
+</tr>
+</tbody>
+</table>
+<h2 id="table-4.-scenario-based-annual-impact-by-category-and-fleet-scale">Table
+4. Scenario-Based Annual Impact by Category and Fleet Scale</h2>
+<p>These figures are scenario outputs under explicit assumptions
+($2.50/GPU/hr, specific fleet utilization parameters). They are NOT
+directly additive across categories. See the sensitivity analysis in
+<code>derived/supplement.md</code>.</p>
+<table>
+<colgroup>
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+</colgroup>
+<thead>
+<tr>
+<th>Waste Category</th>
+<th>Effect Size (d/d_z)</th>
+<th>Waste per Event</th>
+<th>Events/Day/GPU</th>
+<th>Annual $/GPU</th>
+<th>8-GPU Fleet</th>
+<th>100-GPU Fleet</th>
+<th>10,000-GPU Fleet</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ghost allocations</td>
+<td>2.46</td>
+<td>511.5 MiB</td>
+<td>20.00</td>
+<td>$2,733</td>
+<td>$5,466</td>
+<td>$273,321</td>
+<td>$34,165,064</td>
+</tr>
+<tr>
+<td>Contention squeeze</td>
+<td>8.55</td>
+<td>66.66%</td>
+<td>0.83</td>
+<td>$9,124</td>
+<td>$38,929</td>
+<td>$912,394</td>
+<td>$114,700,996</td>
+</tr>
+<tr>
+<td>Provisioning overhead</td>
+<td>2.01</td>
+<td>246.09 ms</td>
+<td>20.00</td>
+<td>$1</td>
+<td>$2</td>
+<td>$125</td>
+<td>$31,190</td>
+</tr>
+<tr>
+<td>Burst-to-sustained gap</td>
+<td>0.73</td>
+<td>1.69%</td>
+<td>0.75</td>
+<td>$278</td>
+<td>$1,481</td>
+<td>$27,762</td>
+<td>$3,084,702</td>
+</tr>
+<tr>
+<td>Straggler tax</td>
+<td>2.46</td>
+<td>14.81%</td>
+<td>2.00</td>
+<td>$5,518</td>
+<td>$9,755</td>
+<td>$551,828</td>
+<td>$139,336,568</td>
+</tr>
+<tr>
+<td>Oversubscription</td>
+<td>3.97</td>
+<td>33.33%</td>
+<td>0.50</td>
+<td>$3,650</td>
+<td>$9,733</td>
+<td>$365,000</td>
+<td>$48,666,667</td>
+</tr>
+<tr>
+<td>Total</td>
+<td></td>
+<td></td>
+<td></td>
+<td>$21,304</td>
+<td>$65,366</td>
+<td>$2,130,430</td>
+<td>$339,985,187</td>
+</tr>
+</tbody>
+</table>
+<h2 id="cost-model-bootstrap-confidence-intervals">Cost Model Bootstrap
+Confidence Intervals</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Scale</th>
+<th>Point estimate / GPU / year</th>
+<th>95% CI low / GPU / year</th>
+<th>95% CI high / GPU / year</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>8-GPU Fleet</td>
+<td>$8,171</td>
+<td>$8,149</td>
+<td>$8,192</td>
+</tr>
+<tr>
+<td>100-GPU Fleet</td>
+<td>$21,304</td>
+<td>$21,215</td>
+<td>$21,389</td>
+</tr>
+<tr>
+<td>10,000-GPU Fleet</td>
+<td>$33,999</td>
+<td>$33,809</td>
+<td>$34,193</td>
+</tr>
+</tbody>
+</table>
+<h2 id="interpretation-guardrails">Interpretation Guardrails</h2>
+<ul>
+<li>Bucket A categories (ghost, straggler) represent directly actionable
+capacity recovery.</li>
+<li>Bucket B categories (contention, burst gap) are physics — they
+cannot be eliminated, but measuring them enables better pricing, SLA,
+and partitioning decisions.</li>
+<li>Bucket C (oversubscription) is risk prevention — detect before
+tenants experience silent degradation.</li>
+<li>Scenario dollar figures in Table 4 assume freed or avoided capacity
+can be monetized at $2.50/GPU/hr.</li>
+<li>Category-specific tests and sensitivity analyses are in
+<code>derived/supplement.md</code>.</li>
+</ul>
+</body>
+</html>
