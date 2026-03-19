@@ -69,10 +69,46 @@ NvidiaMigDetector upgraded from stub to real NVML-based implementation (nvml-wra
 - Keyboard navigation between GPU panels
 - Export session to JSON/CSV on exit
 
-## v0.4.0 — Enterprise Integration
+## v0.4.0 — Enterprise Integration ✅ Implemented
 
-- Prometheus metrics endpoint (`/metrics`)
-- Grafana dashboard templates
-- Kubernetes GPU health operator
-- Webhook alerts (Slack, PagerDuty, OpsGenie)
+### Prometheus Metrics Endpoint ✅ Implemented
+
+Feature-gated behind `--features enterprise`. Serves `/metrics` in Prometheus text exposition format:
+- GPU gauges: bandwidth, gflops, temperature, clock, power, utilization, memory
+- Alert counters by severity (warning/critical)
+- vGPU gauges: active instance count, VRAM allocated/available, lifecycle event counters
+- Health endpoint at `/health` for Kubernetes probes
+
+### Webhook Alerts ✅ Implemented
+
+JSON POST to configurable URLs on alert conditions. Fire-and-forget with bounded channel to avoid blocking the measurement loop. Supports multiple URLs (`--webhook-url` is repeatable).
+
+### Grafana Dashboard ✅ Implemented
+
+Ready-to-import JSON dashboard at `deploy/grafana/gpu-roofline-dashboard.json`:
+- Health overview (utilization, temperature, alert count, power gauges)
+- Performance (bandwidth + gflops time series)
+- Telemetry (power, clock, memory usage)
+- vGPU lifecycle (active count, VRAM allocation, event rates — collapsed by default)
+
+### Kubernetes Deployment ✅ Implemented
+
+DaemonSet + Service + ConfigMap + ServiceMonitor at `deploy/k8s/`:
+- `nodeSelector: nvidia.com/gpu.present` for GPU-only nodes
+- Liveness/readiness probes on `/health`
+- Prometheus Operator ServiceMonitor for auto-discovery
+- No custom operator — works with existing Prometheus + Grafana stacks
+
+### TUI Dashboard Enhancements (Planned)
+
+- Sparkline charts with historical data persistence
+- Per-GPU view for multi-GPU systems
+- Keyboard navigation between GPU panels
+- Export session to JSON/CSV on exit
+
+## v0.5.0 — Future
+
 - Fleet-wide anomaly detection with ML baseline
+- Custom Kubernetes operator with CRDs (if demand warrants)
+- Historical data persistence (time-series DB integration)
+- Multi-cluster federation

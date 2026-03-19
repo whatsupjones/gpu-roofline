@@ -346,6 +346,33 @@ Straggler detection measures all GPUs, computes the fleet median, flags outliers
 
 ---
 
+## Enterprise Integration
+
+Build with `--features enterprise` for production monitoring stacks. See [docs/enterprise-integration.md](docs/enterprise-integration.md) for the full guide.
+
+```bash
+# Build with enterprise features
+cargo install gpu-roofline --features enterprise,vgpu,cuda
+
+# Monitor with Prometheus metrics endpoint
+gpu-roofline monitor --daemon --metrics-port 9835
+
+# Add webhook alerts (Slack, PagerDuty, OpsGenie)
+gpu-roofline monitor --daemon --metrics-port 9835 \
+  --webhook-url https://hooks.slack.com/services/xxx
+
+# Deploy to Kubernetes
+kubectl apply -f deploy/k8s/
+```
+
+- **Prometheus**: `/metrics` endpoint with GPU gauges, alert counters, vGPU lifecycle metrics
+- **Grafana**: One-click dashboard import (`deploy/grafana/gpu-roofline-dashboard.json`)
+- **Webhooks**: JSON POST on alert (configurable URLs, fire-and-forget)
+- **Kubernetes**: DaemonSet with health probes, ServiceMonitor for auto-discovery
+- **Health endpoint**: `/health` for liveness/readiness probes
+
+---
+
 ## Roadmap
 
 See [ROADMAP.md](docs/ROADMAP.md) for details.
@@ -355,6 +382,7 @@ See [ROADMAP.md](docs/ROADMAP.md) for details.
 - **v0.3** ✅ Diagnostic Engine — 6 probes for automatic GPU root-cause analysis
 - **v0.3** ✅ gpu-fleet — multi-GPU cluster validation, NVLink topology, straggler detection
 - **v0.3** ✅ Real MIG Detection — NVML MIG APIs for hardware vGPU enumeration + polling
+- **v0.4** ✅ Enterprise Integration — Prometheus metrics, webhook alerts, Grafana dashboard, K8s deployment
 
 ## Contributing
 

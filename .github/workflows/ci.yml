@@ -43,6 +43,12 @@ jobs:
       - name: Test gpu-fleet
         run: cargo test -p gpu-fleet
 
+      - name: Build (with enterprise feature)
+        run: cargo build --features enterprise -p gpu-roofline
+
+      - name: Test (with enterprise feature)
+        run: cargo test --features enterprise -p gpu-roofline
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -63,3 +69,6 @@ jobs:
 
       - name: Clippy gpu-fleet
         run: cargo clippy -p gpu-fleet --all-targets -- -D warnings
+
+      - name: Clippy (with enterprise feature)
+        run: cargo clippy --features enterprise -p gpu-roofline --all-targets -- -D warnings
