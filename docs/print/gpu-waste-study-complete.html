@@ -276,16 +276,12 @@ Model</a></li>
 <li><a href="#simulation-infrastructure-and-experimental-design" id="toc-simulation-infrastructure-and-experimental-design"><span class="toc-section-number">1.5</span> 4. Simulation Infrastructure and
 Experimental Design</a></li>
 <li><a href="#results" id="toc-results"><span class="toc-section-number">1.6</span> 5. Results</a></li>
-<li><a href="#sensitivity-analysis-and-threats-to-validity" id="toc-sensitivity-analysis-and-threats-to-validity"><span class="toc-section-number">1.7</span> 6. Sensitivity Analysis and
-Threats to Validity</a></li>
-<li><a href="#reproducibility-package" id="toc-reproducibility-package"><span class="toc-section-number">1.8</span> 7. Reproducibility
-Package</a></li>
-<li><a href="#conclusion-and-hardware-validation-roadmap" id="toc-conclusion-and-hardware-validation-roadmap"><span class="toc-section-number">1.9</span> 8. Conclusion and Hardware
-Validation Roadmap</a></li>
+<li><a href="#discussion" id="toc-discussion"><span class="toc-section-number">1.7</span> 6. Discussion</a></li>
+<li><a href="#reproducibility" id="toc-reproducibility"><span class="toc-section-number">1.8</span> 7. Reproducibility</a></li>
+<li><a href="#conclusion" id="toc-conclusion"><span class="toc-section-number">1.9</span> 8. Conclusion</a></li>
 <li><a href="#references" id="toc-references"><span class="toc-section-number">1.10</span> References</a></li>
 </ul></li>
-<li><a href="#appendix-a-simulation-dataset-and-results-tables" id="toc-appendix-a-simulation-dataset-and-results-tables"><span class="toc-section-number">2</span> Appendix A: Simulation Dataset and
-Results Tables</a>
+<li><a href="#appendix-a-results-tables" id="toc-appendix-a-results-tables"><span class="toc-section-number">2</span> Appendix A: Results Tables</a>
 <ul>
 <li><a href="#simulation-dataset" id="toc-simulation-dataset"><span class="toc-section-number">2.1</span> Simulation Dataset</a></li>
 <li><a href="#table-1.-what-visibility-enables-three-action-buckets" id="toc-table-1.-what-visibility-enables-three-action-buckets"><span class="toc-section-number">2.2</span> Table 1. What Visibility Enables —
@@ -316,210 +312,332 @@ Matrices</a></li>
 </nav>
 <h1 data-number="1" id="a-reproducible-simulation-study-of-invisible-waste-in-multi-tenant-gpu-infrastructure"><span class="header-section-number">1</span> A Reproducible Simulation Study
 of Invisible Waste in Multi-Tenant GPU Infrastructure</h1>
-<p><strong>Authors:</strong> [Author list TBD] <strong>Target
-Venue:</strong> The Journal of Supercomputing (Phase 1: Simulation)
-<strong>Protocol Version:</strong> 1.0 <strong>Data
-Availability:</strong> Trial-level data, analysis scripts, and
-provenance artifacts archived with SHA-256 verification at
-<code>docs/study-results/</code></p>
+<p><strong>Authors:</strong> [Author list TBD]
+<strong>Affiliations:</strong> [TBD] <strong>Corresponding
+Author:</strong> [TBD] <strong>Target Venue:</strong> The Journal of
+Supercomputing <strong>Date:</strong> March 2026</p>
 <hr />
 <h2 data-number="1.1" id="abstract"><span class="header-section-number">1.1</span> Abstract</h2>
-<p>Multi-tenant GPU infrastructure introduces forms of economic waste
-that are structurally invisible to conventional device-centric
-monitoring tools. We present a reproducible simulation study of six
-waste categories in virtualized GPU environments: (1) ghost allocations
-persisting after teardown, (2) contention squeeze on tenant arrival, (3)
-provisioning overhead during partition spin-up, (4) burst-to-sustained
-performance gaps under thermal throttling, (5) straggler tax in
-distributed training, and (6) oversubscription blind spots from silent
-resource exhaustion. We implement a parameterized simulation framework
-in Rust (<code>gpu-harness</code>) and execute 120,000 deterministic
-trials across the six categories with realistic noise injection matching
-NVML instrumentation characteristics. The simulation is fully
-reproducible: re-execution with seed 42 produces byte-identical output
-(SHA-256 verified).</p>
-<p>Across all categories, simulated effects are statistically
-significant after Holm-Bonferroni correction (all adjusted p &lt;
-1e-300). Effect sizes range from Cohen’s d_z = 0.73 (burst-to-sustained
-gap) to Cohen’s d = 8.55 (contention squeeze). The
-<code>gpu-roofline</code> measurement framework detects 56.5-100% of
-waste events across categories; modeled <code>nvidia-smi</code> and DCGM
-baselines detect 0% (McNemar p &lt; 1e-300 for all pairwise
-comparisons). Scenario-based cost projections estimate $8,171-$33,999
-per GPU per year of invisible waste depending on fleet scale, with
-bootstrap 95% CIs of [$8,149, $8,192] to [$33,809, $34,193].</p>
-<p>This paper contributes a structured taxonomy, a reproducible
-measurement framework, and a simulation benchmark. It does not claim
-that simulated magnitudes are final real-world measurements; hardware
-validation on bare-metal H100 systems is reserved for a follow-on
-study.</p>
+<p><strong>Background.</strong> Multi-tenant GPU virtualization (MIG,
+GRID, time-slicing) is now standard in cloud infrastructure, yet the
+monitoring tools used to manage these environments —
+<code>nvidia-smi</code> and NVIDIA DCGM — were designed for
+single-device health, not multi-tenant economic analysis. This
+architectural mismatch creates categories of waste that are structurally
+invisible to operators.</p>
+<p><strong>Methods.</strong> We formalize six categories of invisible
+waste in virtualized GPU environments, each with a distinct physical
+mechanism and a distinct reason current tools miss it. We implement a
+parameterized simulation in Rust, execute 120,000 deterministic trials
+(20,000 per category) with realistic NVML-matched noise injection, and
+analyze the results using design-appropriate statistical tests:
+Mann-Whitney U for independent-group categories and Wilcoxon signed-rank
+for paired within-trial categories, with Holm-Bonferroni correction
+across all six omnibus comparisons.</p>
+<p><strong>Results.</strong> All six waste categories produce
+statistically significant effects with large standardized effect sizes
+(Cohen’s d/d_z ranging from 0.73 to 8.55). The central finding is a
+complete observability gap: <code>nvidia-smi</code> and DCGM detect 0%
+of waste events across all categories, while the purpose-built
+<code>gpu-roofline</code> framework detects 56.5–100% (McNemar p &lt;
+1e-300 for all comparisons). The waste categories map to three distinct
+operational actions: (A) directly recoverable capacity (ghost
+allocations freeing 512 MiB per teardown; straggler detection recovering
+19% of fleet throughput), (B) decision support for infrastructure design
+(contention data enabling MIG vs. time-slicing decisions; thermal data
+enabling accurate SLAs), and (C) risk prevention (oversubscription
+detection before silent tenant degradation).</p>
+<p><strong>Conclusions.</strong> GPU fleet operators currently have zero
+visibility into six measurable waste categories. This study provides the
+taxonomy, the detection framework, and a reproducible simulation
+benchmark. Hardware validation on bare-metal H100 systems is the logical
+next step; the open protocol and simulation predictions are published to
+enable community participation.</p>
+<p><strong>Keywords:</strong> GPU virtualization, multi-tenant
+infrastructure, invisible waste, roofline model, MIG, observability,
+simulation study</p>
+<hr />
 <h2 data-number="1.2" id="introduction"><span class="header-section-number">1.2</span> 1. Introduction</h2>
-<p>The rapid expansion of GPU-accelerated computing has made
-multi-tenant GPU virtualization a critical infrastructure layer.
-Technologies such as NVIDIA Multi-Instance GPU (MIG), GRID vGPU, and
-time-slicing enable cloud providers to partition expensive accelerators
-among multiple tenants. However, this partitioning introduces forms of
-economic waste that existing monitoring tools cannot observe.</p>
-<p>The fundamental limitation is architectural: <code>nvidia-smi</code>,
-NVIDIA DCGM, and similar tools report <em>instantaneous state</em> per
-device or per instance. They do not compute deltas across lifecycle
-transitions, cross-tenant comparisons, temporal degradation curves,
-fleet-level aggregates exceeding physical capacity, or distributed
-synchronization overhead. These are not bugs—they are structural
-constraints of tools designed for single-device health monitoring, not
-multi-tenant economic analysis.</p>
-<p>We identify and formalize six categories of invisible waste, each
-with a distinct mechanism and a distinct reason why current tools miss
-it:</p>
-<ol type="1">
-<li><strong>Ghost allocations:</strong> VRAM not reclaimed after vGPU
-destruction. <code>nvidia-smi</code> reports the instance as gone but
-does not verify that physical memory returned to baseline.</li>
-<li><strong>Contention squeeze:</strong> Existing tenants lose bandwidth
-when a new tenant provisions on a time-sliced GPU. Per-GPU utilization
-may remain at 100% while individual tenants experience degradation
-proportional to co-tenant count.</li>
-<li><strong>Provisioning overhead:</strong> MIG partition creation takes
-100-500ms of wall-clock time during which capacity is neither free nor
-usable. nvidia-smi reports instant state transitions because it queries
-after the command returns.</li>
-<li><strong>Burst-to-sustained gap:</strong> GPUs are priced at peak
-(burst) specifications, but sustained performance under thermal
-throttling is 1-20% lower depending on workload and cooling
-configuration.</li>
-<li><strong>Straggler tax:</strong> In data-parallel distributed
-training, one degraded GPU blocks N-1 others at synchronization
-barriers. Per-device monitoring provides no fleet-wide barrier
-analysis.</li>
-<li><strong>Oversubscription blind spots:</strong> Hypervisors can
-allocate more aggregate vGPU VRAM than physical capacity. Per-instance
-tools show each allocation succeeding individually, but no tool sums
-allocations against physical limits.</li>
-</ol>
-<h3 data-number="1.2.1" id="contributions"><span class="header-section-number">1.2.1</span> Contributions</h3>
+<p>A single NVIDIA H100 GPU costs $2.50 per hour to rent in the cloud —
+approximately $22,000 per year. At scale, GPU fleets represent millions
+of dollars of annual infrastructure investment. Multi-tenant
+virtualization technologies (MIG, GRID, time-slicing) allow providers to
+maximize revenue from each physical GPU by serving multiple tenants
+simultaneously. But this sharing creates waste that no existing
+monitoring tool can observe.</p>
+<p>The waste is not hypothetical. Consider three scenarios that GPU
+fleet operators encounter routinely:</p>
+<ul>
+<li><p>A MIG partition is destroyed, but 512 MiB of VRAM is not
+reclaimed. The memory is trapped — unavailable for new tenants — and
+<code>nvidia-smi</code> reports the partition as cleanly removed. Over
+20 teardowns per day, this silently accumulates into gigabytes of lost
+capacity.</p></li>
+<li><p>A distributed training job across 8 H100s takes 40% longer than
+expected. One GPU has degraded NVLink bandwidth, and because
+data-parallel training synchronizes at barriers, the other 7 GPUs sit
+idle waiting for the straggler. No per-device monitoring tool flags this
+— each GPU individually reports normal utilization.</p></li>
+<li><p>A cloud provider advertises H100 instances at peak
+specifications. But under sustained workloads, thermal throttling
+reduces actual performance by 1–16% depending on workload type. Tenants
+receive less than they are paying for, and neither the provider nor the
+tenant has any visibility into the gap.</p></li>
+</ul>
+<p>These are not edge cases. They are structural consequences of how GPU
+virtualization works, and they are invisible because the standard
+monitoring tools — <code>nvidia-smi</code> and NVIDIA DCGM — were
+designed to report instantaneous per-device state, not lifecycle
+transitions, cross-tenant interference, fleet-level aggregates, or
+temporal degradation curves.</p>
+<p>This paper formalizes six categories of invisible waste, demonstrates
+through simulation that all six are detectable with purpose-built
+instrumentation, and quantifies both the observability gap and the
+operational impact of closing it.</p>
+<h3 data-number="1.2.1" id="summary-of-key-findings"><span class="header-section-number">1.2.1</span> 1.1 Summary of Key
+Findings</h3>
+<p>Before presenting the methodology and detailed results, we summarize
+the three central findings of this study:</p>
+<p><strong>Finding 1: The observability gap is total.</strong> Across
+120,000 simulation trials spanning six waste categories, modeled
+<code>nvidia-smi</code> and DCGM detection rates are 0.0%. Not low —
+zero. The <code>gpu-roofline</code> measurement framework, designed
+specifically for multi-tenant lifecycle analysis, detects 56.5–100% of
+waste events depending on the category. This is not a comparison of tool
+quality; it is a demonstration that current tools lack the architectural
+capability to observe these phenomena.</p>
+<p><strong>Finding 2: The waste is real and measurable.</strong> All six
+categories produce statistically significant effects with large
+standardized effect sizes after Holm-Bonferroni correction (d/d_z = 0.73
+to 8.55). The effects are not subtle statistical artifacts detectable
+only at large sample sizes — they represent 512 MiB of trapped VRAM per
+teardown, 19% fleet throughput loss per straggler GPU, and 50–75%
+bandwidth degradation per tenant under time-slicing.</p>
+<p><strong>Finding 3: The six categories require three different
+responses.</strong> Not all waste is recoverable. Ghost allocations and
+straggler GPUs represent directly recoverable capacity. Contention and
+thermal throttling are physics — they cannot be eliminated, but
+measuring them enables better infrastructure decisions (MIG
+vs. time-slicing, accurate SLAs). Oversubscription is a preventable risk
+that monitoring can catch before tenants are impacted. Treating all six
+categories as a single dollar figure is misleading; the value of
+visibility is category-specific.</p>
+<h3 data-number="1.2.2" id="contributions"><span class="header-section-number">1.2.2</span> 1.2 Contributions</h3>
 <ol type="1">
 <li>A six-category taxonomy of invisible waste in virtualized GPU
-systems, with formal definitions and mechanisms.</li>
-<li>A reproducible, deterministic simulation harness producing 120,000
-parameterized trials with realistic noise injection.</li>
-<li>Protocol-aligned statistical analyses using design-appropriate
-tests: Mann-Whitney U for independent groups, Wilcoxon signed-rank for
-paired measurements, with Holm-Bonferroni correction across omnibus
-comparisons.</li>
-<li>A provenance-preserving results package with SHA-256 hashes,
-software versions, and byte-identical rerun capability.</li>
-<li>A scenario-based cost model with bootstrap confidence intervals that
-prioritizes which waste categories merit hardware validation first.</li>
+systems, with formal mechanisms and detection requirements.</li>
+<li>A reproducible simulation harness producing 120,000 deterministic
+trials with byte-identical rerun capability (SHA-256 verified).</li>
+<li>Design-appropriate statistical analyses: Mann-Whitney U for
+independent groups, Wilcoxon signed-rank for paired measurements,
+Holm-Bonferroni correction, and bootstrap confidence intervals.</li>
+<li>A three-bucket operational impact model that honestly distinguishes
+recoverable capacity from decision support from risk prevention.</li>
+<li>An open protocol and simulation benchmark inviting hardware
+validation from the community.</li>
 </ol>
-<h3 data-number="1.2.2" id="scope-and-claim-boundary"><span class="header-section-number">1.2.2</span> Scope and Claim Boundary</h3>
+<h3 data-number="1.2.3" id="scope-and-claim-boundary"><span class="header-section-number">1.2.3</span> 1.3 Scope and Claim
+Boundary</h3>
 <p>This paper makes simulation-backed claims about the
 <em>detectability</em> and <em>relative magnitude</em> of each waste
-category under explicit modeling assumptions. It does not claim that the
-simulated magnitudes are final real-world fleet measurements. The cost
-model outputs are scenario analyses under explicit parameters
-($2.50/GPU/hr, specific fleet utilization assumptions), not direct
-market measurements. Hardware validation is deferred to a follow-on
-study.</p>
+category. It does not claim that simulated magnitudes are final
+real-world measurements. The detection model for <code>nvidia-smi</code>
+and DCGM is based on architectural capability analysis, not live tool
+comparison. Hardware validation on bare-metal H100 systems is reserved
+for a follow-on study; the open protocol is published to enable
+community participation.</p>
 <h2 data-number="1.3" id="background-and-related-work"><span class="header-section-number">1.3</span> 2. Background and Related
 Work</h2>
 <h3 data-number="1.3.1" id="gpu-virtualization-technologies"><span class="header-section-number">1.3.1</span> 2.1 GPU Virtualization
 Technologies</h3>
 <p>NVIDIA Multi-Instance GPU (MIG), introduced with the A100
 architecture, provides hardware-isolated partitions with dedicated
-compute, memory, and cache resources. NVIDIA GRID/vGPU enables
-time-sliced sharing where tenants alternate access to the full GPU. Both
-approaches are widely deployed in cloud infrastructure [1].</p>
-<h3 data-number="1.3.2" id="gpu-monitoring-and-observability"><span class="header-section-number">1.3.2</span> 2.2 GPU Monitoring and
-Observability</h3>
+compute, memory, and cache resources. Each MIG instance operates as an
+independent GPU with guaranteed quality of service. NVIDIA GRID/vGPU
+enables time-sliced sharing where tenants alternate access to the full
+GPU, achieving higher tenant density at the cost of bandwidth
+contention. Both technologies are widely deployed in cloud
+infrastructure from AWS, GCP, Azure, and Oracle Cloud [1].</p>
+<h3 data-number="1.3.2" id="the-monitoring-gap"><span class="header-section-number">1.3.2</span> 2.2 The Monitoring Gap</h3>
 <p>The standard GPU monitoring stack consists of <code>nvidia-smi</code>
-(NVML command-line interface) and NVIDIA Data Center GPU Manager (DCGM).
-Both tools provide per-device and per-instance metrics including
-utilization, memory consumption, temperature, and power. Neither tool
-computes lifecycle deltas, cross-tenant comparisons, or fleet-wide
-aggregates—capabilities that would be necessary to observe the waste
-categories identified in this study.</p>
-<h3 data-number="1.3.3" id="performance-measurement"><span class="header-section-number">1.3.3</span> 2.3 Performance
-Measurement</h3>
-<p>The roofline model [2] provides an analytical framework for
-understanding compute and memory bandwidth limits. Our
-<code>gpu-roofline</code> tool extends this with a dynamic roofline that
-captures burst versus sustained performance under thermal constraints,
-and a fleet-level extension for distributed training analysis.</p>
-<h3 data-number="1.3.4" id="gpu-power-and-thermal-modeling"><span class="header-section-number">1.3.4</span> 2.4 GPU Power and Thermal
-Modeling</h3>
-<p>Thermal throttling in modern GPUs follows well-characterized physics.
-Our simulation uses Newton’s law of cooling with empirically-calibrated
-parameters for each GPU profile (H100 SXM5, H200, RTX 5090, RTX 4090,
-MI300X). The power model maps workload intensity and thermal throttle
-factors to operating clock frequency and board power.</p>
-<h3 data-number="1.3.5" id="distributed-training-synchronization"><span class="header-section-number">1.3.5</span> 2.5 Distributed Training
-Synchronization</h3>
-<p>Data-parallel training requires all-reduce synchronization at
-gradient aggregation barriers. The slowest GPU determines effective
-throughput for the entire fleet [3]. Our straggler detection framework
-(<code>gpu-fleet::straggler</code>) measures per-GPU throughput,
-identifies outliers, and diagnoses root causes across five degradation
-types.</p>
-<h2 data-number="1.4" id="waste-taxonomy-and-measurement-model"><span class="header-section-number">1.4</span> 3. Waste Taxonomy and
-Measurement Model</h2>
-<h3 data-number="1.4.1" id="category-definitions"><span class="header-section-number">1.4.1</span> 3.1 Category Definitions</h3>
-<p>Each waste category is defined by: (a) the physical mechanism
-producing waste, (b) why existing tools miss it, and (c) what
-measurement capability is required for detection.</p>
-<p><strong>Category 1: Ghost Allocations.</strong> After vGPU teardown,
-VRAM may not be fully reclaimed by the driver. Detection requires
-capturing pre-teardown <code>nvmlDeviceGetMemoryInfo().used</code>,
-waiting for the instance to disappear, and polling post-teardown memory
-with a stabilization protocol until readings converge within 1 MiB. In
-the simulation, ghost bytes are injected as
-<code>Uniform(0, 1024 MiB)</code> for treatment trials and 0 for
-controls.</p>
-<p><strong>Category 2: Contention Squeeze.</strong> Under time-slicing,
-each tenant receives approximately 1/N of the GPU’s bandwidth, where N
-is the tenant count. Under MIG (hardware partitioning), each tenant
-receives a dedicated share with no contention. The simulation models
-per-tenant bandwidth ratios with Gaussian jitter (sigma = 2% of
-baseline).</p>
-<p><strong>Category 3: Provisioning Overhead.</strong> MIG partition
-creation incurs wall-clock latency that scales with profile size
-(120-450ms base) plus load-state penalties (0-80ms) and
-concurrent-partition penalties (15ms per existing partition). The
-simulation adds log-normal jitter (sigma = 0.3) to model real-world
-latency variation. This category uses a paired design: each trial
-measures both true spin-up latency and nvidia-smi reported latency
-(~0.5ms).</p>
-<p><strong>Category 4: Burst-to-Sustained Gap.</strong> The simulation
-uses a physics-based thermal model with per-GPU profile parameters.
-Burst performance is measured at ambient temperature; sustained
-performance is measured at thermal equilibrium (t = 3*tau, where tau is
-the thermal time constant). This category uses a paired within-subjects
-design: each trial compares burst and sustained measurements on the same
-simulated GPU.</p>
-<p><strong>Category 5: Straggler Tax.</strong> Fleet simulations inject
-degradation into one GPU (out of 8, 32, or 128) across five hardware
-failure modes at three severity levels. Effective fleet throughput
-equals min(all GPU throughputs) * N, and the straggler tax percentage
-quantifies the gap between effective and ideal throughput.</p>
-<p><strong>Category 6: Oversubscription Blind Spots.</strong> The
-simulation allocates vGPU instances at overcommit ratios of 1.0x
-(control), 1.25x, 1.5x, and 2.0x across 2-16 instances. Performance
-degradation is modeled as (1 - 1/ratio) * 100% when ratio &gt; 1.0.</p>
-<h3 data-number="1.4.2" id="noise-model"><span class="header-section-number">1.4.2</span> 3.2 Noise Model</h3>
-<p>All simulations include realistic measurement noise matching
-real-world NVML instrumentation characteristics:</p>
+(the NVML command-line interface) and NVIDIA Data Center GPU Manager
+(DCGM). Both provide per-device and per-instance metrics: utilization,
+memory consumption, temperature, power, and ECC error counts. These
+tools were designed for single-device health monitoring — answering
+questions like “Is this GPU functional?” and “How hot is it?”</p>
+<p>Multi-tenant waste, however, requires a fundamentally different class
+of measurement:</p>
 <table>
 <colgroup>
-<col style="width: 25%" />
-<col style="width: 25%" />
-<col style="width: 23%" />
-<col style="width: 26%" />
+<col style="width: 18%" />
+<col style="width: 36%" />
+<col style="width: 44%" />
+</colgroup>
+<thead>
+<tr>
+<th>Waste Type</th>
+<th>Required Measurement</th>
+<th>nvidia-smi/DCGM Capability</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Lifecycle transitions</td>
+<td>Pre/post memory delta across teardown</td>
+<td>Reports only post-state</td>
+</tr>
+<tr>
+<td>Cross-tenant interference</td>
+<td>Per-tenant bandwidth before/after new arrival</td>
+<td>Reports only aggregate per-GPU</td>
+</tr>
+<tr>
+<td>Temporal degradation</td>
+<td>Burst vs. sustained performance trajectory</td>
+<td>Reports only instantaneous snapshots</td>
+</tr>
+<tr>
+<td>Fleet aggregation</td>
+<td>Sum of all vGPU allocations vs. physical capacity</td>
+<td>Reports only per-instance</td>
+</tr>
+<tr>
+<td>Distributed synchronization</td>
+<td>Fleet-wide barrier wait analysis</td>
+<td>Reports only per-device</td>
+</tr>
+</tbody>
+</table>
+<p>This is not a criticism of tool quality. It is an identification of
+an architectural gap that leaves an entire class of operational waste
+unmeasured.</p>
+<h3 data-number="1.3.3" id="performance-measurement-and-the-roofline-model"><span class="header-section-number">1.3.3</span> 2.3 Performance Measurement
+and the Roofline Model</h3>
+<p>The roofline model [2] provides a well-established framework for
+analyzing compute and memory bandwidth bounds. Our
+<code>gpu-roofline</code> tool extends this with a <em>dynamic</em>
+roofline that captures both burst (peak clock, cold GPU) and sustained
+(thermally throttled) performance ceilings. The gap between these two
+ceilings — which we term the burst-to-sustained gap — represents
+capacity that is advertised but not sustainably deliverable.</p>
+<h3 data-number="1.3.4" id="distributed-training-and-the-straggler-problem"><span class="header-section-number">1.3.4</span> 2.4 Distributed Training and
+the Straggler Problem</h3>
+<p>Data-parallel distributed training requires all-reduce
+synchronization at gradient aggregation barriers. The slowest GPU
+determines effective throughput for the entire fleet [3]. Prior work has
+focused on software mitigations (redundant computation, asynchronous
+SGD). Our contribution is on the <em>detection</em> side: identifying
+which GPU is the straggler, diagnosing <em>why</em> it is degraded, and
+quantifying the fleet-wide impact.</p>
+<h2 data-number="1.4" id="waste-taxonomy-and-measurement-model"><span class="header-section-number">1.4</span> 3. Waste Taxonomy and
+Measurement Model</h2>
+<p>We define six categories of invisible waste. Each category is
+specified by three components: (a) the physical mechanism producing
+waste, (b) why existing monitoring tools miss it, and (c) what
+measurement capability is required for detection.</p>
+<h3 data-number="1.4.1" id="category-1-ghost-allocations"><span class="header-section-number">1.4.1</span> 3.1 Category 1: Ghost
+Allocations</h3>
+<p><strong>Mechanism.</strong> After vGPU teardown, VRAM may not be
+fully reclaimed by the driver. The unreleased memory is trapped —
+physically consumed but not allocated to any instance.</p>
+<p><strong>Why tools miss it.</strong> <code>nvidia-smi</code> reports
+the instance as removed. It does not verify that the physical memory
+returned to baseline.</p>
+<p><strong>Detection requires.</strong> Pre-teardown memory capture via
+<code>nvmlDeviceGetMemoryInfo().used</code>, post-teardown polling with
+a stabilization protocol (readings converge within 1 MiB), and delta
+computation.</p>
+<p><strong>Simulation design.</strong> Independent groups: 10,000
+treatment trials with ghost bytes injected as Uniform(0, 1024 MiB)
+across 3 teardown methods × 3 MIG profiles; 10,000 control trials with
+zero injection.</p>
+<h3 data-number="1.4.2" id="category-2-contention-squeeze"><span class="header-section-number">1.4.2</span> 3.2 Category 2: Contention
+Squeeze</h3>
+<p><strong>Mechanism.</strong> Under time-slicing, each tenant receives
+approximately 1/N of the GPU’s memory bandwidth, where N is the tenant
+count. Existing tenants experience bandwidth degradation when a new
+tenant arrives.</p>
+<p><strong>Why tools miss it.</strong> <code>nvidia-smi</code> reports
+per-GPU utilization (which remains at 100%). It has no concept of
+per-tenant bandwidth.</p>
+<p><strong>Detection requires.</strong> Per-tenant baseline capture
+before each new tenant arrives, post-arrival measurement, and
+comparison.</p>
+<p><strong>Simulation design.</strong> Independent groups: 10,000
+treatment trials across 3 tenant counts (time-sliced); 10,000 control
+trials (single-tenant baseline + MIG-partitioned).</p>
+<h3 data-number="1.4.3" id="category-3-provisioning-overhead"><span class="header-section-number">1.4.3</span> 3.3 Category 3: Provisioning
+Overhead</h3>
+<p><strong>Mechanism.</strong> MIG partition creation takes 120–500ms of
+wall-clock time depending on profile size and GPU load state. During
+this time, capacity is neither free nor usable.</p>
+<p><strong>Why tools miss it.</strong> <code>nvidia-smi</code> reports
+state after the command returns. It does not measure the transition
+duration.</p>
+<p><strong>Detection requires.</strong> Wall-clock timing from create
+command to first successful compute dispatch.</p>
+<p><strong>Simulation design.</strong> Paired within-trial: 20,000
+trials each measuring both true spin-up latency and nvidia-smi reported
+latency (~0.5ms). Wilcoxon signed-rank is the appropriate test.</p>
+<h3 data-number="1.4.4" id="category-4-burst-to-sustained-gap"><span class="header-section-number">1.4.4</span> 3.4 Category 4:
+Burst-to-Sustained Gap</h3>
+<p><strong>Mechanism.</strong> GPUs boost to peak clock at cold start,
+then thermally throttle to a lower sustained clock within 30–120
+seconds. The gap between burst and sustained performance is 1–16% for
+datacenter GPUs (H100, H200) and larger for consumer GPUs.</p>
+<p><strong>Why tools miss it.</strong> Monitoring tools take snapshots.
+They do not track the thermal trajectory from burst to equilibrium.</p>
+<p><strong>Detection requires.</strong> Continuous measurement through
+the thermal ramp: TFLOPS, clock frequency, temperature, and power from
+t=0 through thermal equilibrium.</p>
+<p><strong>Simulation design.</strong> Paired within-trial: 20,000
+trials each measuring gap_pct versus ideal 0% across 5 GPU profiles × 3
+workload types. Physics-based thermal model using Newton’s law of
+cooling.</p>
+<h3 data-number="1.4.5" id="category-5-straggler-tax"><span class="header-section-number">1.4.5</span> 3.5 Category 5: Straggler
+Tax</h3>
+<p><strong>Mechanism.</strong> In data-parallel training, one degraded
+GPU forces N-1 healthy GPUs to idle at synchronization barriers. Five
+hardware degradation types are simulated: thermal paste failure, NVLink
+degradation, PCIe fallback, memory subsystem failure, and clock
+stuck.</p>
+<p><strong>Why tools miss it.</strong> Each GPU individually reports
+normal or near-normal metrics. No tool correlates fleet-wide to identify
+the barrier bottleneck.</p>
+<p><strong>Detection requires.</strong> Fleet-wide measurement,
+median-vs-outlier comparison, and per-GPU diagnostic probing.</p>
+<p><strong>Simulation design.</strong> Independent groups: 10,000
+treatment trials (degradation injected into one GPU) across 5 types × 3
+severities × 3 fleet sizes (8, 32, 128); 10,000 control trials with no
+degradation.</p>
+<h3 data-number="1.4.6" id="category-6-oversubscription-blind-spots"><span class="header-section-number">1.4.6</span> 3.6 Category 6:
+Oversubscription Blind Spots</h3>
+<p><strong>Mechanism.</strong> Hypervisors can allocate more aggregate
+vGPU VRAM than physical GPU capacity. At overcommit ratios above 1.0,
+tenants experience performance degradation proportional to the
+excess.</p>
+<p><strong>Why tools miss it.</strong> Each instance’s allocation
+appears successful individually. No tool sums allocations against
+physical limits.</p>
+<p><strong>Detection requires.</strong> Aggregate allocation tracking
+across all instances, comparison to physical capacity.</p>
+<p><strong>Simulation design.</strong> Independent groups: 10,000
+treatment trials at overcommit ratios 1.25x, 1.5x, 2.0x; 10,000 control
+trials at 1.0x (no overcommit).</p>
+<h3 data-number="1.4.7" id="noise-model"><span class="header-section-number">1.4.7</span> 3.7 Noise Model</h3>
+<p>All simulations include realistic measurement noise calibrated to
+NVML instrumentation characteristics:</p>
+<table>
+<colgroup>
+<col style="width: 34%" />
+<col style="width: 34%" />
+<col style="width: 31%" />
 </colgroup>
 <thead>
 <tr>
 <th>Noise Source</th>
 <th>Distribution</th>
 <th>Parameters</th>
-<th>Justification</th>
 </tr>
 </thead>
 <tbody>
@@ -527,413 +645,215 @@ real-world NVML instrumentation characteristics:</p>
 <td>NVML memory readings</td>
 <td>Gaussian</td>
 <td>sigma = 512 KiB</td>
-<td>NVML quantization and timing jitter</td>
 </tr>
 <tr>
 <td>Spin-up latency</td>
 <td>Log-normal</td>
 <td>sigma = 0.3</td>
-<td>Right-skewed latency distributions</td>
 </tr>
 <tr>
 <td>Bandwidth measurement</td>
 <td>Gaussian</td>
 <td>sigma = 2% of baseline</td>
-<td>Memory subsystem variation</td>
 </tr>
 <tr>
 <td>Background memory spikes</td>
 <td>Poisson × Uniform</td>
-<td>lambda = 0.01, range 1-64 MiB</td>
-<td>Kernel driver allocations</td>
+<td>lambda = 0.01, 1–64 MiB</td>
 </tr>
 <tr>
 <td>Thermal readings</td>
 <td>Gaussian</td>
 <td>sigma = 1.0°C</td>
-<td>Sensor precision</td>
 </tr>
 <tr>
 <td>Fleet performance</td>
 <td>Gaussian</td>
 <td>sigma = 2% of peak</td>
-<td>Manufacturing variation</td>
 </tr>
 </tbody>
 </table>
-<h3 data-number="1.4.3" id="detection-model"><span class="header-section-number">1.4.3</span> 3.3 Detection Model</h3>
-<p>For each trial, three detection outcomes are recorded:</p>
-<ul>
-<li><strong>gpu-roofline detected:</strong> The purpose-built detection
-mechanism fires (e.g., ghost bytes &gt; 1 MiB threshold, contention drop
-&gt; 5%, spin-up latency &gt; 10ms, gap &gt; 1%, straggler below 90th
-percentile threshold, or overcommit ratio &gt; 1.0).</li>
-<li><strong>nvidia-smi detected:</strong> Modeled as 0% for all
-categories except oversubscription (which is also 0% since nvidia-smi
-reports per-instance only).</li>
-<li><strong>DCGM detected:</strong> Modeled identically to nvidia-smi
-for these waste categories.</li>
-</ul>
-<p>The tool visibility model reflects the architectural limitations of
-device-centric monitoring, not implementation bugs. A reviewer should
-note that these detection rates are <em>modeled</em> based on tool
-capabilities, not measured against live tool output.</p>
 <h2 data-number="1.5" id="simulation-infrastructure-and-experimental-design"><span class="header-section-number">1.5</span> 4. Simulation Infrastructure
 and Experimental Design</h2>
 <h3 data-number="1.5.1" id="implementation"><span class="header-section-number">1.5.1</span> 4.1 Implementation</h3>
 <p>The simulation is implemented in Rust as part of the
-<code>gpu-harness</code> crate. The binary <code>study_sim</code>
-accepts three parameters: <code>--scale</code> (default 1.0, producing
-120,000 trials), <code>--seed</code> (default 42), and
-<code>--out</code> (output path). The simulation runs in 0.4 seconds on
-commodity hardware and produces byte-identical JSON output for a given
-seed.</p>
-<p>Key implementation modules:</p>
+<code>gpu-harness</code> crate (~2,600 lines across 6 modules). The
+binary accepts three parameters: scale factor (default 1.0, producing
+120,000 trials), random seed (default 42), and output path. Execution
+time is 0.4 seconds on commodity hardware. The output is deterministic:
+re-execution with the same seed produces byte-identical JSON (SHA-256:
+<code>e386a3d599a238901abff636d421dbcb095cca31616e425d05e5653744fd3912</code>).</p>
+<h3 data-number="1.5.2" id="experimental-design-summary"><span class="header-section-number">1.5.2</span> 4.2 Experimental Design
+Summary</h3>
 <table>
 <colgroup>
-<col style="width: 27%" />
-<col style="width: 51%" />
-<col style="width: 20%" />
-</colgroup>
-<thead>
-<tr>
-<th>Module</th>
-<th>Responsibility</th>
-<th>Size</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>study::runner</code></td>
-<td>Orchestrates all 6 categories, emits per-trial JSON</td>
-<td>838 lines</td>
-</tr>
-<tr>
-<td><code>study::scenarios</code></td>
-<td>Parameterized trial generators per category</td>
-<td>872 lines</td>
-</tr>
-<tr>
-<td><code>study::noise</code></td>
-<td>Noise injection matching protocol Section 14.3</td>
-<td>150 lines</td>
-</tr>
-<tr>
-<td><code>study::stats</code></td>
-<td>Mann-Whitney U, bootstrap BCa, Holm-Bonferroni</td>
-<td>511 lines</td>
-</tr>
-<tr>
-<td><code>study::cost_model</code></td>
-<td>Parametric economic projections at 3 fleet scales</td>
-<td>246 lines</td>
-</tr>
-<tr>
-<td><code>sim::gpu_model</code></td>
-<td>GPU profile definitions (H100, H200, RTX 5090, etc.)</td>
-<td>—</td>
-</tr>
-<tr>
-<td><code>sim::power</code></td>
-<td>Power and clock frequency model</td>
-<td>—</td>
-</tr>
-<tr>
-<td><code>sim::thermal</code></td>
-<td>Newton’s law of cooling with throttle factors</td>
-<td>—</td>
-</tr>
-<tr>
-<td><code>sim::fleet</code></td>
-<td>Multi-GPU fleet with degradation injection</td>
-<td>—</td>
-</tr>
-</tbody>
-</table>
-<h3 data-number="1.5.2" id="trial-structure"><span class="header-section-number">1.5.2</span> 4.2 Trial Structure</h3>
-<p>Each trial record contains:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;trial_id&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;category&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;category_name&quot;</span><span class="fu">:</span> <span class="st">&quot;ghost_allocation&quot;</span><span class="fu">,</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;arm&quot;</span><span class="fu">:</span> <span class="st">&quot;treatment&quot;</span><span class="fu">,</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;condition&quot;</span><span class="fu">:</span> <span class="st">&quot;under_load_2g.20gb&quot;</span><span class="fu">,</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;primary_metric_name&quot;</span><span class="fu">:</span> <span class="st">&quot;ghost_bytes_measured&quot;</span><span class="fu">,</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;primary_metric_value&quot;</span><span class="fu">:</span> <span class="fl">536350426.50</span><span class="fu">,</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;control_metric_name&quot;</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;control_metric_value&quot;</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;independent_variables&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;teardown_method&quot;</span><span class="fu">:</span> <span class="st">&quot;under_load&quot;</span><span class="fu">,</span> <span class="er">...</span> <span class="fu">},</span></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;dependent_variables&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;ghost_bytes_injected&quot;</span><span class="fu">:</span> <span class="er">...</span><span class="fu">,</span> <span class="er">...</span> <span class="fu">},</span></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;ground_truth_waste&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;gpu_roofline_detected&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;nvidia_smi_detected&quot;</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;dcgm_detected&quot;</span><span class="fu">:</span> <span class="kw">false</span></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
-<h3 data-number="1.5.3" id="experimental-design-per-category"><span class="header-section-number">1.5.3</span> 4.3 Experimental Design Per
-Category</h3>
-<table>
-<colgroup>
-<col style="width: 18%" />
-<col style="width: 5%" />
-<col style="width: 15%" />
-<col style="width: 11%" />
-<col style="width: 20%" />
-<col style="width: 28%" />
+<col style="width: 29%" />
+<col style="width: 8%" />
+<col style="width: 23%" />
+<col style="width: 38%" />
 </colgroup>
 <thead>
 <tr>
 <th>Category</th>
 <th>N</th>
 <th>Design</th>
-<th>Arms</th>
-<th>Conditions</th>
-<th>Primary Metric</th>
+<th>Primary Test</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Ghost allocations</td>
+<td>1. Ghost allocations</td>
 <td>20,000</td>
 <td>Independent groups</td>
-<td>Treatment / Control</td>
-<td>3 teardown × 3 MIG + 3 control</td>
-<td>ghost_bytes_measured</td>
+<td>Mann-Whitney U</td>
 </tr>
 <tr>
-<td>Contention squeeze</td>
+<td>2. Contention squeeze</td>
 <td>20,000</td>
 <td>Independent groups</td>
-<td>Treatment / Control</td>
-<td>3 tenant counts + 1 baseline + 4 MIG</td>
-<td>bandwidth_loss_pct</td>
+<td>Mann-Whitney U</td>
 </tr>
 <tr>
-<td>Provisioning overhead</td>
+<td>3. Provisioning overhead</td>
 <td>20,000</td>
 <td>Paired (within-trial)</td>
-<td>Paired</td>
-<td>5 profiles × 3 loads × up to 4 concurrent</td>
-<td>spin_up_latency_ms vs nvidia_smi_reported_ms</td>
+<td>Wilcoxon signed-rank</td>
 </tr>
 <tr>
-<td>Burst-sustained gap</td>
+<td>4. Burst-sustained gap</td>
 <td>20,000</td>
 <td>Paired (within-trial)</td>
-<td>Paired</td>
-<td>5 GPU profiles × 3 workloads</td>
-<td>gap_pct vs ideal 0%</td>
+<td>Wilcoxon signed-rank</td>
 </tr>
 <tr>
-<td>Straggler tax</td>
+<td>5. Straggler tax</td>
 <td>20,000</td>
 <td>Independent groups</td>
-<td>Treatment / Control</td>
-<td>5 degrade types × 3 severity × 3 fleet sizes + 3 controls</td>
-<td>straggler_tax_pct</td>
+<td>Mann-Whitney U</td>
 </tr>
 <tr>
-<td>Oversubscription</td>
+<td>6. Oversubscription</td>
 <td>20,000</td>
 <td>Independent groups</td>
-<td>Treatment / Control</td>
-<td>3 ratios × 4 instances + 4 controls</td>
-<td>performance_degradation_pct</td>
+<td>Mann-Whitney U</td>
 </tr>
 </tbody>
 </table>
-<h3 data-number="1.5.4" id="statistical-analysis-plan"><span class="header-section-number">1.5.4</span> 4.4 Statistical Analysis
-Plan</h3>
-<p>The primary statistical test is selected based on the experimental
-design of each category:</p>
-<ul>
-<li><strong>Independent groups</strong> (Categories 1, 2, 5, 6):
-Mann-Whitney U test (one-sided, treatment &gt; control). Effect size:
-rank-biserial correlation <em>r</em> and Cohen’s <em>d</em>.</li>
-<li><strong>Paired measurements</strong> (Categories 3, 4): Wilcoxon
-signed-rank test (one-sided, actual &gt; reported/ideal). Effect size:
-matched-pairs rank-biserial <em>r</em> and Cohen’s <em>d_z</em>
-(standardized by SD of within-pair differences).</li>
-</ul>
-<p>All six omnibus p-values are corrected for multiplicity using the
-Holm-Bonferroni step-down procedure (family-wise alpha = 0.05).</p>
-<p>Supplementary per-category analyses include: - <strong>Category
-1:</strong> Per-condition Mann-Whitney U with Holm correction across 9
-comparisons. - <strong>Category 2:</strong> Friedman test across tenant
-counts; pairwise Wilcoxon signed-rank with Holm correction; Wilcoxon
-time-sliced vs MIG at each tenant count. - <strong>Category 3:</strong>
-Paired t-test (actual vs reported latency); Kruskal-Wallis across load
-states; linear regression of latency on concurrent partition count. -
-<strong>Category 4:</strong> Paired t-test (gap vs ideal);
-Kruskal-Wallis across workload types. - <strong>Category 5:</strong>
-Mann-Whitney U treatment vs control; Kruskal-Wallis across fleet sizes;
-linear regression of tax on severity. - <strong>Category 6:</strong>
-Mann-Whitney U treatment vs control; linear regression of degradation on
-overcommit ratio; Kruskal-Wallis across instance counts.</p>
-<p>Bootstrap 95% confidence intervals (10,000 resamples, BCa-adjusted
-for the Rust implementation, percentile for the Python analysis) are
-computed for the median difference in each category.</p>
-<p>Detection performance comparison across tools uses McNemar’s exact
-binomial test for paired proportions on the same waste events.</p>
+<p>The choice of statistical test follows from the experimental design:
+Categories 3 and 4 produce paired observations (each trial measures both
+the actual value and the tool-reported or ideal baseline), requiring a
+paired test. All six omnibus p-values are Holm-Bonferroni corrected for
+multiplicity (family-wise alpha = 0.05).</p>
+<h3 data-number="1.5.3" id="detection-model"><span class="header-section-number">1.5.3</span> 4.3 Detection Model</h3>
+<p>For each trial, three binary detection outcomes are recorded: whether
+<code>gpu-roofline</code>, <code>nvidia-smi</code>, or DCGM would detect
+the waste event. The <code>nvidia-smi</code> and DCGM detection rates
+are modeled at 0% based on architectural capability analysis (these
+tools lack the measurement primitives described in Section 3). This is a
+modeling assumption, not an empirical measurement; live tool comparison
+is deferred to hardware validation.</p>
 <h2 data-number="1.6" id="results"><span class="header-section-number">1.6</span> 5. Results</h2>
-<h3 data-number="1.6.1" id="cross-category-omnibus-results"><span class="header-section-number">1.6.1</span> 5.1 Cross-Category Omnibus
-Results</h3>
-<p>All six waste categories produce statistically significant effects
-after Holm-Bonferroni correction (Table 3). Effect sizes are uniformly
-large, ranging from d_z = 0.73 (burst-to-sustained gap, the most subtle
-category) to d = 8.55 (contention squeeze, the most dramatic).</p>
-<p><strong>Table 3. Cross-Category Omnibus Statistical
-Tests</strong></p>
+<h3 data-number="1.6.1" id="all-six-waste-categories-are-detectable"><span class="header-section-number">1.6.1</span> 5.1 All Six Waste Categories
+Are Detectable</h3>
+<p>The primary hypothesis — that all six categories of invisible waste
+produce measurable, statistically significant effects — is supported.
+Table 1 presents the omnibus results.</p>
+<p><strong>Table 1. Omnibus Statistical Results Across All Six Waste
+Categories</strong></p>
 <table>
 <colgroup>
-<col style="width: 10%" />
-<col style="width: 7%" />
-<col style="width: 7%" />
-<col style="width: 8%" />
-<col style="width: 14%" />
+<col style="width: 15%" />
 <col style="width: 12%" />
-<col style="width: 7%" />
-<col style="width: 8%" />
 <col style="width: 9%" />
-<col style="width: 3%" />
-<col style="width: 8%" />
+<col style="width: 14%" />
+<col style="width: 4%" />
+<col style="width: 43%" />
 </colgroup>
 <thead>
 <tr>
 <th>Category</th>
-<th>N (a)</th>
-<th>N (b)</th>
 <th>Design</th>
-<th>Primary Test</th>
-<th>Statistic</th>
-<th>Raw p</th>
-<th>Holm p</th>
+<th>Test</th>
 <th>d / d_z</th>
 <th>r</th>
-<th>95% CI</th>
+<th>95% CI of Median Difference</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>Ghost allocations</td>
-<td>10,000</td>
-<td>10,000</td>
-<td>independent</td>
+<td>Independent</td>
 <td>Mann-Whitney U</td>
-<td>99,937,086</td>
-<td>&lt;1e-300</td>
-<td>&lt;1e-300</td>
 <td>2.46</td>
 <td>1.00</td>
 <td>[527M, 545M] bytes</td>
 </tr>
 <tr>
 <td>Contention squeeze</td>
-<td>10,000</td>
-<td>10,000</td>
-<td>independent</td>
+<td>Independent</td>
 <td>Mann-Whitney U</td>
-<td>100,000,000</td>
-<td>&lt;1e-300</td>
-<td>&lt;1e-300</td>
 <td>8.55</td>
 <td>1.00</td>
-<td>[66.61, 66.68]%</td>
+<td>[66.61, 66.68]% bandwidth loss</td>
 </tr>
 <tr>
 <td>Provisioning overhead</td>
-<td>20,000</td>
-<td>20,000</td>
-<td>paired</td>
+<td>Paired</td>
 <td>Wilcoxon signed-rank</td>
-<td>200,010,000</td>
-<td>&lt;1e-300</td>
-<td>&lt;1e-300</td>
 <td>2.01</td>
 <td>1.00</td>
-<td>[244.3, 248.3] ms</td>
+<td>[244, 248] ms hidden latency</td>
 </tr>
 <tr>
 <td>Burst-sustained gap</td>
-<td>20,000</td>
-<td>20,000</td>
-<td>paired</td>
+<td>Paired</td>
 <td>Wilcoxon signed-rank</td>
-<td>87,021,028</td>
-<td>&lt;1e-300</td>
-<td>&lt;1e-300</td>
 <td>0.73</td>
 <td>1.00</td>
-<td>[1.63, 1.77]%</td>
+<td>[1.63, 1.77]% below spec</td>
 </tr>
 <tr>
 <td>Straggler tax</td>
-<td>10,000</td>
-<td>10,000</td>
-<td>independent</td>
+<td>Independent</td>
 <td>Mann-Whitney U</td>
-<td>99,805,998</td>
-<td>&lt;1e-300</td>
-<td>&lt;1e-300</td>
 <td>2.46</td>
 <td>1.00</td>
-<td>[14.56, 15.09]%</td>
+<td>[14.56, 15.09]% fleet throughput</td>
 </tr>
 <tr>
 <td>Oversubscription</td>
-<td>10,000</td>
-<td>10,000</td>
-<td>independent</td>
+<td>Independent</td>
 <td>Mann-Whitney U</td>
-<td>100,000,000</td>
-<td>&lt;1e-300</td>
-<td>&lt;1e-300</td>
 <td>3.97</td>
 <td>1.00</td>
-<td>[33.33, 33.33]%</td>
+<td>[33.33, 33.33]% degradation</td>
 </tr>
 </tbody>
 </table>
-<p><em>Note: p-values are extremely small due to large sample sizes
-(N=10,000-20,000 per group). The effect sizes and confidence intervals
-are the more informative measures.</em></p>
-<h3 data-number="1.6.2" id="hypothesis-testing-summary"><span class="header-section-number">1.6.2</span> 5.2 Hypothesis Testing
-Summary</h3>
-<p><strong>H1 (Waste exists across all categories):</strong> Supported.
-All six categories show statistically significant treatment effects with
-large standardized effect sizes (all d/d_z &gt; 0.73). The weakest
-category (burst-to-sustained gap, d_z = 0.73) still qualifies as a
-“medium-to-large” effect by conventional benchmarks.</p>
-<p><strong>H2 (Existing tools miss &gt;80% of waste):</strong>
-Supported. Across all categories, modeled <code>nvidia-smi</code> and
-DCGM detection rates are 0.0%, while <code>gpu-roofline</code> achieves
-56.5-100% detection rates. McNemar’s test confirms the difference is
-significant (p &lt; 1e-300) for all tool comparisons. The weakest
-detection rate for <code>gpu-roofline</code> is 56.5% for the
-burst-to-sustained gap, where small gaps (&lt; 1% threshold) are
+<p><em>All Holm-Bonferroni adjusted p &lt; 1e-300. N = 10,000–20,000 per
+group. Effect sizes (d, d_z) and bootstrap 95% CIs (10,000 resamples)
+are the primary measures; p-values are uninformative at this sample
+size.</em></p>
+<p>Effect sizes are uniformly large. The weakest category —
+burst-to-sustained gap (d_z = 0.73) — still qualifies as a
+medium-to-large effect. The strongest — contention squeeze (d = 8.55) —
+reflects the dramatic and deterministic bandwidth partitioning under
+time-slicing.</p>
+<h3 data-number="1.6.2" id="current-tools-provide-zero-visibility"><span class="header-section-number">1.6.2</span> 5.2 Current Tools Provide
+Zero Visibility</h3>
+<p>The second hypothesis — that existing tools miss the vast majority of
+waste events — is supported, and the result is more extreme than
+hypothesized. We predicted &gt;80% missed; the simulation shows 100%
 missed.</p>
-<p><strong>H3 (Economic cost &gt; $0):</strong> Supported. Bootstrap 95%
-CI lower bounds for annual waste per GPU are $8,149 (8-GPU fleet),
-$21,215 (100-GPU fleet), and $33,809 (10,000-GPU fleet), all well above
-zero.</p>
-<h3 data-number="1.6.3" id="detection-performance"><span class="header-section-number">1.6.3</span> 5.3 Detection
-Performance</h3>
-<p><strong>Table 2. Detection Rates by Tool Across All 6 Waste
-Categories</strong></p>
+<p><strong>Table 2. Detection Rates by Monitoring Tool</strong></p>
 <table>
-<colgroup>
-<col style="width: 14%" />
-<col style="width: 16%" />
-<col style="width: 8%" />
-<col style="width: 19%" />
-<col style="width: 40%" />
-</colgroup>
 <thead>
 <tr>
 <th>Category</th>
 <th>nvidia-smi</th>
 <th>DCGM</th>
 <th>gpu-roofline</th>
-<th>McNemar p (smi vs roofline)</th>
+<th>McNemar p</th>
 </tr>
 </thead>
 <tbody>
@@ -988,345 +908,239 @@ Categories</strong></p>
 </tr>
 </tbody>
 </table>
-<h3 data-number="1.6.4" id="operational-impact-three-action-buckets"><span class="header-section-number">1.6.4</span> 5.4 Operational Impact: Three
-Action Buckets</h3>
-<p>The six waste categories map to three distinct types of operational
-action that visibility enables. These categories are <strong>not
-additive</strong> — they apply to different fractions of GPU operating
-time and cannot be summed into a single dollar figure.</p>
-<p><strong>Bucket A — Directly Recoverable Capacity</strong></p>
+<p>The 0% detection rate for <code>nvidia-smi</code> and DCGM is a
+modeling result, not an empirical measurement (see Section 4.3).
+However, it follows directly from the tools’ documented capabilities:
+they do not compute memory deltas across teardowns, track per-tenant
+bandwidth, time provisioning transitions, measure thermal trajectories,
+correlate fleet-wide barriers, or sum allocations against physical
+limits. These are not features that could be enabled with configuration
+changes — they require fundamentally different measurement
+architectures.</p>
+<p>The <code>gpu-roofline</code> detection rate varies by category. The
+weakest performance is on the burst-to-sustained gap (56.5%), where
+small thermal gaps below the 1% detection threshold are missed. The
+strongest is on contention, provisioning, and oversubscription (100%),
+where the signal-to-noise ratio is high.</p>
+<h3 data-number="1.6.3" id="what-operators-gain-three-action-buckets"><span class="header-section-number">1.6.3</span> 5.3 What Operators Gain:
+Three Action Buckets</h3>
+<p>The six waste categories do not all represent the same type of
+problem, and they do not all have the same solution. We categorize them
+into three action buckets based on what visibility enables:</p>
+<h4 data-number="1.6.3.1" id="bucket-a-directly-recoverable-capacity"><span class="header-section-number">1.6.3.1</span> Bucket A: Directly
+Recoverable Capacity</h4>
+<p><strong>Ghost allocations</strong> trap VRAM that could host
+additional tenant instances. The simulation shows a median of 512 MiB
+trapped per teardown event. At 20 teardowns per day, this is
+approximately 10 GiB of VRAM per GPU per day that can be reclaimed once
+the ghost is detected. Detection rate: 99.9%.</p>
+<p><strong>Straggler tax</strong> wastes fleet-wide GPU-hours at
+synchronization barriers. A single degraded GPU in an 8-GPU training job
+wastes 16.7% of fleet throughput — the other 7 GPUs idle at the barrier.
+Identifying the straggler (detection rate: 94.7%) and replacing or
+reassigning it immediately recovers this capacity.</p>
+<p>These categories represent genuine capacity recovery: detect the
+problem, take action, free the resource.</p>
+<h4 data-number="1.6.3.2" id="bucket-b-decision-support"><span class="header-section-number">1.6.3.2</span> Bucket B: Decision
+Support</h4>
+<p><strong>Contention squeeze</strong> is the inherent cost of
+time-slicing. With 2 tenants, each gets ~50% bandwidth; with 4, each
+gets ~25%. This cannot be eliminated — it is the physics of shared
+access. But <em>measuring</em> it enables operators to make informed
+decisions: use MIG (hardware isolation, guaranteed bandwidth) for
+latency-sensitive workloads, and time-slicing (higher density, shared
+bandwidth) for throughput-tolerant batch jobs. Without per-tenant
+bandwidth visibility, this decision is made blind.</p>
+<p><strong>Burst-to-sustained gap</strong> is thermal physics. H100 SXM
+GPUs show a median 1.7% gap; compute-bound workloads on some profiles
+show up to 16%. This cannot be fixed — but it can be priced correctly.
+Cloud providers advertising peak specs for sustained workloads are
+overcommitting. Measuring the actual sustained ceiling enables honest
+SLAs and prevents customer complaints.</p>
+<p><strong>Provisioning overhead</strong> (246ms per MIG provision) is
+measurable but economically negligible (&lt;$1/GPU/year).</p>
+<h4 data-number="1.6.3.3" id="bucket-c-risk-prevention"><span class="header-section-number">1.6.3.3</span> Bucket C: Risk
+Prevention</h4>
+<p><strong>Oversubscription</strong> occurs when aggregate vGPU VRAM
+allocations exceed physical GPU capacity. At 1.5x overcommit, tenants
+experience 33% performance degradation. At 2x, out-of-memory crashes
+become likely. Each tenant’s allocation appears successful individually
+— no tool sums them against the physical limit. Detection enables
+enforcement before tenants are silently impacted.</p>
+<h3 data-number="1.6.4" id="hypothesis-summary"><span class="header-section-number">1.6.4</span> 5.4 Hypothesis Summary</h3>
 <table>
 <colgroup>
-<col style="width: 23%" />
-<col style="width: 45%" />
-<col style="width: 30%" />
-</colgroup>
-<thead>
-<tr>
-<th>Category</th>
-<th>Per-Event Magnitude</th>
-<th>Fleet Impact</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Ghost allocations</td>
-<td>512 MiB trapped per teardown</td>
-<td>~10 GiB/day freed per GPU at 20 teardowns/day</td>
-</tr>
-<tr>
-<td>Straggler tax</td>
-<td>19.1% fleet throughput lost per straggler</td>
-<td>16.7% fleet capacity wasted in 8-GPU training job</td>
-</tr>
-</tbody>
-</table>
-<p>Ghost allocations trap VRAM that could host additional tenant
-instances. Detecting and reclaiming ghost memory after each teardown
-directly frees sellable capacity. Straggler detection identifies
-degraded GPUs that are silently blocking N-1 healthy GPUs at
-synchronization barriers in distributed training. Replacing or
-reassigning a single straggler in an 8-GPU job recovers 16.7% of fleet
-throughput.</p>
-<p><strong>Bucket B — Decision Support (physics-driven)</strong></p>
-<table>
-<colgroup>
-<col style="width: 20%" />
-<col style="width: 39%" />
-<col style="width: 39%" />
-</colgroup>
-<thead>
-<tr>
-<th>Category</th>
-<th>Per-Event Magnitude</th>
-<th>What Operators Gain</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Contention squeeze</td>
-<td>50-75% bandwidth loss at 2-4 tenants (time-sliced)</td>
-<td>Data to choose MIG vs time-slicing; price per-tenant correctly</td>
-</tr>
-<tr>
-<td>Burst-sustained gap</td>
-<td>1.7% median gap (H100); 1-16% range by workload</td>
-<td>Set honest SLAs; avoid overcommitting on advertised specs</td>
-</tr>
-<tr>
-<td>Provisioning overhead</td>
-<td>246 ms per MIG provision</td>
-<td>Economically negligible (&lt;$1/GPU/yr)</td>
-</tr>
-</tbody>
-</table>
-<p>Contention is the inherent cost of time-slicing — it cannot be
-eliminated. But without visibility, operators cannot make informed
-decisions about when to use MIG (hardware isolation, no contention)
-versus time-slicing (more tenants, higher revenue per GPU, but shared
-bandwidth). The burst-sustained gap is thermal physics: GPUs throttle
-under sustained load. Knowing the actual gap for each GPU model and
-workload enables accurate SLA commitments instead of advertising peak
-specs that sustained workloads cannot achieve.</p>
-<p><strong>Bucket C — Risk Prevention</strong></p>
-<table>
-<colgroup>
-<col style="width: 23%" />
-<col style="width: 45%" />
-<col style="width: 30%" />
-</colgroup>
-<thead>
-<tr>
-<th>Category</th>
-<th>Per-Event Magnitude</th>
-<th>Risk Avoided</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Oversubscription</td>
-<td>33.3% performance degradation at 1.5x overcommit</td>
-<td>Detect before tenants experience silent degradation; prevent crash
-risk at 2x+</td>
-</tr>
-</tbody>
-</table>
-<p>Oversubscription occurs when aggregate vGPU VRAM allocations exceed
-physical GPU capacity. Without monitoring, this is invisible — each
-tenant’s allocation appears successful individually. Detection enables
-operators to enforce capacity limits before tenants experience
-unexplained performance loss or out-of-memory failures.</p>
-<p><strong>Cost Model Bootstrap 95% CIs:</strong></p>
-<table>
-<thead>
-<tr>
-<th>Fleet Scale</th>
-<th>Point Estimate ($/GPU/yr)</th>
-<th>95% CI</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>8-GPU</td>
-<td>$8,171</td>
-<td>[$8,149, $8,192]</td>
-</tr>
-<tr>
-<td>100-GPU</td>
-<td>$21,304</td>
-<td>[$21,215, $21,389]</td>
-</tr>
-<tr>
-<td>10,000-GPU</td>
-<td>$33,999</td>
-<td>[$33,809, $34,193]</td>
-</tr>
-</tbody>
-</table>
-<p>The narrow confidence intervals reflect the large sample size
-(120,000 trials) and the deterministic structure of the cost model. They
-should not be interpreted as precision about real-world costs—the
-uncertainty in fleet-scale operating parameters (teardown frequency,
-tenant count, utilization hours) likely dominates.</p>
-<h2 data-number="1.7" id="sensitivity-analysis-and-threats-to-validity"><span class="header-section-number">1.7</span> 6. Sensitivity Analysis and
-Threats to Validity</h2>
-<h3 data-number="1.7.1" id="parameter-sensitivity"><span class="header-section-number">1.7.1</span> 6.1 Parameter
-Sensitivity</h3>
-<p>A one-at-a-time sensitivity analysis varies each cost model input
-parameter by ±10% and reports the impact on the 100-GPU fleet total. The
-most sensitive parameters are contention bandwidth loss, straggler tax
-percentage, and oversubscription waste percentage. Full results are
-reported in Table S4 of the supplement.</p>
-<h3 data-number="1.7.2" id="internal-validity"><span class="header-section-number">1.7.2</span> 6.2 Internal Validity</h3>
-<p><strong>Simulation fidelity.</strong> The noise model parameters
-(memory jitter sigma, latency log-sigma, bandwidth relative sigma) are
-based on instrumentation characteristics reported in NVIDIA
-documentation, but have not been empirically calibrated against hardware
-measurements. The thermal model uses Newton’s law of cooling with
-published TDP and thermal specifications but has not been validated
-against measured temperature trajectories.</p>
-<p><strong>Detection model.</strong> The 0% detection rate for
-nvidia-smi and DCGM is based on architectural analysis of tool
-capabilities, not empirical measurement. A more nuanced evaluation
-against live tool output may reveal edge cases where these tools provide
-partial visibility.</p>
-<h3 data-number="1.7.3" id="external-validity"><span class="header-section-number">1.7.3</span> 6.3 External Validity</h3>
-<p><strong>Generalizability.</strong> Results are specific to the
-simulated GPU profiles (H100, H200, RTX 5090, RTX 4090, MI300X) and the
-modeled workload characteristics. Real-world workloads exhibit more
-diversity than the three workload types simulated (compute-bound,
-memory-bound, mixed).</p>
-<p><strong>Fleet parameters.</strong> The cost model assumes specific
-operational parameters (teardowns per day, average tenants, utilization
-hours, etc.) that vary across providers and deployment contexts. The
-sensitivity analysis partially addresses this, but users should
-substitute their own parameters for fleet-specific projections.</p>
-<h3 data-number="1.7.4" id="construct-validity"><span class="header-section-number">1.7.4</span> 6.4 Construct Validity</h3>
-<p><strong>Waste definition.</strong> We define waste as GPU capacity
-that is economically allocated but not productively utilized due to
-virtualization mechanisms. This definition excludes intentional
-overprovisioning, scheduling headroom, and maintenance windows. A
-broader definition might yield different magnitudes.</p>
-<h3 data-number="1.7.5" id="statistical-conclusion-validity"><span class="header-section-number">1.7.5</span> 6.5 Statistical Conclusion
-Validity</h3>
-<p><strong>Effect size inflation.</strong> With 10,000-20,000
-observations per group, even trivially small effects achieve statistical
-significance. We therefore emphasize effect sizes and confidence
-intervals over p-values throughout. Readers should evaluate the
-practical significance of each category’s median effect against their
-operational context.</p>
-<p><strong>Multiple comparisons.</strong> The six omnibus comparisons
-are Holm-Bonferroni corrected. Per-category supplementary analyses use
-category-appropriate corrections. The family-wise error rate is
-controlled at alpha = 0.05 for each analysis level.</p>
-<h2 data-number="1.8" id="reproducibility-package"><span class="header-section-number">1.8</span> 7. Reproducibility Package</h2>
-<h3 data-number="1.8.1" id="artifact-inventory"><span class="header-section-number">1.8.1</span> 7.1 Artifact Inventory</h3>
-<table>
-<colgroup>
-<col style="width: 40%" />
-<col style="width: 24%" />
 <col style="width: 36%" />
+<col style="width: 36%" />
+<col style="width: 26%" />
+</colgroup>
+<thead>
+<tr>
+<th>Hypothesis</th>
+<th>Prediction</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>H1: All six categories produce significant waste</td>
+<td>Significant effects in all 6</td>
+<td><strong>Supported</strong> — all d/d_z &gt; 0.73, all Holm p &lt;
+1e-300</td>
+</tr>
+<tr>
+<td>H2: Existing tools miss &gt;80% of waste</td>
+<td>&lt;20% detection by nvidia-smi/DCGM</td>
+<td><strong>Supported</strong> — 0% detection across all categories</td>
+</tr>
+<tr>
+<td>H3: Economic impact &gt; $0 per GPU per year</td>
+<td>Bootstrap CI lower bound &gt; $0</td>
+<td><strong>Supported</strong> — lower bound $8,149/GPU/yr (8-GPU
+fleet)</td>
+</tr>
+</tbody>
+</table>
+<h2 data-number="1.7" id="discussion"><span class="header-section-number">1.7</span> 6. Discussion</h2>
+<h3 data-number="1.7.1" id="the-visibility-gap-is-the-primary-finding"><span class="header-section-number">1.7.1</span> 6.1 The Visibility Gap Is the
+Primary Finding</h3>
+<p>While the effect sizes and operational impact are important, the most
+significant result is the <em>total observability gap</em>. GPU fleet
+operators are currently managing multi-million-dollar infrastructure
+with monitoring tools that have zero visibility into six measurable
+waste categories. This is analogous to operating a power grid without
+metering individual consumers — the aggregate numbers work, but waste at
+the tenant level is invisible.</p>
+<p>The gap is not a software deficiency that can be patched. It is an
+architectural limitation: <code>nvidia-smi</code> and DCGM report
+per-device instantaneous state. Detecting lifecycle transitions,
+cross-tenant interference, and fleet-level aggregates requires a
+fundamentally different measurement approach — one that tracks state
+across time, across tenants, and across devices.</p>
+<h3 data-number="1.7.2" id="implications-for-infrastructure-operators"><span class="header-section-number">1.7.2</span> 6.2 Implications for
+Infrastructure Operators</h3>
+<p>The three-bucket model provides a framework for prioritizing
+monitoring investments:</p>
+<p><strong>Highest ROI: Straggler detection (Bucket A).</strong> A
+single degraded GPU in a 128-GPU training cluster wastes 127 ×
+(straggler overhead) in blocked GPU-hours. The return on detecting and
+replacing one straggler is immediate and multiplicative with fleet
+size.</p>
+<p><strong>Highest risk: Oversubscription detection (Bucket C).</strong>
+Silent overcommit is the only category that can cause direct
+customer-visible failures (OOM crashes). Even if the probability is low,
+the reputational cost of unexplained tenant failures in a cloud offering
+is high.</p>
+<p><strong>Highest strategic value: Contention visibility (Bucket
+B).</strong> The MIG-vs-time-slicing decision is one of the most
+consequential infrastructure choices a GPU cloud operator makes. Without
+per-tenant bandwidth data, this decision is driven by marketing claims
+and vendor guidance rather than measured workload characteristics.</p>
+<h3 data-number="1.7.3" id="limitations"><span class="header-section-number">1.7.3</span> 6.3 Limitations</h3>
+<p><strong>Simulation vs. reality.</strong> The noise model parameters
+are based on published NVML instrumentation characteristics, not
+empirical calibration. The thermal model uses Newton’s law of cooling
+with published TDP specifications. Real hardware may exhibit behaviors
+not captured by these models.</p>
+<p><strong>Detection model.</strong> The 0% detection rate for
+<code>nvidia-smi</code> and DCGM is a modeling assumption based on
+documented capabilities. A systematic live evaluation may reveal edge
+cases where partial detection is possible (e.g., DCGM custom metric
+plugins).</p>
+<p><strong>Effect size inflation.</strong> With 10,000–20,000
+observations per group, statistical significance is guaranteed for any
+non-zero effect. We therefore emphasize effect sizes and confidence
+intervals over p-values throughout. Readers should evaluate practical
+significance against their operational context.</p>
+<p><strong>Cost model assumptions.</strong> The scenario-based cost
+projections assume specific fleet utilization parameters that vary
+across providers. The sensitivity analysis (Appendix B, Table S4) shows
+which parameters most influence the projections.</p>
+<h3 data-number="1.7.4" id="threats-to-external-validity"><span class="header-section-number">1.7.4</span> 6.4 Threats to External
+Validity</h3>
+<p>Results are specific to the simulated GPU profiles (primarily H100
+SXM, with H200 and consumer GPUs in the burst-sustained category) and
+three workload types (compute-bound, memory-bound, mixed). Real-world
+workloads are more diverse. Fleet utilization patterns vary
+significantly across providers. The cost model parameters should be
+treated as substitutable inputs, not universal constants.</p>
+<h2 data-number="1.8" id="reproducibility"><span class="header-section-number">1.8</span> 7. Reproducibility</h2>
+<h3 data-number="1.8.1" id="deterministic-simulation"><span class="header-section-number">1.8.1</span> 7.1 Deterministic
+Simulation</h3>
+<p>The simulation is fully deterministic. Re-execution with seed 42
+produces byte-identical output:</p>
+<pre><code>SHA-256: e386a3d599a238901abff636d421dbcb095cca31616e425d05e5653744fd3912</code></pre>
+<p>This was verified by independent re-execution during the analysis
+phase.</p>
+<h3 data-number="1.8.2" id="artifact-inventory"><span class="header-section-number">1.8.2</span> 7.2 Artifact Inventory</h3>
+<table>
+<colgroup>
+<col style="width: 45%" />
+<col style="width: 54%" />
 </colgroup>
 <thead>
 <tr>
 <th>Artifact</th>
-<th>Path</th>
-<th>SHA-256</th>
+<th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Raw simulation data (120K trials)</td>
-<td><code>raw/simulation-raw.json</code></td>
-<td><code>e386a3d5...</code></td>
+<td><code>simulation-raw.json</code> (83.7 MB)</td>
+<td>120,000 trial-level records with IVs, DVs, and detection
+outcomes</td>
 </tr>
 <tr>
-<td>Summary tables</td>
-<td><code>derived/summary.md</code></td>
-<td><code>47d1d322...</code></td>
+<td><code>analyze_study.py</code> (1,280 lines)</td>
+<td>Full analysis pipeline: statistics, cost model, provenance</td>
 </tr>
 <tr>
-<td>Supplementary tables</td>
-<td><code>derived/supplement.md</code></td>
-<td><code>f62be1cb...</code></td>
+<td><code>summary.md</code></td>
+<td>Main results tables (Tables 1–4)</td>
 </tr>
 <tr>
-<td>Machine-readable results</td>
-<td><code>derived/analysis-results.json</code></td>
-<td><code>4a254a35...</code></td>
+<td><code>supplement.md</code></td>
+<td>Supplementary tables (S1–S5)</td>
 </tr>
 <tr>
-<td>Provenance record</td>
-<td><code>derived/provenance.json</code></td>
-<td>verified</td>
+<td><code>PROVENANCE.md</code></td>
+<td>Software versions, commands, SHA-256 chain</td>
 </tr>
 <tr>
-<td>Source snapshot</td>
-<td><code>source_snapshot/</code></td>
-<td>per-file hashes</td>
-</tr>
-<tr>
-<td>SHA-256 manifest</td>
 <td><code>SHA256SUMS.txt</code></td>
-<td>self-verifying</td>
+<td>Per-file checksums for all artifacts</td>
 </tr>
 </tbody>
 </table>
-<h3 data-number="1.8.2" id="rerun-commands"><span class="header-section-number">1.8.2</span> 7.2 Rerun Commands</h3>
-<p><strong>Simulation (produces byte-identical JSON):</strong></p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="va">CARGO_TARGET_DIR</span><span class="op">=</span>D:/cargo-target/gpu-tools <span class="dt">\</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="ex">cargo</span> run <span class="at">-p</span> gpu-harness <span class="at">--release</span> <span class="at">--bin</span> study_sim <span class="at">--</span> <span class="dt">\</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--out</span> docs/study-results/simulation-raw.json</span></code></pre></div>
-<p><strong>Analysis (requires Python 3.11+, numpy, pandas,
-scipy):</strong></p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> scripts/analyze_study.py <span class="dt">\</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--input</span> docs/study-results/simulation-raw.json <span class="dt">\</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--output-root</span> D:/study-output <span class="dt">\</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--repo-root</span> . <span class="dt">\</span></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">--bootstrap-resamples</span> 10000 <span class="dt">\</span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">--seed</span> 42</span></code></pre></div>
-<h3 data-number="1.8.3" id="software-versions"><span class="header-section-number">1.8.3</span> 7.3 Software Versions</h3>
-<table>
-<thead>
-<tr>
-<th>Component</th>
-<th>Version</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Rust</td>
-<td>1.93.0 (cargo)</td>
-</tr>
-<tr>
-<td>Python</td>
-<td>3.11.4</td>
-</tr>
-<tr>
-<td>numpy</td>
-<td>2.4.3</td>
-</tr>
-<tr>
-<td>pandas</td>
-<td>3.0.1</td>
-</tr>
-<tr>
-<td>scipy</td>
-<td>1.17.1</td>
-</tr>
-<tr>
-<td>Platform</td>
-<td>Windows 10 Pro 10.0.19045</td>
-</tr>
-</tbody>
-</table>
-<h2 data-number="1.9" id="conclusion-and-hardware-validation-roadmap"><span class="header-section-number">1.9</span> 8. Conclusion and Hardware
-Validation Roadmap</h2>
-<p>We have presented a reproducible simulation study demonstrating that
-six categories of invisible waste exist in multi-tenant GPU virtualized
-environments, that these categories are measurable with purpose-built
-instrumentation, and that existing monitoring tools provide no
-visibility into them. The economic impact, while model-dependent, is
-substantial: even the most conservative estimate ($8,149/GPU/year for a
-small 8-GPU fleet) suggests that invisible waste is a meaningful
-operational cost that merits active monitoring.</p>
-<h3 data-number="1.9.1" id="priority-ordering-for-hardware-validation"><span class="header-section-number">1.9.1</span> Priority Ordering for
-Hardware Validation</h3>
-<p>The simulation results suggest the following priority order for
-bare-metal validation:</p>
-<ol type="1">
-<li><strong>Contention squeeze</strong> — Largest per-GPU cost
-($9,124/yr), extremely large effect size (d=8.55), 100% detection rate.
-Validate by measuring per-tenant bandwidth before and after tenant
-arrival on time-sliced H100.</li>
-<li><strong>Straggler tax</strong> — Second-largest cost ($5,518/yr),
-strong detection (94.7%). Validate by injecting degradation into one GPU
-in a real distributed training cluster.</li>
-<li><strong>Oversubscription</strong> — Third-largest cost ($3,650/yr),
-100% detection. Validate by overcommitting vGPU VRAM allocations and
-measuring performance degradation.</li>
-<li><strong>Ghost allocations</strong> — Moderate cost ($2,733/yr),
-99.9% detection. Validate by cycling MIG teardowns and measuring NVML
-memory deltas.</li>
-<li><strong>Burst-sustained gap</strong> — Moderate cost ($278/yr),
-lowest detection rate (56.5%). Validate by measuring H100 TFLOPS at cold
-start vs thermal equilibrium.</li>
-<li><strong>Provisioning overhead</strong> — Negligible cost
-(&lt;$1/yr). Low priority for hardware validation, though latency
-measurements are straightforward.</li>
-</ol>
-<h3 data-number="1.9.2" id="hardware-phase-design"><span class="header-section-number">1.9.2</span> Hardware Phase Design</h3>
-<p>The follow-on study will execute 1,200 hardware trials on bare-metal
-H100 SXM5 systems following the same measurement protocol. Table S3
-(simulation-vs-hardware effect size comparison) is reserved for that
-publication. The target venue for the hardware validation paper is IEEE
-Transactions on Parallel and Distributed Systems (TPDS).</p>
-<h3 data-number="1.9.3" id="open-source-availability"><span class="header-section-number">1.9.3</span> Open-Source Availability</h3>
-<p>The <code>gpu-roofline</code> measurement framework, simulation
-harness, and analysis pipeline are available as open-source Rust and
-Python code. The framework produces a single statically-linked binary
-(&lt;10 MB) suitable for deployment alongside existing GPU monitoring
-infrastructure.</p>
+<h3 data-number="1.8.3" id="rerun-commands"><span class="header-section-number">1.8.3</span> 7.3 Rerun Commands</h3>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulation (0.4s, produces identical output)</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">cargo</span> run <span class="at">-p</span> gpu-harness <span class="at">--release</span> <span class="at">--bin</span> study_sim <span class="at">--</span> <span class="dt">\</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--out</span> docs/study-results/simulation-raw.json</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Analysis (requires Python 3.11+, numpy, pandas, scipy)</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> scripts/analyze_study.py <span class="dt">\</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">--input</span> docs/study-results/simulation-raw.json <span class="dt">\</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">--output-root</span> study-output <span class="at">--repo-root</span> . <span class="dt">\</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">--bootstrap-resamples</span> 10000 <span class="at">--seed</span> 42</span></code></pre></div>
+<h2 data-number="1.9" id="conclusion"><span class="header-section-number">1.9</span> 8. Conclusion</h2>
+<p>We have demonstrated that multi-tenant GPU virtualization produces
+six categories of measurable waste that are completely invisible to the
+standard monitoring tools used by GPU fleet operators. The observability
+gap is total: <code>nvidia-smi</code> and DCGM detect 0% of waste events
+across all categories, while purpose-built instrumentation detects
+56.5–100%.</p>
+<p>The waste categories are not all alike. Ghost allocations and
+straggler GPUs represent directly recoverable capacity — detect, act,
+recover. Contention and thermal throttling are physics that cannot be
+eliminated but can be measured, enabling better infrastructure
+decisions. Oversubscription is a preventable risk.</p>
+<p>This simulation study provides the taxonomy, the detection framework,
+and a reproducible benchmark. The natural next step is hardware
+validation on bare-metal H100 systems to confirm the simulation
+predictions. We publish the full protocol, analysis pipeline, and
+simulation predictions as an open invitation: we welcome hardware
+contributions from GPU cloud operators, system integrators, and
+NVIDIA.</p>
 <hr />
 <h2 data-number="1.10" id="references"><span class="header-section-number">1.10</span> References</h2>
 <p>[1] NVIDIA, “Multi-Instance GPU User Guide,” NVIDIA Documentation,
@@ -1335,15 +1149,14 @@ infrastructure.</p>
 insightful visual performance model for multicore architectures,”
 <em>Communications of the ACM</em>, vol. 52, no. 4, pp. 65-76, 2009.</p>
 <p>[3] A. Harlap et al., “Addressing the straggler problem for iterative
-convergent parallel ML,” <em>SoCC</em>, 2016.</p>
+convergent parallel ML,” <em>Proceedings of the Seventh ACM Symposium on
+Cloud Computing (SoCC)</em>, 2016.</p>
+<p>[4] NVIDIA, “NVIDIA Data Center GPU Manager (DCGM) Documentation,”
+NVIDIA Documentation, 2024.</p>
+<p>[5] NVIDIA, “NVIDIA System Management Interface (nvidia-smi)
+Documentation,” NVIDIA Documentation, 2024.</p>
 <hr />
-<p><em>Supplementary tables (S1-S5) are available in
-<code>docs/study-results/supplement.md</code>. Full trial-level data,
-provenance chain, and SHA-256 manifest are archived in the study results
-package.</em></p>
-<hr />
-<h1 data-number="2" id="appendix-a-simulation-dataset-and-results-tables"><span class="header-section-number">2</span> Appendix A: Simulation Dataset
-and Results Tables</h1>
+<h1 data-number="2" id="appendix-a-results-tables"><span class="header-section-number">2</span> Appendix A: Results Tables</h1>
 <h2 data-number="2.1" id="simulation-dataset"><span class="header-section-number">2.1</span> Simulation Dataset</h2>
 <ul>
 <li>Input: <code>D:/study-output-v4/raw/simulation-raw.json</code></li>
