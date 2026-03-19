@@ -1,0 +1,198 @@
+/* Publication-quality print stylesheet for GPU Waste Study */
+
+/* ---- Page & Body ---- */
+@page {
+  size: letter;
+  margin: 1in 1in 1in 1in;
+}
+
+body {
+  font-family: "Times New Roman", "Noto Serif", Georgia, serif;
+  font-size: 11pt;
+  line-height: 1.5;
+  color: #111;
+  max-width: 7.5in;
+  margin: 0 auto;
+  padding: 0.5in;
+}
+
+/* ---- Headings ---- */
+h1 {
+  font-size: 16pt;
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 0.3em;
+  page-break-after: avoid;
+}
+
+h2 {
+  font-size: 13pt;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 0.2em;
+  page-break-after: avoid;
+}
+
+h3 {
+  font-size: 11pt;
+  font-weight: bold;
+  margin-top: 1.2em;
+  margin-bottom: 0.3em;
+  page-break-after: avoid;
+}
+
+/* ---- Paragraphs ---- */
+p {
+  margin-top: 0.4em;
+  margin-bottom: 0.4em;
+  text-align: justify;
+  orphans: 3;
+  widows: 3;
+}
+
+/* ---- Tables ---- */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 9pt;
+  margin: 0.8em 0;
+  page-break-inside: avoid;
+}
+
+thead {
+  display: table-header-group;
+}
+
+th {
+  background-color: #f0f0f0;
+  font-weight: bold;
+  text-align: left;
+  padding: 4px 6px;
+  border: 1px solid #999;
+}
+
+td {
+  padding: 3px 6px;
+  border: 1px solid #ccc;
+  vertical-align: top;
+}
+
+tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+/* ---- Code ---- */
+code {
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 9pt;
+  background-color: #f5f5f5;
+  padding: 1px 3px;
+  border-radius: 2px;
+}
+
+pre {
+  font-size: 8.5pt;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  padding: 8px 12px;
+  overflow-x: auto;
+  page-break-inside: avoid;
+}
+
+pre code {
+  background-color: transparent;
+  padding: 0;
+}
+
+/* ---- Block quotes (used for abstract) ---- */
+blockquote {
+  margin: 0.8em 0.5in;
+  padding-left: 0.5em;
+  border-left: 3px solid #999;
+  font-style: italic;
+  color: #333;
+}
+
+/* ---- Lists ---- */
+ul, ol {
+  margin-top: 0.3em;
+  margin-bottom: 0.3em;
+  padding-left: 1.5em;
+}
+
+li {
+  margin-bottom: 0.15em;
+}
+
+/* ---- Horizontal rules (section breaks) ---- */
+hr {
+  border: none;
+  border-top: 1px solid #ccc;
+  margin: 1.5em 0;
+}
+
+/* ---- Strong / emphasis ---- */
+strong {
+  font-weight: bold;
+}
+
+em {
+  font-style: italic;
+}
+
+/* ---- Links (hide URLs in print) ---- */
+a {
+  color: #1a0dab;
+  text-decoration: none;
+}
+
+@media print {
+  a {
+    color: #111;
+    text-decoration: none;
+  }
+
+  a[href]:after {
+    content: none;
+  }
+
+  body {
+    padding: 0;
+  }
+
+  /* Force page breaks before major sections */
+  h2 {
+    page-break-before: auto;
+  }
+
+  /* Prevent orphaned headings */
+  h1, h2, h3, h4 {
+    page-break-after: avoid;
+  }
+
+  /* Keep tables together */
+  table, figure, pre {
+    page-break-inside: avoid;
+  }
+}
+
+/* ---- Title block metadata ---- */
+.title-block {
+  text-align: center;
+  margin-bottom: 1.5em;
+}
+
+.subtitle {
+  font-size: 11pt;
+  color: #555;
+  font-style: italic;
+}
+
+/* ---- Figure captions ---- */
+figcaption {
+  font-size: 9pt;
+  font-style: italic;
+  text-align: center;
+  margin-top: 0.3em;
+}
