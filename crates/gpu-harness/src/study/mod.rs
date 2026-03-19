@@ -10,7 +10,7 @@ pub mod runner;
 pub mod scenarios;
 pub mod stats;
 
-pub use cost_model::{CostModelParams, CostProjection, FleetScale};
+pub use cost_model::{CostModelParams, CostProjection, FleetScale, MeasuredEffects};
 pub use noise::NoiseModel;
 pub use runner::{CategoryResult, SimulationConfig, SimulationResults, TrialRecord};
 pub use scenarios::WasteCategory;

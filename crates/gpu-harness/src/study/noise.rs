@@ -79,7 +79,7 @@ impl NoiseModel {
 
     /// Add Gaussian noise to a temperature reading.
     pub fn jitter_thermal(&self, temp_c: f32, rng: &mut impl Rng) -> f32 {
-        let noise = self.gaussian(rng, 0.0, self.thermal_sigma_c as f64);
+        let noise = self.gaussian(rng, 0.0, self.thermal_sigma_c);
         (temp_c + noise as f32).max(0.0)
     }
 

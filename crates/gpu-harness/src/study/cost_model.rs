@@ -71,6 +71,18 @@ pub struct CostModelParams {
     pub oversubscribed_hours_per_day: f64,
 }
 
+/// Measured effect sizes from the simulation phase, passed to [`CostModelParams::for_scale`].
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct MeasuredEffects {
+    pub ghost_rate: f64,
+    pub avg_ghost_frac: f64,
+    pub contention_drop_pct: f64,
+    pub avg_spin_up_secs: f64,
+    pub burst_sustained_gap_pct: f64,
+    pub straggler_tax_pct: f64,
+    pub oversub_waste_pct: f64,
+}
+
 /// Cost projection for one fleet scale.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CostProjection {
@@ -88,16 +100,16 @@ pub struct CostProjection {
 
 impl CostModelParams {
     /// Default parameters for a given fleet scale, with measured values plugged in.
-    pub fn for_scale(
-        scale: FleetScale,
-        ghost_rate: f64,
-        avg_ghost_frac: f64,
-        contention_drop_pct: f64,
-        avg_spin_up_secs: f64,
-        burst_sustained_gap_pct: f64,
-        straggler_tax_pct: f64,
-        oversub_waste_pct: f64,
-    ) -> Self {
+    pub fn for_scale(scale: FleetScale, effects: &MeasuredEffects) -> Self {
+        let MeasuredEffects {
+            ghost_rate,
+            avg_ghost_frac,
+            contention_drop_pct,
+            avg_spin_up_secs,
+            burst_sustained_gap_pct,
+            straggler_tax_pct,
+            oversub_waste_pct,
+        } = *effects;
         let (
             teardowns,
             provisions,
@@ -203,18 +215,21 @@ impl CostModelParams {
 mod tests {
     use super::*;
 
+    fn test_effects() -> MeasuredEffects {
+        MeasuredEffects {
+            ghost_rate: 0.03,              // 3% ghost rate
+            avg_ghost_frac: 0.003,         // 0.3% of GPU capacity
+            contention_drop_pct: 15.0,     // 15% contention drop
+            avg_spin_up_secs: 0.3,         // 300ms spin-up
+            burst_sustained_gap_pct: 20.0, // 20% burst-sustained gap
+            straggler_tax_pct: 5.0,        // 5% straggler tax
+            oversub_waste_pct: 8.0,        // 8% oversub waste
+        }
+    }
+
     #[test]
     fn test_cost_projection_positive() {
-        let params = CostModelParams::for_scale(
-            FleetScale::Medium,
-            0.03,  // 3% ghost rate
-            0.003, // 0.3% of GPU capacity
-            15.0,  // 15% contention drop
-            0.3,   // 300ms spin-up
-            20.0,  // 20% burst-sustained gap
-            5.0,   // 5% straggler tax
-            8.0,   // 8% oversub waste
-        );
+        let params = CostModelParams::for_scale(FleetScale::Medium, &test_effects());
         let proj = params.project();
         assert!(proj.total_per_gpu > 0.0, "total waste should be positive");
         assert!(proj.total_fleet > proj.total_per_gpu, "fleet > per-gpu");
@@ -223,15 +238,10 @@ mod tests {
 
     #[test]
     fn test_fleet_scaling() {
-        let small =
-            CostModelParams::for_scale(FleetScale::Small, 0.03, 0.003, 15.0, 0.3, 20.0, 5.0, 8.0)
-                .project();
-        let medium =
-            CostModelParams::for_scale(FleetScale::Medium, 0.03, 0.003, 15.0, 0.3, 20.0, 5.0, 8.0)
-                .project();
-        let large =
-            CostModelParams::for_scale(FleetScale::Large, 0.03, 0.003, 15.0, 0.3, 20.0, 5.0, 8.0)
-                .project();
+        let fx = test_effects();
+        let small = CostModelParams::for_scale(FleetScale::Small, &fx).project();
+        let medium = CostModelParams::for_scale(FleetScale::Medium, &fx).project();
+        let large = CostModelParams::for_scale(FleetScale::Large, &fx).project();
 
         assert!(
             large.total_fleet > medium.total_fleet,
