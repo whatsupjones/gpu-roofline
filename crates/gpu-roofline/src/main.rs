@@ -77,17 +77,33 @@ fn main() {
             daemon,
             log,
             sim,
-        } => cmd_monitor(
-            interval,
-            duration,
-            alert_threshold,
-            daemon,
-            log,
-            sim,
-            &cli.format,
-            cli.no_color,
-            &cli.backend,
-        ),
+            #[cfg(feature = "enterprise")]
+            metrics_port,
+            #[cfg(feature = "enterprise")]
+            webhook_urls,
+        } => {
+            #[cfg(feature = "enterprise")]
+            let enterprise_config = Some(monitor::enterprise::EnterpriseConfig {
+                metrics_port,
+                webhook_urls,
+                device_name: String::new(), // filled after backend init
+            });
+            #[cfg(not(feature = "enterprise"))]
+            let enterprise_config: Option<()> = None;
+
+            cmd_monitor(
+                interval,
+                duration,
+                alert_threshold,
+                daemon,
+                log,
+                sim,
+                &cli.format,
+                cli.no_color,
+                &cli.backend,
+                enterprise_config,
+            )
+        }
         Commands::Diagnose {
             device: _,
             probes,
@@ -463,6 +479,8 @@ fn cmd_monitor(
     format: &OutputFormat,
     _no_color: bool,
     backend_choice: &BackendChoice,
+    #[cfg(feature = "enterprise")] enterprise_config: Option<monitor::enterprise::EnterpriseConfig>,
+    #[cfg(not(feature = "enterprise"))] _enterprise_config: Option<()>,
 ) -> i32 {
     let backend = match get_backend(&sim, backend_choice) {
         Ok(b) => b,
@@ -525,6 +543,19 @@ fn cmd_monitor(
 
     let mut sampler = monitor::Sampler::new(monitor_config, &baseline);
 
+    // Start enterprise services if configured
+    #[cfg(feature = "enterprise")]
+    let enterprise_handle = enterprise_config.map(|mut cfg| {
+        cfg.device_name = device_name.clone();
+        match monitor::enterprise::EnterpriseHandle::start(&cfg) {
+            Ok(h) => Some(h),
+            Err(e) => {
+                eprintln!("Enterprise services failed to start: {e}");
+                None
+            }
+        }
+    }).flatten();
+
     // Open log file if requested
     let mut log_file = log_path.as_ref().and_then(|path| {
         std::fs::OpenOptions::new()
@@ -537,6 +568,15 @@ fn cmd_monitor(
     // Daemon mode: JSON lines, no TUI
     if daemon {
         let result = sampler.run(backend.as_ref(), |sample| {
+            // Enterprise: update Prometheus metrics + dispatch webhook alerts
+            #[cfg(feature = "enterprise")]
+            if let Some(ref handle) = enterprise_handle {
+                handle.update_metrics(sample);
+                if !sample.alerts.is_empty() {
+                    handle.dispatch_alerts(&sample.alerts);
+                }
+            }
+
             if let Some(ref mut file) = log_file {
                 use std::io::Write;
                 if let Ok(json) = serde_json::to_string(sample) {
@@ -583,6 +623,15 @@ fn cmd_monitor(
     };
 
     let result = sampler.run(backend.as_ref(), |sample| {
+        // Enterprise: update Prometheus metrics + dispatch webhook alerts
+        #[cfg(feature = "enterprise")]
+        if let Some(ref handle) = enterprise_handle {
+            handle.update_metrics(sample);
+            if !sample.alerts.is_empty() {
+                handle.dispatch_alerts(&sample.alerts);
+            }
+        }
+
         // Write JSON log line
         if let Some(ref mut file) = log_file {
             use std::io::Write;
@@ -759,6 +808,7 @@ fn cmd_vgpu(action: cli::VgpuAction, format: &OutputFormat) -> i32 {
             log,
             sim,
             contention_threshold,
+            ..
         } => cmd_vgpu_watch(sim, daemon, log, contention_threshold, format),
         cli::VgpuAction::List { sim, json } => cmd_vgpu_list(sim, json),
         cli::VgpuAction::Scenarios => cmd_vgpu_scenarios(),

@@ -118,6 +118,16 @@ pub enum Commands {
         /// Use simulated GPU profile
         #[arg(long, value_name = "PROFILE")]
         sim: Option<String>,
+
+        /// Prometheus metrics port (requires --features enterprise)
+        #[cfg(feature = "enterprise")]
+        #[arg(long, default_value = "9835")]
+        metrics_port: u16,
+
+        /// Webhook URL for alert delivery (repeatable)
+        #[cfg(feature = "enterprise")]
+        #[arg(long = "webhook-url", value_name = "URL")]
+        webhook_urls: Vec<String>,
     },
 
     /// Deep root-cause diagnosis — "Why Is My GPU Slow?"
@@ -171,6 +181,16 @@ pub enum VgpuAction {
         /// Contention detection threshold (% drop, default: 5)
         #[arg(long, default_value = "5")]
         contention_threshold: f64,
+
+        /// Prometheus metrics port (requires --features enterprise)
+        #[cfg(feature = "enterprise")]
+        #[arg(long, default_value = "9835")]
+        metrics_port: u16,
+
+        /// Webhook URL for alert delivery (repeatable)
+        #[cfg(feature = "enterprise")]
+        #[arg(long = "webhook-url", value_name = "URL")]
+        webhook_urls: Vec<String>,
     },
 
     /// List current vGPU instances

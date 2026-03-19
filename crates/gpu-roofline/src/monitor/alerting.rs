@@ -350,6 +350,8 @@ mod tests {
                 clock_mhz: 2100,
                 power_watts: 300.0,
                 utilization_pct: 95.0,
+                memory_used_bytes: 40_000_000_000,
+                memory_total_bytes: 80_000_000_000,
                 status: super::super::SampleStatus::Normal,
                 alerts: vec![],
             });

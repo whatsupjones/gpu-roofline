@@ -15,6 +15,9 @@ pub use sampler::{MonitorConfig, MonitorSample, SampleStatus, Sampler};
 #[allow(unused_imports)]
 pub use tui::TuiState;
 
+#[cfg(feature = "enterprise")]
+pub mod enterprise;
+
 #[cfg(feature = "vgpu")]
 pub mod vgpu_alerting;
 #[cfg(feature = "vgpu")]

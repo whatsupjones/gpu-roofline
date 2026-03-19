@@ -19,6 +19,7 @@ wgpu-backend = ["gpu-harness/wgpu-backend"]
 cuda = ["gpu-harness/cuda"]
 nvml = ["gpu-harness/nvml"]
 vgpu = ["gpu-harness/vgpu"]
+enterprise = ["dep:tiny_http", "dep:ureq"]
 full = ["wgpu-backend", "cuda", "nvml"]
 
 [dependencies]
@@ -34,3 +35,5 @@ tracing-subscriber = { workspace = true }
 chrono = { workspace = true }
 ratatui = { workspace = true }
 crossterm = { workspace = true }
+tiny_http = { workspace = true, optional = true }
+ureq = { workspace = true, optional = true }

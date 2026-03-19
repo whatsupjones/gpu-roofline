@@ -48,5 +48,9 @@ thiserror = "2"
 # Filesystem watching
 notify = "6"
 
+# Enterprise (Prometheus + webhooks)
+tiny_http = "0.12"
+ureq = "2"
+
 # Testing
 rand = "0.8"

@@ -67,6 +67,8 @@ pub struct MonitorSample {
     pub clock_mhz: u32,
     pub power_watts: f32,
     pub utilization_pct: f32,
+    pub memory_used_bytes: u64,
+    pub memory_total_bytes: u64,
     pub status: SampleStatus,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub alerts: Vec<Alert>,
@@ -224,6 +226,8 @@ impl Sampler {
                 clock_mhz: device_state.clock_mhz,
                 power_watts: device_state.power_watts,
                 utilization_pct: device_state.utilization_pct,
+                memory_used_bytes: device_state.memory_used_bytes,
+                memory_total_bytes: device_state.memory_total_bytes,
                 status,
                 alerts,
             };
