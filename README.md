@@ -6,6 +6,22 @@ The first tool that monitors vGPU instances from the moment they provision — d
 
 > Every existing GPU monitoring tool polls a vGPU **after** it exists. Nobody measures from the moment of creation. Spin-up overhead is invisible. Contention impact on existing tenants goes undetected until workloads fail. Ghost allocations after teardown silently leak resources. gpu-roofline fixes this.
 
+## Study: Quantifying the Invisible Waste
+
+We ran a [120,000-trial simulation study](docs/study-simulation-manuscript.md) across six categories of invisible GPU waste in virtualized H100 environments. The headline finding:
+
+**`nvidia-smi` and DCGM detect 0% of waste events across all six categories. `gpu-roofline` detects 56–100%.**
+
+| What Visibility Enables | Categories | Per-Event Impact |
+|------------------------|-----------|-----------------|
+| **Directly recover capacity** | Ghost allocations, Straggler tax | 512 MiB VRAM freed/teardown; 19% fleet throughput recovered per bad GPU |
+| **Make better decisions** | Contention squeeze, Burst-sustained gap | Choose MIG vs time-slicing with data; set SLAs on actual (not advertised) performance |
+| **Prevent silent failures** | Oversubscription | Detect before tenants experience degradation at 1.5x+ overcommit |
+
+Full results: [study-results/summary.md](docs/study-results/summary.md) | Protocol: [study-protocol-gpu-waste.md](docs/study-protocol-gpu-waste.md) | Manuscript: [study-simulation-manuscript.md](docs/study-simulation-manuscript.md)
+
+Simulation is deterministic and reproducible (seed 42, SHA-256 verified). Hardware validation on bare-metal H100 is the next phase — see [Contributing Hardware Validation](#contributing-hardware-validation) below.
+
 ## The Problem
 
 DGX Cloud, AWS, GCP, and Azure manage thousands of GPU lifecycles. MIG partitions on H100/H200, GRID time-slicing, SR-IOV, Kubernetes device plugins — all create and destroy virtual GPUs constantly. But:
@@ -383,6 +399,19 @@ See [ROADMAP.md](docs/ROADMAP.md) for details.
 - **v0.3** ✅ gpu-fleet — multi-GPU cluster validation, NVLink topology, straggler detection
 - **v0.3** ✅ Real MIG Detection — NVML MIG APIs for hardware vGPU enumeration + polling
 - **v0.4** ✅ Enterprise Integration — Prometheus metrics, webhook alerts, Grafana dashboard, K8s deployment
+
+## Contributing Hardware Validation
+
+The simulation study predicts six categories of invisible waste on H100/H200 GPUs. We need bare-metal hardware validation to confirm the simulation findings. If you have access to:
+
+- **H100 SXM5 or H200** with MIG enabled — ghost allocations, provisioning overhead, contention
+- **Multi-GPU cluster (8+ GPUs)** — straggler tax in distributed training
+- **Time-sliced vGPU environment** — contention squeeze measurements
+- **Any datacenter GPU** — burst-to-sustained gap thermal characterization
+
+See the [study protocol](docs/study-protocol-gpu-waste.md) for the full experimental design (1,200 hardware trials planned). The simulation predicts specific effect sizes — we need hardware data to confirm or calibrate them.
+
+Open an issue with the `hardware-validation` label or reach out directly. All contributed data will be credited in the follow-on publication.
 
 ## Contributing
 
