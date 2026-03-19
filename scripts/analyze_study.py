@@ -562,6 +562,111 @@ def events_per_day_medium(category: str) -> float:
     return mapping[category]
 
 
+# =========================================================================
+# Operational Visibility Model — Three Action Buckets
+# =========================================================================
+# Each waste category maps to one of three action types that visibility
+# enables.  The model does NOT sum categories into a single dollar figure
+# because the categories apply to different fractions of operating time
+# and are not additive.
+
+H100_VRAM_GIB = 80.0
+
+
+def build_visibility_table(trials: pd.DataFrame) -> pd.DataFrame:
+    """Build the three-bucket operational visibility table.
+
+    Bucket A — Directly Recoverable: capacity that can be freed or hardware
+               that can be replaced once the problem is detected.
+    Bucket B — Decision Support: physics you cannot change, but knowing the
+               numbers lets you choose MIG vs time-slicing, price correctly,
+               and plan capacity.
+    Bucket C — Risk Prevention: silent degradation you can stop before it
+               impacts tenants.
+    """
+    inputs = extract_cost_inputs(trials)
+
+    # --- Bucket A: Directly Recoverable ---
+
+    # Ghost allocations: VRAM freed per teardown event
+    ghost_mib_per_event = inputs["avg_ghost_frac"] * H100_VRAM_GIB * 1024  # MiB
+    ghost_event_rate = inputs["ghost_rate"]  # fraction of teardowns with ghosts
+    # Example: 20 teardowns/day on a 100-GPU fleet
+    ghost_mib_freed_daily_per_gpu_20td = ghost_event_rate * ghost_mib_per_event * 20.0
+
+    # Straggler tax: fleet throughput recovered by identifying bad GPUs
+    straggler_tax_pct = inputs["straggler_tax_pct"]
+    # In an 8-GPU training job, one straggler wastes 7 × tax% of each GPU's time
+    straggler_fleet_waste_pct_8gpu = straggler_tax_pct * (7.0 / 8.0)
+
+    # --- Bucket B: Decision Support (physics, not recoverable) ---
+
+    # Contention: per-tenant bandwidth at each tenant count
+    contention_bw_loss = inputs["contention_drop_pct"]
+    # At N tenants time-sliced, each gets ~1/N bandwidth
+    # Knowing this precisely lets operators choose: time-slice (revenue) vs MIG (isolation)
+
+    # Burst-sustained gap: advertised vs actual performance
+    burst_gap_pct = inputs["burst_sustained_gap_pct"]
+
+    # --- Bucket C: Risk Prevention ---
+
+    # Oversubscription: detect before silent degradation
+    oversub_waste_pct = inputs["oversub_waste_pct"]
+
+    rows = [
+        {
+            "Bucket": "A: Directly Recoverable",
+            "Category": "Ghost allocations",
+            "What Visibility Gives You": "Free trapped VRAM for new tenants",
+            "Per-Event Magnitude": f"{ghost_mib_per_event:.0f} MiB trapped/teardown",
+            "Per-GPU Impact (example)": f"{ghost_mib_freed_daily_per_gpu_20td:.0f} MiB freed/day @ 20 teardowns",
+            "Fleet Multiplier": "Linear with teardown frequency",
+        },
+        {
+            "Bucket": "A: Directly Recoverable",
+            "Category": "Straggler tax",
+            "What Visibility Gives You": "Identify and replace degraded GPUs",
+            "Per-Event Magnitude": f"{straggler_tax_pct:.1f}% fleet throughput lost per straggler",
+            "Per-GPU Impact (example)": f"{straggler_fleet_waste_pct_8gpu:.1f}% fleet capacity wasted in 8-GPU job",
+            "Fleet Multiplier": "Multiplies with fleet size (N-1 GPUs idle at barrier)",
+        },
+        {
+            "Bucket": "B: Decision Support",
+            "Category": "Contention squeeze",
+            "What Visibility Gives You": "Choose MIG vs time-slicing; price per-tenant correctly",
+            "Per-Event Magnitude": f"{contention_bw_loss:.1f}% bandwidth loss at median tenant count",
+            "Per-GPU Impact (example)": "~50% loss at 2 tenants, ~67% at 3, ~75% at 4 (time-sliced)",
+            "Fleet Multiplier": "Per-GPU; scales with multi-tenancy ratio",
+        },
+        {
+            "Bucket": "B: Decision Support",
+            "Category": "Burst-sustained gap",
+            "What Visibility Gives You": "Set honest SLAs; avoid overcommitting on specs",
+            "Per-Event Magnitude": f"{burst_gap_pct:.1f}% below advertised peak (H100 median)",
+            "Per-GPU Impact (example)": "1-16% depending on workload type and GPU model",
+            "Fleet Multiplier": "Per-GPU; higher for consumer GPUs with weaker cooling",
+        },
+        {
+            "Bucket": "B: Decision Support",
+            "Category": "Provisioning overhead",
+            "What Visibility Gives You": "Measure dead time during MIG partition creation",
+            "Per-Event Magnitude": f"{inputs['avg_spin_up_secs'] * 1000:.0f} ms per provision event",
+            "Per-GPU Impact (example)": "Economically negligible (<$1/GPU/yr)",
+            "Fleet Multiplier": "Linear with provision frequency",
+        },
+        {
+            "Bucket": "C: Risk Prevention",
+            "Category": "Oversubscription",
+            "What Visibility Gives You": "Detect before tenants experience silent degradation",
+            "Per-Event Magnitude": f"{oversub_waste_pct:.1f}% degradation when overcommitted",
+            "Per-GPU Impact (example)": "33% perf loss at 1.5x overcommit; crash risk at 2x",
+            "Fleet Multiplier": "Per-GPU; risk compounds with instance count",
+        },
+    ]
+    return pd.DataFrame(rows)
+
+
 def build_cost_tables(trials: pd.DataFrame, omnibus: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     inputs = extract_cost_inputs(trials)
     by_scale = {name: project_scale(name, inputs) for name in SCALE_PARAMS}
@@ -1033,7 +1138,7 @@ def style_main_tables(table1: pd.DataFrame, table2: pd.DataFrame, omnibus: pd.Da
     return cost_view, detect_view, omnibus_view, cost_ci_view
 
 
-def build_summary_markdown(raw: dict[str, Any], input_path: Path, table1: pd.DataFrame, table2: pd.DataFrame, omnibus: pd.DataFrame, cost_ci: pd.DataFrame) -> str:
+def build_summary_markdown(raw: dict[str, Any], input_path: Path, table1: pd.DataFrame, table2: pd.DataFrame, omnibus: pd.DataFrame, cost_ci: pd.DataFrame, visibility: pd.DataFrame) -> str:
     t1, t2, ov, ci = style_main_tables(table1, table2, omnibus, cost_ci)
     return "\n".join([
         "# The Hidden Cost of GPU Virtualization",
@@ -1048,11 +1153,27 @@ def build_summary_markdown(raw: dict[str, Any], input_path: Path, table1: pd.Dat
         f"- Target trials/category: `{raw['target_trials_per_category']}`",
         "- Claim framing: simulation evidence, modeled tool visibility, and scenario-based economic impact. Hardware validation remains future work.",
         "",
-        "## Table 1. Annual Cost of Invisible GPU Waste by Category and Fleet Scale",
+        "## Table 1. What Visibility Enables — Three Action Buckets",
         "",
-        markdown_table(t1),
+        "Each waste category maps to a different type of operational action.",
+        "These are NOT additive — they apply to different fractions of GPU operating time.",
+        "",
+        "**Bucket A — Directly Recoverable:** Capacity that can be freed or hardware",
+        "that can be replaced once the problem is detected.",
+        "",
+        "**Bucket B — Decision Support:** Physics you cannot change, but knowing the",
+        "numbers lets you choose MIG vs time-slicing, price per-tenant correctly,",
+        "and plan capacity.",
+        "",
+        "**Bucket C — Risk Prevention:** Silent degradation you can detect and stop",
+        "before it impacts tenants.",
+        "",
+        markdown_table(visibility),
         "",
         "## Table 2. Detection Rates by Tool Across All 6 Waste Categories",
+        "",
+        "The core finding: `nvidia-smi` and DCGM provide **zero visibility** into all six",
+        "waste categories. `gpu-roofline` detects 56.5–100% of waste events across categories.",
         "",
         markdown_table(t2),
         "",
@@ -1060,15 +1181,25 @@ def build_summary_markdown(raw: dict[str, Any], input_path: Path, table1: pd.Dat
         "",
         markdown_table(ov),
         "",
+        "## Table 4. Scenario-Based Annual Impact by Category and Fleet Scale",
+        "",
+        "These figures are scenario outputs under explicit assumptions ($2.50/GPU/hr,",
+        "specific fleet utilization parameters). They are NOT directly additive across",
+        "categories. See the sensitivity analysis in `derived/supplement.md`.",
+        "",
+        markdown_table(t1),
+        "",
         "## Cost Model Bootstrap Confidence Intervals",
         "",
         markdown_table(ci),
         "",
         "## Interpretation Guardrails",
         "",
-        "- These costs are scenario-model outputs derived from simulation, not direct hardware measurements.",
-        "- The raw data, derived tables, hashes, and execution provenance are preserved in this package for auditability.",
-        "- Category-specific primary tests and sensitivity analyses are reported in `derived/supplement.md`.",
+        "- Bucket A categories (ghost, straggler) represent directly actionable capacity recovery.",
+        "- Bucket B categories (contention, burst gap) are physics — they cannot be eliminated, but measuring them enables better pricing, SLA, and partitioning decisions.",
+        "- Bucket C (oversubscription) is risk prevention — detect before tenants experience silent degradation.",
+        "- Scenario dollar figures in Table 4 assume freed or avoided capacity can be monetized at $2.50/GPU/hr.",
+        "- Category-specific tests and sensitivity analyses are in `derived/supplement.md`.",
         "",
     ])
 
@@ -1331,7 +1462,8 @@ def main() -> None:
     tests, roc_table = full_statistical_tests(trials, args.bootstrap_resamples, args.seed)
     sensitivity = build_cost_sensitivity(trials)
     cost_ci = bootstrap_cost_summary(trials, args.cost_bootstrap_resamples, args.seed)
-    summary = build_summary_markdown(raw, paths.raw_json, table1, table2, omnibus, cost_ci)
+    visibility = build_visibility_table(trials)
+    summary = build_summary_markdown(raw, paths.raw_json, table1, table2, omnibus, cost_ci, visibility)
     supplement = build_supplement_markdown(descriptive, tests, roc_table, sensitivity, confusion)
     analysis_payload = build_analysis_payload(raw, omnibus, table1, table2, scale_costs, tests, sensitivity)
     paths.summary.write_text(summary, encoding="utf-8")
