@@ -1,9 +1,6 @@
 # A Reproducible Simulation Study of Invisible Waste in Multi-Tenant GPU Infrastructure
 
-**Authors:** [Author list TBD]
-**Affiliations:** [TBD]
-**Corresponding Author:** [TBD]
-**Target Venue:** The Journal of Supercomputing
+**Author:** Chris Jones
 **Date:** March 2026
 
 ---
