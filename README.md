@@ -6,15 +6,39 @@ Your GPU is not performing at spec. `nvidia-smi` will not tell you why. gpu-roof
 
 Measures what standard tools cannot: the gap between burst and sustained performance, thermal degradation over time, memory trapped after partition teardown, fleet-wide straggler impact. Runs on NVIDIA, AMD, and Intel GPUs. Single Rust binary, <10 MB.
 
+## Install
+
+**Pre-built binary** (no Rust required):
+
+```bash
+# Linux (x86_64)
+curl -L https://github.com/whatsupjones/gpu-roofline/releases/latest/download/gpu-roofline-latest-x86_64-unknown-linux-gnu.tar.gz | tar xz
+sudo mv gpu-roofline gpu-fleet /usr/local/bin/
+
+# macOS
+curl -L https://github.com/whatsupjones/gpu-roofline/releases/latest/download/gpu-roofline-latest-x86_64-apple-darwin.tar.gz | tar xz
+
+# Windows: download .zip from GitHub Releases
+```
+
+**From source** (Rust toolchain):
+
+```bash
+# Consumer GPUs (Vulkan/DX12/Metal)
+cargo install gpu-roofline
+
+# Datacenter GPUs with CUDA (H100/H200/A100)
+cargo install gpu-roofline --features cuda
+
+# Full install (CUDA + vGPU monitoring + enterprise)
+cargo install gpu-roofline --features full
+```
+
+See [Releases](https://github.com/whatsupjones/gpu-roofline/releases) for all platforms and versions.
+
 ## Quick Start
 
 ```bash
-# Install (consumer GPUs: Vulkan/DX12/Metal)
-cargo install gpu-roofline
-
-# Install with CUDA (datacenter H100/H200/A100)
-cargo install gpu-roofline --features cuda
-
 # Diagnose: why is my GPU slow?
 gpu-roofline diagnose
 
