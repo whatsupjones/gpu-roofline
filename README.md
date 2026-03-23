@@ -2,40 +2,42 @@
 
 **GPU lifecycle monitoring and performance analysis for virtualized infrastructure.**
 
-The first tool that monitors vGPU instances from the moment they provision — detecting contention, verifying teardown, catching ghost allocations. Plus cross-vendor roofline measurement, degradation alerting, and CI-native GPU health checks. Single Rust binary, <10 MB.
+GPU lifecycle monitoring and performance analysis for virtualized infrastructure. The first tool that monitors vGPU instances from the moment they provision, detecting contention, verifying teardown, and catching ghost allocations. Cross-vendor roofline measurement, degradation alerting, and CI-native GPU health checks. Single Rust binary, <10 MB.
 
 > Every existing GPU monitoring tool polls a vGPU **after** it exists. Nobody measures from the moment of creation. Spin-up overhead is invisible. Contention impact on existing tenants goes undetected until workloads fail. Ghost allocations after teardown silently leak resources. gpu-roofline fixes this.
 
-## Study: Quantifying the Invisible Waste
+## Study: The GPU Efficiency Gap
 
-We ran a [120,000-trial simulation study](docs/study-simulation-manuscript.md) across six categories of invisible GPU waste in virtualized H100 environments. The headline finding:
+We conducted a [120,000-trial simulation study](docs/study-simulation-manuscript.md) identifying six categories of invisible GPU waste across the full operations stack: device-level thermal physics, virtualization partitioning, and fleet-level coordination. The simulation is calibrated against hardware-validated roofline measurements on H100 SXM and H200 systems.
 
-**`nvidia-smi` and DCGM detect 0% of waste events across all six categories. `gpu-roofline` detects 56–100%.**
+**The central finding: `nvidia-smi` and DCGM detect 0% of waste events across all six categories. `gpu-roofline` detects 56.5 to 100%.**
 
 | What Visibility Enables | Categories | Per-Event Impact |
 |------------------------|-----------|-----------------|
-| **Directly recover capacity** | Ghost allocations, Straggler tax | 512 MiB VRAM freed/teardown; 19% fleet throughput recovered per bad GPU |
-| **Make better decisions** | Contention squeeze, Burst-sustained gap | Choose MIG vs time-slicing with data; set SLAs on actual (not advertised) performance |
-| **Prevent silent failures** | Oversubscription | Detect before tenants experience degradation at 1.5x+ overcommit |
+| **Recover capacity** | Ghost allocations, Straggler tax | 512 MiB VRAM freed per teardown; 19% fleet throughput recovered per straggler GPU |
+| **Inform decisions** | Contention squeeze, Burst-sustained gap | MIG vs time-slicing selection with measured data; SLAs on actual sustained performance |
+| **Prevent failures** | Oversubscription | Detection before tenants experience degradation at 1.5x+ overcommit |
 
-Full results: [study-results/summary.md](docs/study-results/summary.md) | Protocol: [study-protocol-gpu-waste.md](docs/study-protocol-gpu-waste.md) | Manuscript: [study-simulation-manuscript.md](docs/study-simulation-manuscript.md)
+All six categories produce large effect sizes (Cohen's d/d_z from 0.73 to 8.55). The simulation is deterministic and reproducible (seed 42, SHA-256 verified).
 
-Simulation is deterministic and reproducible (seed 42, SHA-256 verified). Hardware validation on bare-metal H100 is the next phase — see [Contributing Hardware Validation](#contributing-hardware-validation) below.
+**Read the full study:** [Manuscript](docs/study-simulation-manuscript.md) | [PDF](docs/print/gpu-waste-study-complete.pdf) | [Results](docs/study-results/summary.md) | [Protocol](docs/study-protocol-gpu-waste.md)
+
+Hardware validation on bare-metal H100 is the next phase. See [Contributing Hardware Validation](#contributing-hardware-validation) below.
 
 ## The Problem
 
-DGX Cloud, AWS, GCP, and Azure manage thousands of GPU lifecycles. MIG partitions on H100/H200, GRID time-slicing, SR-IOV, Kubernetes device plugins — all create and destroy virtual GPUs constantly. But:
+DGX Cloud, AWS, GCP, and Azure manage thousands of GPU lifecycles. MIG partitions on H100/H200, GRID time-slicing, SR-IOV, and Kubernetes device plugins all create and destroy virtual GPUs constantly. But:
 
-- **Provisioning latency is invisible** — no tool measures spin-up overhead
-- **Contention goes undetected** — when a new vGPU appears, existing tenants get squeezed silently
-- **Teardown leaks resources** — ghost allocations persist after vGPU destruction
-- **Performance baselines don't exist** — nobody measures the burst-to-sustained gap under virtualization
+- **Provisioning latency is invisible.** No tool measures spin-up overhead.
+- **Contention goes undetected.** When a new vGPU appears, existing tenants get squeezed silently.
+- **Teardown leaks resources.** Ghost allocations persist after vGPU destruction.
+- **Performance baselines don't exist.** Nobody measures the burst-to-sustained gap under virtualization.
 
 ## Use Cases
 
 ### ML Platform Team
 
-You manage 100+ H100s. Training jobs randomly slow down and nobody knows why. A straggler GPU turns a 3-day run into a 5-day run — or causes silent accuracy degradation.
+You manage 100+ H100s. Training jobs randomly slow down and nobody knows why. A straggler GPU turns a 3-day run into a 5-day run, or causes silent accuracy degradation.
 
 ```bash
 # Find the straggler and get a root cause in one command
@@ -47,7 +49,7 @@ gpu-fleet validate --threshold 0.85
 
 ### Cloud GPU Provider / Multi-Tenant
 
-You sell MIG slices or GRID time-sliced vGPUs. When a new tenant provisions, existing tenants get squeezed — but you don't know until they complain. Teardown leaks VRAM silently.
+You sell MIG slices or GRID time-sliced vGPUs. When a new tenant provisions, existing tenants get squeezed, but you don't know until they complain. Teardown leaks VRAM silently.
 
 ```bash
 # Real-time lifecycle monitoring with 7 alert rules
@@ -71,7 +73,7 @@ gpu-roofline diagnose --device 0
 gpu-roofline measure
 ```
 
-Output: "L2 cache thrashing — working set 180MB exceeds 50MB L2. Increase batch size to amortize memory access."
+Output: "L2 cache thrashing: working set 180MB exceeds 50MB L2. Increase batch size to amortize memory access."
 
 ### DevOps / CI Pipeline
 
@@ -98,7 +100,7 @@ gpu-roofline diagnose --sim degraded_h100_memory    # triggers HBM degradation f
 gpu-fleet straggler --sim h100_sxm --count 8        # tests outlier detection
 gpu-roofline vgpu watch --sim grid_contention        # tests contention alerting
 
-# Same binary deploys to production — no code changes
+# Same binary deploys to production, no code changes
 ```
 
 > All simulation profiles are validated against real hardware. See [docs/validation/](docs/validation/) for H100/H200/RTX 5090 test artifacts with full provenance.
@@ -144,7 +146,7 @@ gpu-roofline vgpu list --sim mig_scale_up --json
 | **SR-IOV** | inotify on sysfs VFs | sysfs polling |
 | **Cloud Passthrough** | udev device events | device enumeration delta |
 | **Kubernetes** | kubelet device-plugins watch | kubelet API polling |
-| **Simulated** | Built-in scenarios for testing | — |
+| **Simulated** | Built-in scenarios for testing | N/A |
 
 ### Simulation Scenarios (No Hardware Required)
 
@@ -154,16 +156,16 @@ gpu-roofline vgpu scenarios
 
 | Scenario | What It Tests |
 |----------|--------------|
-| `mig_scale_up` | 7 MIG instances on H100 — hardware-partitioned, no contention |
-| `grid_contention` | 4 GRID vGPUs — each new one squeezes existing tenants |
+| `mig_scale_up` | 7 MIG instances on H100, hardware-partitioned, no contention |
+| `grid_contention` | 4 GRID vGPUs, each new one squeezes existing tenants |
 | `ghost_allocation` | Create + destroy with 512MB not reclaimed |
-| `rapid_churn` | 20 create/destroy cycles — stress-tests for state leaks |
+| `rapid_churn` | 20 create/destroy cycles, stress-tests for state leaks |
 
 ---
 
 ## Performance Measurement
 
-Beyond lifecycle monitoring, gpu-roofline measures what no other tool does: the **sustained** performance ceiling — not just the burst peak that benchmarks report.
+Beyond lifecycle monitoring, gpu-roofline measures what no other tool does: the **sustained** performance ceiling, not just the burst peak that benchmarks report.
 
 ### Dynamic Roofline with Tension Analysis
 
@@ -180,7 +182,7 @@ Beyond lifecycle monitoring, gpu-roofline measures what no other tool does: the 
     Tension: 82.6T → 65.1T (−21.2%) burst-to-sustained
 ```
 
-Your ML training job runs for hours at the **sustained** ceiling — 15-30% lower than what benchmarks report.
+Your ML training job runs for hours at the **sustained** ceiling, 15 to 30% lower than what benchmarks report.
 
 ### Validated Hardware
 
@@ -189,14 +191,14 @@ Your ML training job runs for hours at the **sustained** ceiling — 15-30% lowe
 | **NVIDIA H200 141GB** | **4,028 GB/s** | **59.5 TFLOPS** | **686 TFLOPS** | **686 TFLOPS** | CUDA |
 | **NVIDIA H100 80GB** | **2,958 GB/s** | **59.0 TFLOPS** | **495 TFLOPS** | **495 TFLOPS** | CUDA |
 | **NVIDIA RTX 5090 32GB** | **1,503 GB/s** | **95.8 TFLOPS** | **247 TFLOPS** | **247 TFLOPS** | CUDA |
-| Intel UHD Graphics | 7 GB/s | 0.15 TFLOPS | — | — | Vulkan |
+| Intel UHD Graphics | 7 GB/s | 0.15 TFLOPS | N/A | N/A | Vulkan |
 
 GPU-side CUDA Event timestamps for sub-microsecond accuracy. Automatic fallback to CPU timing on non-CUDA backends.
 
 ### Quick Start
 
 ```bash
-# Install (consumer GPUs — Vulkan/DX12/Metal)
+# Install (consumer GPUs: Vulkan/DX12/Metal)
 cargo install gpu-roofline
 
 # Install with CUDA (datacenter H100/H200/A100)
@@ -228,7 +230,7 @@ Detects: sudden degradation, thermal throttling, gradual decline, measurement in
 
 ### Simulation Mode
 
-11 pre-built GPU profiles — test without hardware:
+11 pre-built GPU profiles. Test without hardware:
 
 ```bash
 gpu-roofline measure --sim h100_sxm
@@ -279,7 +281,7 @@ gpu-roofline/
 
 ## Library Usage
 
-`gpu-harness` is a standalone Rust crate — embed GPU monitoring directly in your services without shelling out to the CLI:
+`gpu-harness` is a standalone Rust crate. Embed GPU monitoring directly in your services without shelling out to the CLI:
 
 ```toml
 [dependencies]
@@ -393,23 +395,23 @@ kubectl apply -f deploy/k8s/
 
 See [ROADMAP.md](docs/ROADMAP.md) for details.
 
-- **v0.2** ✅ vGPU Lifecycle Monitoring — trigger-point detection, contention, teardown verification, 7 alert rules
-- **v0.2** ✅ CUDA Events — GPU-side hardware timestamps, automatic CPU fallback
-- **v0.3** ✅ Diagnostic Engine — 6 probes for automatic GPU root-cause analysis
-- **v0.3** ✅ gpu-fleet — multi-GPU cluster validation, NVLink topology, straggler detection
-- **v0.3** ✅ Real MIG Detection — NVML MIG APIs for hardware vGPU enumeration + polling
-- **v0.4** ✅ Enterprise Integration — Prometheus metrics, webhook alerts, Grafana dashboard, K8s deployment
+- **v0.2** ✅ vGPU Lifecycle Monitoring: trigger-point detection, contention, teardown verification, 7 alert rules
+- **v0.2** ✅ CUDA Events: GPU-side hardware timestamps, automatic CPU fallback
+- **v0.3** ✅ Diagnostic Engine: 6 probes for automatic GPU root-cause analysis
+- **v0.3** ✅ gpu-fleet: multi-GPU cluster validation, NVLink topology, straggler detection
+- **v0.3** ✅ Real MIG Detection: NVML MIG APIs for hardware vGPU enumeration + polling
+- **v0.4** ✅ Enterprise Integration: Prometheus metrics, webhook alerts, Grafana dashboard, K8s deployment
 
 ## Contributing Hardware Validation
 
 The simulation study predicts six categories of invisible waste on H100/H200 GPUs. We need bare-metal hardware validation to confirm the simulation findings. If you have access to:
 
-- **H100 SXM5 or H200** with MIG enabled — ghost allocations, provisioning overhead, contention
-- **Multi-GPU cluster (8+ GPUs)** — straggler tax in distributed training
-- **Time-sliced vGPU environment** — contention squeeze measurements
-- **Any datacenter GPU** — burst-to-sustained gap thermal characterization
+- **H100 SXM5 or H200** with MIG enabled: ghost allocations, provisioning overhead, contention
+- **Multi-GPU cluster (8+ GPUs)**: straggler tax in distributed training
+- **Time-sliced vGPU environment**: contention squeeze measurements
+- **Any datacenter GPU**: burst-to-sustained gap thermal characterization
 
-See the [study protocol](docs/study-protocol-gpu-waste.md) for the full experimental design (1,200 hardware trials planned). The simulation predicts specific effect sizes — we need hardware data to confirm or calibrate them.
+See the [study protocol](docs/study-protocol-gpu-waste.md) for the full experimental design (1,200 hardware trials planned). The simulation predicts specific effect sizes. We need hardware data to confirm or calibrate them.
 
 Open an issue with the `hardware-validation` label or reach out directly. All contributed data will be credited in the follow-on publication.
 
