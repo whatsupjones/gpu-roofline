@@ -54,3 +54,9 @@ ureq = "2"
 
 # Testing
 rand = "0.8"
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
+strip = true
