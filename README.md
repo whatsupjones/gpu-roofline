@@ -10,15 +10,16 @@ Measures what standard tools cannot: the gap between burst and sustained perform
 
 **Pre-built binary** (no Rust required):
 
+Download from [GitHub Releases](https://github.com/whatsupjones/gpu-roofline/releases/latest). Binaries for Linux (x86, ARM), macOS (Intel, Apple Silicon), and Windows.
+
 ```bash
 # Linux (x86_64)
-curl -L https://github.com/whatsupjones/gpu-roofline/releases/latest/download/gpu-roofline-latest-x86_64-unknown-linux-gnu.tar.gz | tar xz
+VERSION=v0.1.0
+curl -L https://github.com/whatsupjones/gpu-roofline/releases/download/${VERSION}/gpu-roofline-${VERSION}-x86_64-unknown-linux-gnu.tar.gz | tar xz
 sudo mv gpu-roofline gpu-fleet /usr/local/bin/
 
-# macOS
-curl -L https://github.com/whatsupjones/gpu-roofline/releases/latest/download/gpu-roofline-latest-x86_64-apple-darwin.tar.gz | tar xz
-
-# Windows: download .zip from GitHub Releases
+# macOS (Apple Silicon)
+curl -L https://github.com/whatsupjones/gpu-roofline/releases/download/${VERSION}/gpu-roofline-${VERSION}-aarch64-apple-darwin.tar.gz | tar xz
 ```
 
 **From source** (Rust toolchain):
