@@ -8,7 +8,7 @@ GPU lifecycle monitoring and performance analysis for virtualized infrastructure
 
 ## Study: The GPU Efficiency Gap
 
-We conducted a [120,000-trial simulation study](docs/study-simulation-manuscript.md) identifying six categories of invisible GPU waste across the full operations stack: device-level thermal physics, virtualization partitioning, and fleet-level coordination. The simulation is calibrated against hardware-validated roofline measurements on H100 SXM and H200 systems.
+We conducted a [120,000-trial simulation study](docs/study-simulation-manuscript.md) demonstrating that GPU performance is a trajectory, not a static number. The industry benchmarks against a static roofline. We extend it with a temporal dimension: the dynamic roofline and its tension ratio, measuring the gap between burst and sustained performance under real operating conditions. Using this framework, we identify six categories of invisible efficiency loss across the full operations stack. The simulation is calibrated against hardware-validated measurements on H100 SXM and H200 systems.
 
 **The central finding: `nvidia-smi` and DCGM detect 0% of waste events across all six categories. `gpu-roofline` detects 56.5 to 100%.**
 
@@ -20,7 +20,7 @@ We conducted a [120,000-trial simulation study](docs/study-simulation-manuscript
 
 All six categories produce large effect sizes (Cohen's d/d_z from 0.73 to 8.55). The simulation is deterministic and reproducible (seed 42, SHA-256 verified).
 
-**Read the full study:** [Manuscript](docs/study-simulation-manuscript.md) | [PDF](docs/print/gpu-waste-study-complete.pdf) | [Results](docs/study-results/summary.md) | [Protocol](docs/study-protocol-gpu-waste.md)
+**Read the full study:** [Manuscript](docs/study-simulation-manuscript.md) | [Abstract](docs/study-abstract.md) | [Results](docs/study-results/summary.md) | [Protocol](docs/study-protocol-gpu-waste.md)
 
 Hardware validation on bare-metal H100 is the next phase. See [Contributing Hardware Validation](#contributing-hardware-validation) below.
 
