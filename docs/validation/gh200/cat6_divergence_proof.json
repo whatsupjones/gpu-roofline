@@ -1,0 +1,29 @@
+{
+  "test": "divergence_proof_validation",
+  "category": 6,
+  "gpu": "NVIDIA GH200 480GB",
+  "driver": "580.105.08",
+  "date": "2026-03-24",
+  "theorems_validated": ["T1_divergence_linearity", "T2_ghost_invisibility_bound"],
+  "m_overhead_mib": 0,
+  "m_fragmentation_mib": 1102,
+  "profile": "1g.12gb",
+  "q_per_instance_mib": 11264,
+  "u_per_instance_mib": 15,
+  "measurements": [
+    {"n": 1, "nvidia_free_mib": 96754, "m_available_mib": 86607, "divergence_mib": 10147, "ghost_invis_bound_gb": 10.1},
+    {"n": 2, "nvidia_free_mib": 96739, "m_available_mib": 75343, "divergence_mib": 21396, "ghost_invis_bound_gb": 21.4},
+    {"n": 3, "nvidia_free_mib": 96724, "m_available_mib": 64079, "divergence_mib": 32645, "ghost_invis_bound_gb": 32.6},
+    {"n": 4, "nvidia_free_mib": 96709, "m_available_mib": 52815, "divergence_mib": 43894, "ghost_invis_bound_gb": 43.9},
+    {"n": 5, "nvidia_free_mib": 96694, "m_available_mib": 41551, "divergence_mib": 55143, "ghost_invis_bound_gb": 55.1},
+    {"n": 6, "nvidia_free_mib": 96680, "m_available_mib": 30287, "divergence_mib": 66393, "ghost_invis_bound_gb": 66.4},
+    {"n": 7, "nvidia_free_mib": 96665, "m_available_mib": 19023, "divergence_mib": 77642, "ghost_invis_bound_gb": 77.6}
+  ],
+  "linear_fit": {
+    "slope_mib_per_instance": 11249,
+    "intercept_mib": -1102,
+    "r_squared": 1.0,
+    "interpretation": "D(n) = 11249n - 1102. Slope matches q - u = 11264 - 15 = 11249 MiB. Intercept is -M_fragmentation."
+  },
+  "conclusion": "Theorem 1 validated: divergence grows linearly with partition count. Theorem 2 validated: ghost invisibility bound = D(n). M_fragmentation = 1102 MiB constant across all n."
+}
