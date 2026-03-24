@@ -13,8 +13,13 @@ Measures what standard tools cannot: the gap between burst and sustained perform
 Download from [GitHub Releases](https://github.com/whatsupjones/gpu-roofline/releases/latest). Binaries for Linux (x86, ARM), macOS (Intel, Apple Silicon), and Windows.
 
 ```bash
-# Linux (x86_64)
-VERSION=v0.1.0
+VERSION=v0.1.2
+
+# Linux with CUDA (datacenter GPUs: H100, H200, A100)
+curl -L https://github.com/whatsupjones/gpu-roofline/releases/download/${VERSION}/gpu-roofline-${VERSION}-x86_64-linux-cuda.tar.gz | tar xz
+sudo mv gpu-roofline gpu-fleet /usr/local/bin/
+
+# Linux without CUDA (consumer GPUs via Vulkan)
 curl -L https://github.com/whatsupjones/gpu-roofline/releases/download/${VERSION}/gpu-roofline-${VERSION}-x86_64-unknown-linux-gnu.tar.gz | tar xz
 sudo mv gpu-roofline gpu-fleet /usr/local/bin/
 

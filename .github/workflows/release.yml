@@ -79,9 +79,52 @@ jobs:
           name: gpu-roofline-${{ matrix.target }}
           path: gpu-roofline-${{ github.ref_name }}-${{ matrix.target }}.*
 
+  build-cuda:
+    name: Build CUDA (Linux x86_64)
+    runs-on: ubuntu-22.04
+    container:
+      image: nvidia/cuda:12.4.0-devel-ubuntu22.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y curl gcc pkg-config libssl-dev
+
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Build gpu-roofline with CUDA
+        run: |
+          . "$HOME/.cargo/env"
+          cargo build --release --features cuda -p gpu-roofline
+
+      - name: Build gpu-fleet with CUDA
+        run: |
+          . "$HOME/.cargo/env"
+          cargo build --release --features cuda -p gpu-fleet
+
+      - name: Package
+        run: |
+          mkdir -p dist
+          cp target/release/gpu-roofline dist/
+          cp target/release/gpu-fleet dist/
+          cp README.md LICENSE-MIT LICENSE-APACHE dist/ 2>/dev/null || true
+          cd dist
+          tar czf ../gpu-roofline-${{ github.ref_name }}-x86_64-linux-cuda.tar.gz *
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpu-roofline-x86_64-linux-cuda
+          path: gpu-roofline-${{ github.ref_name }}-x86_64-linux-cuda.tar.gz
+
   release:
     name: Create Release
-    needs: build
+    needs: [build, build-cuda]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
