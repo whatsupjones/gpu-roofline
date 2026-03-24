@@ -1,0 +1,10 @@
+[
+{"n":1,"nvidia_free":96754,"nvidia_used":15,"nvidia_total":97871,"mig_committed":11264,"m_available":86607,"divergence":10147,"m_overhead":0,"ts":"2026-03-24T20:10:21Z"}
+,{"n":2,"nvidia_free":96739,"nvidia_used":30,"nvidia_total":97871,"mig_committed":22528,"m_available":75343,"divergence":21396,"m_overhead":0,"ts":"2026-03-24T20:10:26Z"}
+,{"n":3,"nvidia_free":96724,"nvidia_used":45,"nvidia_total":97871,"mig_committed":33792,"m_available":64079,"divergence":32645,"m_overhead":0,"ts":"2026-03-24T20:10:31Z"}
+,{"n":4,"nvidia_free":96710,"nvidia_used":59,"nvidia_total":97871,"mig_committed":45056,"m_available":52815,"divergence":43895,"m_overhead":0,"ts":"2026-03-24T20:10:37Z"}
+,{"n":5,"nvidia_free":96695,"nvidia_used":74,"nvidia_total":97871,"mig_committed":56320,"m_available":41551,"divergence":55144,"m_overhead":0,"ts":"2026-03-24T20:10:44Z"}
+,{"n":6,"nvidia_free":96680,"nvidia_used":89,"nvidia_total":97871,"mig_committed":67584,"m_available":30287,"divergence":66393,"m_overhead":0,"ts":"2026-03-24T20:10:51Z"}
+,{"n":7,"nvidia_free":96666,"nvidia_used":103,"nvidia_total":97871,"mig_committed":78848,"m_available":19023,"divergence":77643,"m_overhead":0,"ts":"2026-03-24T20:10:58Z"}
+]
+Connection to 192.222.50.225 closed.

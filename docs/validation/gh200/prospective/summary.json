@@ -1,0 +1,17 @@
+{
+  "protocol": "study-protocol-hardware-validation.md v1.0",
+  "gpu": "NVIDIA GH200 480GB",
+  "driver": "580.105.08",
+  "cuda": "12.8",
+  "started": "2026-03-24T20:07:07Z",
+  "finished": "2026-03-24T20:39:40Z",
+  "hypotheses": {
+    "H1_provisioning": {"trials": 60, "file": "h1_provisioning.json"},
+    "H2_divergence": {"trials": 7, "file": "h2_divergence.json"},
+    "H3_ghost": {"test_a_trials": 50, "test_a_ghosts": 0
+0, "test_b_reps": 5, "file": "h3_ghost.json"},
+    "H4_contention": {"trials": 30, "file": "h4_contention.json"},
+    "H5_tension": {"trials": 15, "file": "h5_tension.json"}
+  }
+}
+Connection to 192.222.50.225 closed.
