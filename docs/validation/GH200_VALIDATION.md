@@ -135,6 +135,93 @@ MIG teardown is clean on this hardware and driver combination. Ghost allocations
 
 The GH200's bandwidth sits between H100 and H200, consistent with its HBM3 configuration (vs H100's HBM3 and H200's HBM3e). FP32 compute is identical across all three (same Hopper SMs). The Grace CPU host (aarch64) does not affect GPU-side measurements.
 
+## Category 3: MIG Provisioning Overhead
+
+**Protocol:** Time MIG instance creation and destruction using nanosecond wall-clock timestamps. nvidia-smi reports the instance after it exists but cannot measure the creation latency itself.
+
+### 3a. Create/Destroy Latency (50 cycles, 1g.12gb)
+
+| Metric | Create (ms) | Destroy (ms) |
+|--------|-----------|-------------|
+| Median | 1,185 | 615 |
+| Min | 1,148 | 593 |
+| Max | 1,248 | 673 |
+
+**Finding:** MIG partition creation takes 1.1-1.3 seconds. This dead time is invisible to nvidia-smi. The study predicted 120-500ms. Actual is 2-10x worse than predicted.
+
+### 3b. Profile Size Effect (3g.48gb, 10 cycles)
+
+| Metric | Create (ms) | Destroy (ms) |
+|--------|-----------|-------------|
+| Median | 1,280 | 1,000 |
+
+Larger profiles take longer. 3g.48gb creation is ~100ms slower than 1g.12gb. Destruction is ~400ms slower.
+
+### 3c. Cold vs Warm Provisioning
+
+| Condition | Create (ms) |
+|-----------|-----------|
+| Cold (first after MIG enable) | 1,217 |
+| Warm (immediate re-create) | 1,168 |
+
+Minimal difference between cold and warm. The overhead is consistent.
+
+### 3d. Sequential Multi-Instance Provisioning
+
+| Instance | Create (ms) |
+|----------|-----------|
+| 1st | 1,189 |
+| 2nd | 289 |
+| 3rd | 298 |
+| 4th | 273 |
+| 5th | 264 |
+| 6th | 301 |
+| 7th | 273 |
+| Bulk destroy all 7 | 1,838 |
+
+**Finding:** First instance has full 1.2s overhead. Subsequent instances on the same GPU create in ~280ms. This suggests the first create initializes MIG infrastructure on the GPU, and subsequent creates are incremental. Bulk destroy of 7 instances takes 1.8s.
+
+### 3e. nvidia-smi Visibility
+
+nvidia-smi reports the instance within 11ms of creation completing. But it cannot report the 1.2 seconds of creation time itself. A monitoring system polling nvidia-smi would see the instance appear instantaneously, with no record of the provisioning latency.
+
+---
+
+## Category 6: Oversubscription Visibility
+
+**Protocol:** Create maximum MIG instances (7x 1g.12gb), query nvidia-smi for free memory, compare against actual available capacity for new partitions.
+
+### Results
+
+With 7 MIG instances active (7 x 11 GB = 77 GB committed to MIG):
+
+| Metric | nvidia-smi reports | Actual |
+|--------|-------------------|--------|
+| memory.total | 97,871 MiB | 97,871 MiB |
+| memory.used | 102 MiB | 102 MiB |
+| memory.free | 96,667 MiB | **~18,600 MiB** |
+
+**Finding:** nvidia-smi reports 96,667 MiB free. Only ~18,600 MiB is actually available for new MIG partitions. nvidia-smi overstates available memory by 78 GB because it reports physical free memory (memory not currently holding data), not memory available for new MIG allocations. The 77 GB committed to existing MIG instances appears as "free" since the instances haven't filled their VRAM quotas.
+
+A platform operator using `nvidia-smi --query-gpu=memory.free` to decide whether to provision another tenant would see 94 GB free and conclude there is room. There is not. Only 18.6 GB is unallocated to MIG instances.
+
+---
+
+## Hardware Validation Summary: 4 of 6 Categories Tested
+
+| Category | Result | nvidia-smi Detection |
+|----------|--------|---------------------|
+| 1. Ghost allocations | Clean on driver 580.105.08 (20 single-tenant cycles, multi-tenant selective, kill -9) | N/A (no ghost found) |
+| 2. Contention squeeze | Not tested (requires GRID time-slicing) | — |
+| 3. Provisioning overhead | **1,185ms create, 615ms destroy per MIG instance** | **0% detection (reports post-facto only)** |
+| 4. Burst-to-sustained gap | 0.0% on datacenter-cooled GH200 | nvidia-smi does not track thermal trajectory |
+| 5. Straggler tax | Not tested (requires multi-GPU fleet) | — |
+| 6. Oversubscription visibility | **nvidia-smi overstates free memory by 78 GB with 7 MIG instances** | **0% detection (reports physical free, not MIG-available)** |
+
+Categories 3 and 6 confirm the study's central thesis: nvidia-smi cannot observe waste that gpu-roofline's methodology detects.
+
+---
+
 ## Notes
 
 - The GH200 reports as "NVIDIA GH200 480GB" but has 94.5 GB usable VRAM (consistent with HBM3 480GB module with ECC overhead).

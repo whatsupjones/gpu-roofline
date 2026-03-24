@@ -1,0 +1,18 @@
+{
+  "test": "oversubscription_visibility",
+  "gpu": "NVIDIA GH200 480GB",
+  "driver": "580.105.08",
+  "date": "2026-03-24",
+  "physical_total_mib": 97871,
+  "mig_instances": 7,
+  "mig_profile": "1g.12gb",
+  "mig_committed_gb": 77,
+  "nvidia_smi_reports": {
+    "memory_total_mib": 97871,
+    "memory_used_mib": 102,
+    "memory_free_mib": 96667
+  },
+  "actual_available_for_new_mig_gb": 18.6,
+  "overstatement_gb": 78,
+  "finding": "nvidia-smi reports 96,667 MiB free. Only ~18,600 MiB is available for new MIG partitions. 77 GB committed to existing instances appears as free."
+}
