@@ -1,0 +1,37 @@
+{
+  "device_name": "NVIDIA GH200 480GB",
+  "peak_gflops": 59414.67,
+  "peak_bandwidth_gbps": 3564.31,
+  "ridge_point": 16.67,
+  "clock_mhz": 1980,
+  "temperature_c": 42,
+  "power_watts": 192.19,
+  "placements": [
+    {"name": "copy", "arithmetic_intensity": 0.0, "achieved_bandwidth_gbps": 3564.31, "efficiency": 1.0, "cv": 0.006},
+    {"name": "scale", "arithmetic_intensity": 0.125, "achieved_bandwidth_gbps": 3554.12, "efficiency": 0.997, "cv": 0.006},
+    {"name": "add", "arithmetic_intensity": 0.083, "achieved_bandwidth_gbps": 2442.28, "efficiency": 0.516, "cv": 0.004},
+    {"name": "triad", "arithmetic_intensity": 0.167, "achieved_bandwidth_gbps": 2440.85, "efficiency": 0.641, "cv": 0.004},
+    {"name": "fma_light", "arithmetic_intensity": 1.0, "achieved_bandwidth_gbps": 3554.12, "efficiency": 0.997, "cv": 0.007},
+    {"name": "fma_medium", "arithmetic_intensity": 8.0, "achieved_bandwidth_gbps": 3489.44, "efficiency": 0.979, "cv": 0.006},
+    {"name": "fma_heavy", "arithmetic_intensity": 64.0, "achieved_gflops": 59414.67, "efficiency": 1.0, "cv": 0.002}
+  ],
+  "dynamic": {
+    "burst_gflops": 59254.0,
+    "burst_bandwidth_gbps": 3548,
+    "sustained_gflops": 59314.6,
+    "sustained_bandwidth_gbps": 3549,
+    "tension_pct": -0.1,
+    "equilibrium_seconds": 10,
+    "burst_temp_c": 39,
+    "sustained_temp_c": 41
+  },
+  "mig_ghost_test": {
+    "single_tenant_cycles": 10,
+    "ghost_allocation_mib": 0
+  },
+  "platform": "Lambda Labs",
+  "driver": "580.105.08",
+  "cuda": "12.8",
+  "arch": "aarch64",
+  "date": "2026-03-24"
+}

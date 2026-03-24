@@ -128,6 +128,7 @@ gpu-roofline measure --save-baseline roofline.json
 
 | GPU | HBM BW | FP32 | FP16 Tensor | BF16 Tensor | Backend |
 |-----|--------|------|-------------|-------------|---------|
+| **NVIDIA GH200 480GB** | **3,558 GB/s** | **59.4 TFLOPS** | N/A | N/A | CUDA |
 | **NVIDIA H200 141GB** | **4,028 GB/s** | **59.5 TFLOPS** | **686 TFLOPS** | **686 TFLOPS** | CUDA |
 | **NVIDIA H100 80GB** | **2,958 GB/s** | **59.0 TFLOPS** | **495 TFLOPS** | **495 TFLOPS** | CUDA |
 | **NVIDIA RTX 5090 32GB** | **1,503 GB/s** | **95.8 TFLOPS** | **247 TFLOPS** | **247 TFLOPS** | CUDA |
